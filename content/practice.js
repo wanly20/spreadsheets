@@ -193,7 +193,7 @@ export const practice = {
   sheet: {
     learn: { visual: { tabs: { tabs: ["Sheet1", "Sheet2", "Sheet3"], active: 0 } }, note: "Like the pages in a ring binder: one file, many pages." },
     exercises: [
-      { type: "choice", fact: "The whole file is the spreadsheet", prompt: "Fill the gaps: the whole file is the ____. Each tab is a ____.",
+      { type: "choice", fact: "The whole file is the spreadsheet", prompt: "Which pair is right? The whole file is the (1) ____. Each tab is a (2) ____.",
         visual: { tabs: { tabs: ["Sheet1", "Sheet2", "Sheet3"], active: 0 } },
         correct: "spreadsheet · sheet", wrong: ["sheet · spreadsheet", "cell · range", "range · column"] },
       { type: "choice", fact: "worksheet", prompt: "What is another name for a sheet?", correct: "A worksheet", wrong: ["A cell", "A range", "A Name Box"] },

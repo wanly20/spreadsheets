@@ -8,7 +8,7 @@ import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./g
 import { renderVisual, fillValues, keycaps } from "./visuals.js";
 import { screens } from "../content/screens.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula };
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula, gaps };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
@@ -22,6 +22,7 @@ const KICKER = {
   hotspot: ["target", "Find it on screen"],
   order: ["list-ordered", "Put the steps in order"],
   formula: ["type", "Write the formula"],
+  gaps: ["list-ordered", "Fill the gaps"],
   match: ["sparkles", "Match the pairs"],
 };
 
@@ -689,6 +690,83 @@ function formula(step, api) {
       if (ok) return { ok };
       const t = skipped ? { tip: "" } : formulaTip(got, accept);
       return { ok: false, title: t.title, answer: step.accept[0], body: t.tip ? `<span class="feedback__tip">${esc(t.tip)}</span>` : "" };
+    },
+  };
+}
+
+// ================================================================ fill the gaps (a definition's [[…]] words)
+function gaps(step, api) {
+  const item = api.item(step.item);
+  const n = step.answers.length;
+  let k = 0;
+  const textHtml = esc(step.def).replace(/\[\[(.+?)\]\]/g, () => {
+    const i = k++;
+    return `<button type="button" class="gap" data-slot="${i}" aria-label="Gap ${i + 1}, empty"><span class="gap__n" aria-hidden="true">${i + 1}</span><span class="gap__text"></span></button>`;
+  });
+  const node = el(`
+    <div class="ex ex-gaps">
+      ${head(step, step.showTerm === false ? "Complete the definition" : `Complete the meaning of <span class="term-inline">${esc(item.term)}</span>`, n > 1 ? "Start with gap 1. Tap a filled gap to take its words back." : "Tap the words that fill the gap.")}
+      <p class="gap-text">${textHtml}</p>
+      <div class="chip-bank" role="group" aria-label="Words">
+        ${step.chips.map((c, i) => `<span class="chip-slot"><button type="button" class="press word-chip" data-chip="${i}"><span class="face"><span class="key" aria-hidden="true">${i + 1}</span><span class="label">${esc(c)}</span></span></button></span>`).join("")}
+      </div>
+    </div>`);
+  const slots = $$(".gap", node), chips = $$(".word-chip", node);
+  const filled = Array(n).fill(null); // chip index per slot
+  const order = [];                   // slots in the order they were filled (for Backspace)
+  let active = 0;
+  const firstEmpty = (from = 0) => { for (let j = 0; j < n; j++) { const i = (from + j) % n; if (filled[i] == null) return i; } return -1; };
+  const render = () => {
+    slots.forEach((s, i) => {
+      const c = filled[i];
+      s.querySelector(".gap__text").textContent = c == null ? "" : step.chips[c];
+      s.classList.toggle("is-filled", c != null);
+      s.classList.toggle("is-active", i === active && c == null && !node.classList.contains("is-locked"));
+      s.setAttribute("aria-label", `Gap ${i + 1}, ${c == null ? "empty" : step.chips[c]}`);
+    });
+    chips.forEach((b, i) => { const used = filled.includes(i); b.classList.toggle("is-used", used); b.disabled = used; });
+    api.enableCheck(filled.every((c) => c != null));
+  };
+  const place = (ci) => {
+    if (node.classList.contains("is-locked") || filled.includes(ci)) return;
+    const slot = filled[active] == null ? active : firstEmpty(active);
+    if (slot < 0) return;
+    filled[slot] = ci; order.push(slot);
+    sfx.tap();
+    restartAnim(slots[slot], "pop");
+    active = firstEmpty(slot + 1);
+    if (active < 0) active = slot;
+    render();
+  };
+  const unplace = (slot) => {
+    if (node.classList.contains("is-locked") || filled[slot] == null) return;
+    filled[slot] = null; order.splice(order.lastIndexOf(slot), 1);
+    active = slot;
+    sfx.tap();
+    render();
+  };
+  node.addEventListener("click", (e) => {
+    const ch = e.target.closest(".word-chip"), gp = e.target.closest(".gap");
+    if (ch) place(+ch.dataset.chip);
+    else if (gp) { const i = +gp.dataset.slot; if (filled[i] != null) unplace(i); else { active = i; render(); } }
+  });
+  render();
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey(key) {
+      if (key === "Backspace") { if (order.length) unplace(order[order.length - 1]); return; }
+      const b = chips[key - 1];
+      if (b && !b.disabled) place(+b.dataset.chip);
+    },
+    check({ skipped } = {}) {
+      node.classList.add("is-locked");
+      const right = (i) => filled[i] != null && step.chips[filled[i]].toLowerCase() === step.answers[i].toLowerCase();
+      const ok = !skipped && step.answers.every((_, i) => right(i));
+      slots.forEach((s, i) => { s.classList.remove("is-active"); s.classList.add(right(i) ? "is-right" : "is-off"); });
+      chips.forEach((b) => (b.disabled = true));
+      return { ok, explain: null, body: `<span class="feedback__def feedback__def--full"><b>${esc(item.term)}:</b> ${rich(item.def)}</span>` };
     },
   };
 }

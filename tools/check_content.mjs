@@ -6,7 +6,8 @@
 //    so no exercise can contradict (or drift from) the definition,
 //  - answers are well formed (the right answer isn't also a wrong one, grid
 //    references fit the grid, hotspot targets exist, steps, keys, fills),
-//  - automatic revision prompts don't give away their own term,
+//  - automatic revision prompts don't give away their own term, "Which term matches?"
+//    never shows [[gaps]], and "Fill the gaps" has 2–3 wrong chips that are never right answers,
 //  - every level builds 8–12 questions (tried with 30 different shuffles).
 // Exits 1 on errors; warnings are printed but don't fail.
 import { readFileSync, existsSync } from "node:fs";
@@ -115,6 +116,30 @@ for (const [id, s] of Object.entries(screens)) {
   if (!existsSync(path.join(ROOT, s.src))) err(`screen ${id}: missing ${s.src}`);
 }
 
+// ------------------------------------------------------------ automatic questions
+for (const l of model.lessons.filter((x) => !x.comingSoon)) {
+  for (const it of l.items) {
+    for (let seed = 1; seed <= 10; seed++) {
+      for (const g of C.genericExercises(it, l.items, C.makeRng(seed))) {
+        if (g.gen === "defToTerm") {
+          if (/\[\[|\]\]|_{3,}/.test(g.quote)) err(`"${it.term}": "Which term matches?" would show gaps: “${g.quote}”`);
+          if (!it.review && C.blanksGiveAway(it)) err(`"${it.term}": "Which term matches?" would give the term away`);
+        }
+        if (g.gen === "gaps") {
+          const blanks = C.blanksOf(it.def);
+          if (g.answers.length !== blanks.length) err(`"${it.term}": fill-the-gaps has the wrong number of answers`);
+          const wrong = g.chips.filter((c) => !g.answers.map((a) => a.toLowerCase()).includes(c.toLowerCase()));
+          if (wrong.length < 2 || wrong.length > 3) err(`"${it.term}": fill-the-gaps needs 2–3 wrong chips (has ${wrong.length})`);
+          if (new Set(wrong.map((w) => w.toLowerCase())).size !== wrong.length) err(`"${it.term}": fill-the-gaps has the same wrong chip twice`);
+          if (g.chips.length > 9) err(`"${it.term}": fill-the-gaps has more than 9 chips (keys 1–9)`);
+          if (g.chips.length !== g.answers.length + wrong.length) err(`"${it.term}": a wrong chip equals a right answer`);
+        }
+      }
+    }
+    if (!C.blanksOf(it.def).length && !C.termPrompt(it)) warn(`"${it.term}": no "Which term matches?" (its definition names the term) and no gaps to fill`);
+  }
+}
+
 // ------------------------------------------------------------ sessions
 const covered = new Set();
 for (const l of model.lessons.filter((x) => !x.comingSoon)) {
@@ -126,6 +151,7 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
       min = Math.min(min, q); max = Math.max(max, q);
       steps.filter((s) => s.type === "learn").forEach((s) => covered.add(s.item));
       for (const s of steps) if (!s.type) err(`level ${lv.id}: an empty step (seed ${seed})`);
+      for (const s of steps) if (s.gen === "defToTerm" && /\[\[|_{3,}/.test(s.quote)) err(`level ${lv.id}: "Which term matches?" with gaps`);
     }
     if (min < C.LEVEL_MIN || max > C.LEVEL_MAX) err(`level ${lv.id}: ${min}–${max} questions (want ${C.LEVEL_MIN}–${C.LEVEL_MAX})`);
     console.log(`  ${lv.id.padEnd(5)} ${lv.title.padEnd(28)} ${String(lv.items.length).padStart(2)} new items · ${min === max ? min : `${min}–${max}`} questions`);

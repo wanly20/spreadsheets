@@ -41,6 +41,14 @@ definition, so an exercise can't contradict a definition you've changed. A renam
 still works straight away: it gets the automatic "term ↔ definition" questions and joins the
 nearest level. The checker tells you so you can tidy up the level list.
 
+**Automatic questions.** Every term gets them, straight from its definition:
+- *Fill the gaps*: when the definition has `[[…]]` words, each one becomes a numbered gap and the
+  student taps word chips into them (the wrong chips are other terms' `[[…]]` words in the same lesson).
+- *Which term matches?*: shows the `review` text if there is one, otherwise the definition with the
+  `[[ ]]` marks removed. It never shows gaps, and it's skipped when a `[[…]]` word is part of the term
+  (e.g. `[[Fill]]` in "fill colour"), because that would give the answer away; Fill the gaps covers it.
+- *What does this mean?*: the term, with three definitions to choose from.
+
 ## Where things live
 
 | File | What it is |

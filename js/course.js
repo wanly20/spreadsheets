@@ -110,18 +110,65 @@ function otherTerms(item, pool, n, rng) {
   return cands.map((x) => [score(x), x]).sort((a, b) => a[0] - b[0]).slice(0, n).map((p) => p[1]);
 }
 
+const STOP = new Set(["a", "an", "the", "to", "of", "and", "or", "in", "on", "vs"]);
+const termWords = (term) => term.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w));
+/** A word without a plural ending, so "formulas" matches "formula". */
+const stem = (w) => (w.length > 4 ? w.replace(/(es|s)$/, "") : w);
+/** True when a hidden ([[…]]) word is part of the term, e.g. [[Fill]] in "fill colour". */
+export function blanksGiveAway(item) {
+  const hidden = blanksOf(item.def).join(" ").toLowerCase();
+  return termWords(item.term).some((w) => new RegExp(`\\b${stem(w)}`, "i").test(hidden));
+}
+/** The [[…]] words of a definition, in order. */
+export const blanksOf = (def) => [...String(def).matchAll(/\[\[(.+?)\]\]/g)].map((m) => m[1]);
+
+/**
+ * The prompt for "Which term matches?", never with gaps in it:
+ * the `review` text if there is one, else the definition read naturally
+ * (brackets removed). Returns null when that would give the term away
+ * (a hidden word is part of the term, or the term itself appears).
+ */
+export function termPrompt(item) {
+  if (item.review) return item.review;
+  if (blanksGiveAway(item)) return null;
+  const text = item.defPlain;
+  const re = new RegExp(`\\b${item.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  return re.test(text) ? null : text;
+}
+
+/** Wrong chips for "Fill the gaps": hidden words of other items, never one of the answers. */
+function gapDistractors(item, pool, answers, n, rng) {
+  const lower = new Set(answers.map((a) => a.toLowerCase()));
+  const cands = [];
+  for (const x of shuffleR(pool, rng)) {
+    if (x.id === item.id) continue;
+    for (const w of blanksOf(x.def)) if (!lower.has(w.toLowerCase()) && !cands.some((c) => c.toLowerCase() === w.toLowerCase())) cands.push(w);
+  }
+  // Prefer chips of a similar length to the answers, so the length doesn't give it away.
+  const avg = answers.reduce((s, a) => s + a.length, 0) / answers.length;
+  cands.sort((p, q) => Math.abs(p.length - avg) - Math.abs(q.length - avg) + (rng() - 0.5) * 6);
+  return cands.slice(0, n);
+}
+
 /** The automatic exercises every item gets. */
 export function genericExercises(item, pool, rng) {
   const out = [];
+  const blanks = blanksOf(item.def);
+  if (blanks.length) {
+    const wrong = gapDistractors(item, pool.length >= 4 ? pool : [...pool, ...pool], blanks, blanks.length <= 2 ? 3 : 2, rng);
+    out.push({ type: "gaps", gen: "gaps", item: item.id, def: item.def, answers: blanks, showTerm: !blanksGiveAway(item), chips: shuffleR([...blanks, ...wrong], rng) });
+  }
+  const prompt = termPrompt(item);
   const terms = otherTerms(item, pool, 3, rng);
-  if (terms.length >= 2) {
-    out.push({ type: "choice", gen: "defToTerm", item: item.id, quote: item.prompt, prompt: "Which term matches?", correct: item.term, wrong: terms.map((t) => t.term), termOptions: true });
+  if (prompt && terms.length >= 2) {
+    out.push({ type: "choice", gen: "defToTerm", item: item.id, quote: prompt, prompt: "Which term matches?", correct: item.term, wrong: terms.map((t) => t.term), termOptions: true });
   }
   const defs = otherTerms(item, pool.filter((x) => x.defPlain.length <= 150), 2, rng);
   if (defs.length >= 2 && item.defPlain.length <= 170) {
     out.push({ type: "choice", gen: "termToDef", item: item.id, term: item.term, prompt: "What does this mean?", correct: item.defPlain, wrong: defs.map((t) => t.defPlain), long: true });
   }
-  return out;
+  // Mix the order a little so a level gets all three kinds.
+  return shuffleR(out, rng);
 }
 
 export function authoredExercises(item, rng) {

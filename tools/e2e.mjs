@@ -312,6 +312,34 @@ async function runViewport(vp) {
         await page.locator(EX + ".type-input").fill(right ? step.accept[0].toLowerCase() : step.accept[0].slice(1));
         return check();
       }
+      case "gaps": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `gaps: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `gaps: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        // Wrong: a distractor chip in gap 1. Right: the answers in gap order.
+        const lower = step.answers.map((a) => a.toLowerCase());
+        const seq = right ? step.answers : [step.chips.find((c) => !lower.includes(c.toLowerCase())), ...step.answers.slice(1)];
+        if (vp.touch && right && !step.retry) {
+          // Tapping a filled gap gives its chip back, and that gap is active again.
+          const w = step.chips.findIndex((c) => !lower.includes(c.toLowerCase()));
+          await page.locator(EX + ".word-chip").nth(w).tap(); await wait(120);
+          ok(await page.locator(EX + ".word-chip.is-used").count() === 1 && await page.locator(EX + '.gap[data-slot="0"].is-filled').count() === 1, "gaps: a tapped chip fills gap 1");
+          await page.locator(EX + '.gap[data-slot="0"]').tap(); await wait(120);
+          ok(await page.locator(EX + ".word-chip.is-used").count() === 0 && await page.locator(EX + '.gap[data-slot="0"].is-active').count() === 1, "gaps: tapping a filled gap gives its chip back");
+        }
+        for (const w of seq) {
+          const i = await page.evaluate((w) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .word-chip")].findIndex((b) => !b.disabled && b.querySelector(".label").textContent.toLowerCase() === w.toLowerCase()), w);
+          if (vp.touch) await page.locator(EX + ".word-chip").nth(i).tap(); else await page.keyboard.press(String(i + 1));
+          await wait(120);
+        }
+        if (!right) ok(await page.locator(EX + ".gap.is-filled").count() === step.answers.length, "gaps: every slot filled in order");
+        ok(!(await page.locator('.lesson-foot [data-act="main"]').isDisabled()), "gaps: CHECK is on once every gap is filled");
+        await check();
+        await page.waitForSelector(".feedback.is-open", { timeout: 4000 }).catch(() => {});
+        ok(await page.locator(".feedback__def--full .hl").count() === step.answers.length, "gaps: feedback shows the definition with the answers highlighted");
+        if (!right) ok(await page.locator(EX + ".gap.is-off").count() >= 1, "gaps: the wrong gap is marked");
+        return;
+      }
       case "rangeName": {
         const [a, b] = step.target.split(":");
         await page.locator(EX + ".type-input").fill(right ? step.target.toLowerCase() : `${b}:${a}`);

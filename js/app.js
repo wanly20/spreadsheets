@@ -362,13 +362,13 @@ function play(id) {
 
 function samplerSteps() {
   const out = [];
-  const want = ["learn", "choice", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "match"];
+  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "match"];
   const items = model.items;
   for (const kind of want) {
     let step = null;
     if (kind === "learn") step = { type: "learn", item: items.find((it) => it.term === "range")?.id || items[0].id };
     else if (kind === "match") step = reviewSession(model, items.slice(0, 6), { seed: 3, count: 1 }).find((s) => s.type === "match");
-    else if (kind === "defToTerm" || kind === "termToDef") {
+    else if (kind === "defToTerm" || kind === "termToDef" || kind === "gaps") {
       for (const it of items) { step = genericExercises(it, items, Math.random).find((e) => e.gen === kind); if (step) break; }
     } else {
       for (const it of items) {
