@@ -53,8 +53,8 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
 
 // ------------------------------------------------------------ extra practice
 const GRID_TYPES = new Set(["gridClick", "gridName", "gridRange", "rangeName", "gridMove"]);
-const TYPES = new Set(["choice", "fill", "keys", "hotspot", "order", ...GRID_TYPES]);
-const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter"]);
+const TYPES = new Set(["choice", "fill", "keys", "hotspot", "order", "formula", ...GRID_TYPES]);
+const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter", "ctrl+`"]);
 const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
   const ex = it.extra;
@@ -99,6 +99,10 @@ for (const it of model.items) {
         if (!ok) err(`${where}: ${e.target} isn't something you can tap in that picture`);
       } else err(`${where}: needs screen or ui`);
       if (!e.prompt) err(`${where}: needs a prompt`);
+    }
+    if (e.type === "formula") {
+      if (!e.prompt || !Array.isArray(e.accept) || !e.accept.length) err(`${where}: needs a prompt and accepted answers`);
+      (e.accept || []).forEach((a) => { if (!/^=[A-Z0-9:()+\-*/.]+$/.test(a)) err(`${where}: accepted answer ${a} must start with = and use + - * / only`); });
     }
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
   });

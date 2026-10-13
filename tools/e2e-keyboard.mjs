@@ -103,7 +103,8 @@ async function answer(step) {
       const correct = await p.evaluate(async (s) => (await import("./js/exercises.js")).fillOptions(s.start, s.end).correct, step);
       const i = await optionIndex(".option .label", correct); await key(String(i + 1)); return;
     }
-    case "keys": await key({ "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter" }[step.combo]); return;
+    case "keys": await key({ "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter", "ctrl+`": "Control+Backquote" }[step.combo]); return;
+    case "formula": await p.keyboard.type(step.accept[0].toLowerCase()); return;
     case "gridClick": {
       ok((await active()).includes("sheet-grid"), "the mini spreadsheet has keyboard focus");
       if (t === "handle") { await arrowsTo("B2"); await key("Space"); return; }
@@ -114,7 +115,14 @@ async function answer(step) {
     case "gridName": case "rangeName": await p.keyboard.type(t.toLowerCase()); return;
     case "gridRange": { const [a, c] = t.split(":"); await arrowsTo(a); await arrowsTo(c, { shift: true, from: a }); return; }
     case "gridMove": { await arrowsTo(step.from, { from: step.from }); await key("Space"); await arrowsTo(step.to, { from: step.from }); await key("Space"); return; }
-    case "hotspot": { const i = await p.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].findIndex((b) => b.dataset.region === t), t); await key(String(i + 1)); return; }
+    case "hotspot": {
+      const i = await p.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].findIndex((b) => b.dataset.region === t), t);
+      if (i < 9) { await key(String(i + 1)); return; }
+      // Past 9 areas: Tab to the area, then Space (every area is a button).
+      for (let k = 0; k < 40 && !(await p.evaluate((t) => document.activeElement?.dataset?.region === t, t)); k++) await key("Tab");
+      ok(await p.evaluate((t) => document.activeElement?.dataset?.region === t, t), "Tab reaches a screenshot area past the number keys");
+      await key("Space"); return;
+    }
     case "order": for (const s of step.steps) { const i = await optionIndex(".order-card .label", s); await key(String(i + 1)); await wait(150); } return;
     case "match":
       for (const pr of step.pairs) {

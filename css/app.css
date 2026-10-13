@@ -526,3 +526,11 @@
 .bar-btn--kb { color: var(--yellow-600) !important; }
 @media (max-width: 419.98px) { .path-top .brand__name { display: none; } }
 .lesson[data-step="learn"] .combo { opacity: 0; }
+/* The big review at the end of the path, and Lesson 3's yellow */
+.unit--ink { --u: #24352b; --u-edge: #101a14; --u-node: var(--yellow-400); --u-node-edge: var(--yellow-600); --u-text: var(--white); }
+.unit--ink .node { color: var(--yellow-ink); }
+.node-pop--ink { background: #24352b; }
+.node-pop--ink .btn--on-color { color: #24352b; }
+.unit--yellow .node-label b { color: var(--yellow-600); }
+.kb-lesson--yellow .kb-lesson__title { background: var(--yellow-400); color: var(--yellow-ink); }
+.lesson-prog--yellow .mini-bar span { background: var(--yellow-500); }

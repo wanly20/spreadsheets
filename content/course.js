@@ -39,11 +39,16 @@ export const course = {
     {
       n: 3,
       title: "Lesson 3",
-      subtitle: "Coming after Lesson 2",
+      subtitle: "Formulas, cell references and SUM",
       theme: "yellow",
-      comingSoon: true,
+      levels: [
+        { id: "3-1", title: "Formulas", icon: "zap", terms: ["formula", "operators", "why use a cell reference"] },
+        { id: "3-2", title: "Click, fill and check", icon: "pointer", terms: ["click to add a reference", "fill a formula", "show formulas"] },
+        { id: "3-3", title: "SUM, subtracting and paint format", icon: "plus", terms: ["function", "SUM", "order when subtracting", "paint format"] },
+      ],
+      review: { id: "3-r", title: "Mixed review" },
     },
   ],
   // The big review at the end of the path, across every lesson that is ready.
-  finalReview: { id: "all-r", title: "Lesson 1 + 2 review", needs: [1, 2] },
+  finalReview: { id: "all-r", title: "Lessons 1–3 review", needs: [1, 2, 3] },
 };

@@ -8,7 +8,7 @@ import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./g
 import { renderVisual, fillValues, keycaps } from "./visuals.js";
 import { screens } from "../content/screens.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match };
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
@@ -21,6 +21,7 @@ const KICKER = {
   keys: ["keyboard", "Press the keys"],
   hotspot: ["target", "Find it on screen"],
   order: ["list-ordered", "Put the steps in order"],
+  formula: ["type", "Write the formula"],
   match: ["sparkles", "Match the pairs"],
 };
 
@@ -372,6 +373,7 @@ const ACCEPT = { delete: ["delete", "backspace", "alt+backspace"], "ctrl+y": ["c
 function comboOf(e) {
   let k = e.code?.startsWith("Key") ? e.code.slice(3).toLowerCase() : e.code?.startsWith("Digit") ? e.code.slice(5) : (e.key || "").toLowerCase();
   if (e.code === "NumpadEnter") k = "enter";
+  if (e.code === "Backquote") k = "`";
   if (k === " ") k = "space";
   return [(e.ctrlKey || e.metaKey) && "ctrl", e.shiftKey && "shift", e.altKey && "alt", k].filter(Boolean).join("+");
 }
@@ -637,5 +639,56 @@ function match(step, api) {
     aside: ["skip"],
     onSkip() { api.next(); },
     onKey(k) { const b = cards[k - 1]; if (b && !b.disabled) { b.click(); b.focus({ preventScroll: true }); } },
+  };
+}
+
+// ================================================================ write the formula
+/** Tidy a typed formula: no spaces, capitals, the usual look-alike signs. */
+export const normFormula = (s) => String(s).replace(/\s+/g, "").toUpperCase().replace(/[−–]/g, "-");
+
+/** Kind feedback for a formula that isn't accepted. */
+export function formulaTip(got, accept) {
+  const want = accept[0];
+  if (!got.startsWith("=") && accept.includes(`=${got}`)) return { title: "Almost!", tip: `Start with = . Without it, ${got} is just text in the cell.` };
+  if (/[A-Z]\d+X[A-Z]?\d+/.test(got) || got.includes("×")) return { tip: "Multiply with * (Shift + 8), never x." };
+  if (got.includes("÷")) return { tip: "Divide with / , never ÷." };
+  const m = /^=([A-Z]\d+)-([A-Z]\d+)$/.exec(want);
+  if (m && got === `=${m[2]}-${m[1]}`) return { title: "Wrong way round", tip: `With − the order matters: what you have first (${m[1]}), then take away what you spend.` };
+  if (/^=[\d+\-*/().]+$/.test(got)) return { tip: "Use the cell references, not the numbers in them, so the answer updates by itself." };
+  if (/^=SUM\(/.test(want) && /^=SUM[^(]/.test(got)) return { tip: "A function's range goes in brackets: =SUM(first:last)." };
+  return { tip: "" };
+}
+
+function formula(step, api) {
+  const vis = step.visual ? renderVisual(step.visual) : null;
+  const node = el(`
+    <div class="ex ex-formula">
+      ${head(step, esc(step.prompt))}
+      <div class="ex-visual"></div>
+      <div class="type-field formula-field">
+        <span class="formula-field__fx" aria-hidden="true">fx</span>
+        <input class="type-input type-input--formula" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"
+          aria-label="Your formula" placeholder="Type the formula">
+      </div>
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  const input = $(".type-input", node);
+  input.addEventListener("input", () => api.enableCheck(input.value.trim().length > 0));
+  const accept = step.accept.map(normFormula);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { vis?.play?.(); setTimeout(() => input.focus({ preventScroll: true }), 320); },
+    check({ skipped } = {}) {
+      input.readOnly = true; input.blur();
+      const got = normFormula(input.value);
+      const ok = !skipped && accept.includes(got);
+      const field = $(".type-field", node);
+      if (!skipped) { field.classList.add(ok ? "is-correct" : "is-wrong"); if (!ok) restartAnim(field, "shake"); }
+      if (ok) return { ok };
+      const t = skipped ? { tip: "" } : formulaTip(got, accept);
+      return { ok: false, title: t.title, answer: step.accept[0], body: t.tip ? `<span class="feedback__tip">${esc(t.tip)}</span>` : "" };
+    },
   };
 }

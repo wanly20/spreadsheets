@@ -365,4 +365,99 @@ export const practice = {
       { type: "choice", fact: "Format → Conditional formatting", prompt: "Where do you set up conditional formatting?", correct: "Format → Conditional formatting", wrong: ["View → Conditional formatting", "File → Settings", "Data → Freeze"] },
     ],
   },
+  // ======================================================= Lesson 3
+  formula: {
+    learn: { visual: { grid: { cols: 4, rows: 3, cells: { A1: "Item", B1: "Cost each", C1: "Qty", D1: "Total", A2: "Balloons", B2: 3, C2: 20, D2: 60 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2", nameBox: true, formula: "=B2*C2" } },
+      note: "The cell shows the answer (60). The bar above the grid shows the formula: =B2*C2." },
+    exercises: [
+      { type: "choice", fact: "It always starts with =", prompt: "Which one is a formula?", correct: "=B2*C2", wrong: ["B2*C2", "B2 times C2", "D2"] },
+      { type: "choice", fact: "Leave out the = and it is just text", prompt: "You type B2*C2 into D2, with no = at the start. What does D2 show?", correct: "The words B2*C2, as text", wrong: ["The answer, 60", "An error message", "0"] },
+      { type: "choice", fact: "the bar above the grid shows the formula itself", prompt: "D2 shows 60. Where can you see the formula that worked it out?",
+        visual: { grid: { cols: 4, rows: 2, cells: { A1: "Item", B1: "Cost each", C1: "Qty", D1: "Total", A2: "Balloons", B2: 3, C2: 20, D2: 60 }, sel: "D2", nameBox: true, formula: "" } },
+        correct: "In the bar above the grid, after clicking D2", wrong: ["Nowhere: only the answer is kept", "In the Name Box", "In the sheet tab"] },
+      { type: "formula", fact: "It always starts with =", prompt: "In D2, work out the total for the balloons: cost each (B2) times quantity (C2).", accept: ["=B2*C2", "=C2*B2"],
+        visual: { grid: { cols: 4, rows: 2, cells: { A1: "Item", B1: "Cost each", C1: "Qty", D1: "Total", A2: "Balloons", B2: 3, C2: 20 }, sel: "D2" } } },
+    ],
+  },
+  operators: {
+    learn: { visual: { keys: ["+", "−", "*", "/"] }, note: "* is Shift + 8. / is the key beside the right Shift. Never x or ÷." },
+    exercises: [
+      { type: "choice", fact: "* multiply", prompt: "Which sign multiplies in a spreadsheet?", correct: "*", wrong: ["x", "×", "÷"] },
+      { type: "choice", fact: "/ divide", prompt: "Which sign divides in a spreadsheet?", correct: "/", wrong: ["÷", ":", "\\"] },
+      { type: "choice", fact: "Shift + 8", prompt: "Which keys type the * sign?", correct: "Shift + 8", wrong: ["Shift + X", "Ctrl + 8", "Alt + 8"] },
+      { type: "choice", fact: "* multiply", prompt: "A1 holds 6 and B1 holds 4. What does =A1*B1 show?", visual: { grid: { cols: 3, rows: 1, cells: { A1: 6, B1: 4, C1: "=A1*B1" } } }, correct: "24", wrong: ["10", "2", "64"] },
+      { type: "choice", fact: "/ divide", prompt: "A1 holds 6 and B1 holds 4. What does =A1/B1 show?", visual: { grid: { cols: 3, rows: 1, cells: { A1: 6, B1: 4, C1: "=A1/B1" } } }, correct: "1.5", wrong: ["24", "2", "0.67"] },
+      { type: "formula", fact: "Never x", prompt: "40 stickers are in F5, shared between the helpers in F6. Write the formula for how many each.", accept: ["=F5/F6"] },
+    ],
+  },
+  "why use a cell reference": {
+    learn: { visual: { grid: { cols: 4, rows: 3, widths: { C: 1.2, D: 1.2 }, cells: { A1: "Cost", B1: "Qty", C1: "=5*3", D1: "=A2*B2", A2: 6, B2: 3, C2: 15, D2: 18 }, style: { C1: { b: 1 }, D1: { b: 1 }, C2: { bg: "#fdece6" }, D2: { bg: "#e7f5ec" } } } },
+      note: "The cost changed from 5 to 6. =5*3 still says 15. =A2*B2 updated to 18 by itself." },
+    exercises: [
+      { type: "choice", fact: "the answer updates by itself", prompt: "B2 holds 5 and C2 holds 3. D2 has =5*3 and E2 has =B2*C2. Then B2 changes to 6. What do D2 and E2 show now?",
+        correct: "D2: 15 and E2: 18", wrong: ["Both show 18", "Both still show 15", "D2: 18 and E2: 15"] },
+      { type: "choice", fact: "Point the calculation at a cell", prompt: "Goal: multiply B2 by C2 (B2 holds 5, C2 holds 3). Which formula is right?", correct: "=B2*C2", wrong: ["B2*C2", "=B2xC2", "=5*3"] },
+      { type: "formula", fact: "Point the calculation at a cell", prompt: "Money raised is in F2 and money spent is in F3. In F4, work out what's left.", accept: ["=F2-F3"] },
+    ],
+  },
+  "click to add a reference": {
+    learn: { visual: { steps: ["Type =", "Click B2", "Type *", "Click C2", "Enter"] }, note: "Each reference goes in for you, in the same colour as the cell it points to." },
+    exercises: [
+      { type: "order", fact: "click a cell instead of typing its name", prompt: "Put the steps in order to make =B2*C2 by clicking.", steps: ["Type =", "Click B2", "Type *", "Click C2", "Press Enter"] },
+      { type: "choice", fact: "Fewer typos", prompt: "Why click a cell instead of typing its name into a formula?", correct: "Its name goes in for you, so there are fewer typos", wrong: ["Clicking makes the answer bigger", "Typed names don't work", "Clicking adds the = for you"] },
+      { type: "choice", fact: "coloured to match the cell", prompt: "You clicked B2 while typing a formula. How can you tell which cell B2 is?", correct: "B2 in the formula is coloured to match the cell", wrong: ["B2 turns bold", "B2 flashes red", "You can't tell"] },
+    ],
+  },
+  "fill a formula": {
+    learn: { visual: { grid: { cols: 4, rows: 5, widths: { D: 1.3 }, cells: { A1: "Item", B1: "Cost", C1: "Qty", D1: "Total", D2: "=B2*C2", D3: "=B3*C3", D4: "=B4*C4", D5: "=B5*C5" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2:D5" } },
+      note: "Dragged down from D2: each row's formula uses its own row." },
+    exercises: [
+      { type: "choice", fact: "its cell references move with it", prompt: "C2 holds =A2+B2. You fill it down to C5. What's in C5?", correct: "=A5+B5", wrong: ["=A2+B2", "=A5+B2", "=A3+B3"] },
+      { type: "choice", fact: "its cell references move with it", prompt: "E3 holds =D3/2. You fill it down to E4. What's in E4?", correct: "=D4/2", wrong: ["=D4/3", "=D3/2", "=E4/2"] },
+      { type: "formula", fact: "=B2*C2 becomes =B3*C3 on the next row", prompt: "D2 holds =B2*C2. You fill it down to D6. Type the formula that's now in D6.", accept: ["=B6*C6", "=C6*B6"] },
+    ],
+  },
+  "show formulas": {
+    learn: { visual: { keys: ["Ctrl", "`"], grid: { cols: 4, rows: 3, widths: { D: 1.3 }, cells: { B1: "Cost", C1: "Qty", D1: "Total", B2: 3, C2: 20, D2: "=B2*C2", B3: 4, C3: 15, D3: "=B3*C3" } } }, note: "The ` key is under Esc, top-left. Nothing changes in the cells: only what you see." },
+    exercises: [
+      { type: "keys", fact: "Ctrl + `", prompt: "Show every formula on the sheet, so you can check your work!", combo: "ctrl+`", label: "Ctrl + `", wrong: ["Ctrl + F", "Ctrl + Z", "Ctrl + Y"],
+        scene: { grid: { cols: 4, rows: 3, widths: { D: 1.3 }, cells: { B1: "Cost", C1: "Qty", D1: "Total", B2: 3, C2: 20, D2: 60, B3: 4, C3: 15, D3: 60 } }, after: { cells: { D2: "=B2*C2", D3: "=B3*C3" } } } },
+      { type: "choice", fact: "see every formula instead of its answer", prompt: "Formulas are showing. B2 has the number 12 typed in (no formula). What does B2 show?", correct: "12", wrong: ["=12", "=B2", "Nothing"] },
+      { type: "choice", fact: "Press it again to go back", prompt: "Formulas are showing. How do you go back to the answers?", correct: "Press Ctrl + ` again", wrong: ["Press Ctrl + Z", "Close the spreadsheet", "Delete the formulas"] },
+    ],
+  },
+  function: {
+    learn: { visual: { grid: { cols: 2, rows: 5, cells: { A1: "Cost", A2: 60, A3: 60, A4: 36, A5: 80 }, style: { A1: { b: 1 } }, sel: "B5", nameBox: "B5", formula: "=SUM(A2:A5)" } }, note: "= first, then the name (SUM), then a range in brackets." },
+    exercises: [
+      { type: "choice", fact: "then the name", prompt: "In =SUM(D2:D9), which part is the function's name?", correct: "SUM", wrong: ["D2:D9", "=", "( )"] },
+      { type: "choice", fact: "It still starts with =", prompt: "What does every function start with?", correct: "=", wrong: ["(", "SUM", "#"] },
+      { type: "choice", fact: "then a range in brackets", prompt: "In a function, where does the range go?", correct: "In brackets after the name: SUM(D2:D9)", wrong: ["Before the =", "In the Name Box", "In a separate cell"] },
+    ],
+  },
+  SUM: {
+    learn: { visual: { grid: { cols: 4, rows: 4, cells: { A1: "Item", B1: "Cost", A2: "Balloons", B2: 90, A3: "Cups", B3: 60, A4: "Total", B4: 150 }, style: { A4: { b: 1 }, B4: { b: 1 } }, sel: "B4", nameBox: true, formula: "=SUM(B2:B3)" } }, note: "Quickest way: type =SUM( then drag over the cells. Enter." },
+    exercises: [
+      { type: "formula", fact: "=SUM(first:last)", prompt: "Write a function that adds up B2 to B9.", accept: ["=SUM(B2:B9)"] },
+      { type: "formula", fact: "across a row (C4:E4)", prompt: "Write a function that adds up C4, D4 and E4.", accept: ["=SUM(C4:E4)"] },
+      { type: "choice", fact: "adds up every cell in a range", prompt: "B2, B3 and B4 hold 5, 10 and 20. What does =SUM(B2:B4) show?", visual: { grid: { cols: 3, rows: 4, cells: { B2: 5, B3: 10, B4: 20 } } }, correct: "35", wrong: ["3", "520", "25"] },
+      { type: "choice", fact: "across a row (C4:E4)", prompt: "F4 holds =SUM(C4:E4). You fill it down to F7. What's in F7?", correct: "=SUM(C7:E7)", wrong: ["=SUM(C4:E4)", "=SUM(C4:E7)", "=SUM(F7)"] },
+      { type: "gridRange", fact: "then drag over the cells", target: ["D2:D5"], prompt: "You've typed =SUM( into D6. Now drag over the costs: D2:D5.", grid: { cols: 4, rows: 6, cells: { D1: "Cost", D2: 60, D3: 60, D4: 36, D5: 80, D6: "=SUM(" } } },
+    ],
+  },
+  "order when subtracting": {
+    learn: { visual: { grid: { cols: 3, rows: 3, widths: { A: 1.4 }, cells: { A1: "Overall cost", B1: 236, A2: "Budget", B2: 250, A3: "Left over", B3: 14, C3: "=B2-B1" }, style: { A3: { b: 1 } } } }, note: "What you have first, then take away what you spend. −14 would mean the wrong way round." },
+    exercises: [
+      { type: "choice", fact: "Put what you have first, then take away what you spend", prompt: "The budget is in B8 (250). The overall cost is in B7 (236). Which formula shows the money left?", correct: "=B8-B7", wrong: ["=B7-B8", "=B8+B7", "=B7/B8"] },
+      { type: "choice", fact: "A minus answer means over budget", prompt: "The budget in B8 is 200. The overall cost in B7 is 236. What does =B8-B7 show, and what does it mean?", correct: "−36: over budget", wrong: ["36: under budget", "−36: under budget", "436: over budget"] },
+      { type: "formula", fact: "Put what you have first", prompt: "E2 is the money we have. E3 is what we spent. Write the formula for the money left.", accept: ["=E2-E3"] },
+    ],
+  },
+  "paint format": {
+    learn: { visual: { image: "sheets-basic", highlight: "paintFormat" }, note: "It copies the look (bold, size, colours, currency), never what's in the cell." },
+    exercises: [
+      { type: "hotspot", fact: "paint roller", screen: "sheets-basic", target: "paintFormat", prompt: "Tap the paint format button (the paint roller)." },
+      { type: "order", fact: "click the cell that looks right", prompt: "Put the steps in order to copy D2's look onto D3:D9.", steps: ["Click D2, the cell that looks right", "Click the paint roller", "Drag over D3:D9"] },
+      { type: "choice", fact: "not what is in the cell", prompt: "D2 is bold and in dollars. You paint format D2 onto D9, which holds 50. What's in D9 now?", correct: "Still 50: it just looks like $50.00, in bold", wrong: ["The same number as D2", "Nothing: it's cleared", "50 with no formatting"] },
+    ],
+  },
 };

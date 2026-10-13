@@ -11,6 +11,8 @@ export const screens = {
       menuFile: { r: [82, 36, 40, 32], label: "the File menu" },
       menuFormat: { r: [334, 36, 76, 32], label: "the Format menu" },
       undo: { r: [88, 90, 36, 38], label: "Undo" },
+      print: { r: [176, 90, 38, 38], label: "Print" },
+      paintFormat: { r: [220, 90, 38, 38], label: "Paint format (the paint roller)" },
       redo: { r: [132, 90, 36, 38], label: "Redo" },
       bold: { r: [910, 90, 38, 38], label: "Bold" },
       fontColour: { r: [1044, 90, 38, 38], label: "Font colour" },

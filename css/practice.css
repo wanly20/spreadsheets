@@ -312,3 +312,9 @@ button.sheet-tab:not(:disabled) { cursor: default; }
 .head-strip--col .head-line { cursor: col-resize; }
 .head-strip--row .head-line { cursor: row-resize; }
 .sh-cell.is-wrap { padding-top: 4px; }
+
+/* Write the formula: an input that looks like the formula bar */
+.formula-field { position: relative; }
+.formula-field__fx { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-family: Georgia, serif; font-style: italic; font-size: 20px; color: #80868b; pointer-events: none; }
+.type-input--formula { padding-left: 52px; font-family: var(--font-learn); letter-spacing: 0.04em; text-transform: uppercase; }
+.type-input--formula::placeholder { text-transform: none; letter-spacing: 0; }

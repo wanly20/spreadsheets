@@ -108,16 +108,16 @@ function showPath(view = "path") {
   }).join("");
   const fr = course.finalReview;
   const finalHtml = fr ? `
-    <section class="unit unit--yellow ${finalReviewReady() ? "" : "is-soon"}" aria-labelledby="u-final">
+    <section class="unit unit--ink ${finalReviewReady() ? "" : "is-soon"}" aria-labelledby="u-final">
       <div class="unit-banner">
         <div class="unit-banner__text">
-          <span class="unit-kicker">${finalReviewReady() ? "The big one" : "Unlocks with Lesson 2"}</span>
+          <span class="unit-kicker">${finalReviewReady() ? "The big one" : "Unlocks when every lesson is ready"}</span>
           <h2 id="u-final" class="unit-title">${esc(fr.title)}</h2>
-          <p class="unit-sub">Everything from both lessons, mixed up.</p>
+          <p class="unit-sub">Everything from every lesson, mixed up.</p>
         </div>
         <span class="unit-icon" aria-hidden="true">${icon("crown", 26, 2.5)}</span>
       </div>
-      <div class="unit-nodes">${finalReviewReady() ? nodeHtml(allNodes().at(-1), { theme: "yellow" }) : nodeHtml({ id: "final-soon", title: fr.title, icon: "crown", kind: "final" }, { soon: true, theme: "yellow" })}</div>
+      <div class="unit-nodes">${finalReviewReady() ? nodeHtml(allNodes().at(-1), { theme: "ink" }) : nodeHtml({ id: "final-soon", title: fr.title, icon: "crown", kind: "final" }, { soon: true, theme: "ink" })}</div>
     </section>` : "";
 
   const due = dueItems().length;
@@ -198,10 +198,10 @@ function showPath(view = "path") {
     const st = levelState(n.id);
     const wrap = nodeEl.closest(".node-wrap");
     const x = parseFloat(wrap.style.getPropertyValue("--x")) || 0;
-    const theme = n.lesson ? lessonOf(n.lesson).theme : "yellow";
+    const theme = n.lesson ? lessonOf(n.lesson).theme : "ink";
     const meta = n.kind === "level"
       ? `Level ${n.index} of ${lessonOf(n.lesson).levels.length} · ${n.level.items.length} new terms`
-      : n.kind === "review" ? `${lessonOf(n.lesson).title} · every term, mixed up` : "Both lessons · every term, mixed up";
+      : n.kind === "review" ? `${lessonOf(n.lesson).title} · every term, mixed up` : "Every lesson · every term, mixed up";
     const terms = n.kind === "level" ? `<p class="node-pop__terms">${n.level.items.map((it) => esc(it.term)).join(" · ")}</p>` : "";
     const pop = el(`
       <div class="node-pop node-pop--${theme}" style="--shift:${-x}px" role="dialog" aria-label="${esc(n.title)}">
@@ -362,7 +362,7 @@ function play(id) {
 
 function samplerSteps() {
   const out = [];
-  const want = ["learn", "choice", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "match"];
+  const want = ["learn", "choice", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "match"];
   const items = model.items;
   for (const kind of want) {
     let step = null;
@@ -378,6 +378,8 @@ function samplerSteps() {
     }
     if (step) out.push(step);
   }
+  // Every shortcut that isn't Ctrl+Z too (e.g. Ctrl + ` to show formulas).
+  for (const it of items) for (const e of authoredExercises(it, Math.random)) if (e.type === "keys" && e.combo === "ctrl+`") out.push(e);
   return out;
 }
 

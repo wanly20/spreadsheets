@@ -72,7 +72,8 @@ async function runViewport(vp) {
   await wait(1200);
   await shot("path-start");
   ok(await page.locator(".node.is-current").count() === 1, "path shows one current level");
-  ok(await page.locator(".unit.is-soon").count() >= 1, "lessons that aren't ready show as coming soon");
+  const soonCount = await page.evaluate(async () => (await import("./content/course.js")).course.lessons.filter((l) => l.comingSoon).length);
+  ok(await page.locator(".unit.is-soon").count() >= soonCount, `lessons that aren't ready show as coming soon (${soonCount})`);
 
   // Settings: sound off (quiet tests) and the Esc key closes the dialog.
   await tap(vp.width >= 1024 ? '.side-nav [data-act="settings"]' : '.path-top [data-act="settings"]');
@@ -238,6 +239,7 @@ async function runViewport(vp) {
         const filled = await page.evaluate(() => [...document.querySelectorAll(".ex-fill .sh-cell[data-ref^='B']")].map((c) => c.textContent).filter(Boolean).length);
         ok(filled >= step.end, `fill: the grid animates the fill (${filled} cells filled)`);
       }
+      if (step.type === "formula" && goWrong) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
       if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
       await page.evaluate(() => { document.querySelector(".screen.lesson").__old = document.querySelector(".screen.lesson").__step; });
       if (vp.touch) {
@@ -282,7 +284,7 @@ async function runViewport(vp) {
       }
       case "keys": {
         if (await page.locator(".key-zone").count()) {
-          const k = { "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter" }[step.combo];
+          const k = { "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter", "ctrl+`": "Control+Backquote" }[step.combo];
           await page.keyboard.press(right ? k : "Control+x");
           return;
         }
@@ -304,6 +306,10 @@ async function runViewport(vp) {
       case "gridName": {
         const t = step.target;
         await page.locator(EX + ".type-input").fill(right ? t.toLowerCase() : `${t.slice(1)}${t[0]}`);
+        return check();
+      }
+      case "formula": {
+        await page.locator(EX + ".type-input").fill(right ? step.accept[0].toLowerCase() : step.accept[0].slice(1));
         return check();
       }
       case "rangeName": {
@@ -344,8 +350,9 @@ async function runViewport(vp) {
       }
       case "match": {
         for (const p of step.pairs) {
-          await tap(EX + `.match-card[data-side="t"]:has-text("${p.term}")`);
-          const i = await page.evaluate((d) => [...document.querySelectorAll('.match-card[data-side="d"]')].findIndex((b) => b.textContent.trim() === d), p.def);
+          const ti = await page.evaluate((t) => [...document.querySelectorAll('.lesson-body .ex:not(.step-leave) .match-card[data-side="t"]')].findIndex((b) => b.textContent.trim() === t), p.term);
+          await tap(EX + `.match-card[data-side="t"] >> nth=${ti}`);
+          const i = await page.evaluate((d) => [...document.querySelectorAll('.lesson-body .ex:not(.step-leave) .match-card[data-side="d"]')].findIndex((b) => b.textContent.trim() === d), p.def);
           await tap(EX + `.match-card[data-side="d"] >> nth=${i}`);
           await wait(250);
         }
