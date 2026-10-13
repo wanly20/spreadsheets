@@ -1,0 +1,389 @@
+// End-to-end test in headless Chromium (playwright-core), at Chromebook size
+// (1366×768, mouse + real key presses) and phone size (390×844, touch).
+//
+// Setup (outside the repo):  mkdir -p /tmp/pw && cd /tmp/pw && npm i playwright-core@1.48.2
+// Serve:  python3 -m http.server 8765 --bind 127.0.0.1      (in the repo root)
+// Run:    NODE_PATH=/tmp/pw/node_modules node tools/e2e.mjs [screenshotDir]
+//
+// Plays every level and review of every ready lesson with right AND wrong
+// answers (grid clicks, drags, typed references, a real Ctrl+Z, hotspots,
+// steps in order, matching), checks retries, stars, XP, reload persistence,
+// the Review button, My knowledge, Settings (sound, download + load progress,
+// a broken file, reset) and that there are no console errors.
+// Screenshots of every exercise type go to screenshotDir (default: screenshots/).
+import { createRequire } from "node:module";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright-core");
+const OUT = process.argv[2] || "screenshots";
+mkdirSync(OUT, { recursive: true });
+const BASE = process.env.BASE || "http://127.0.0.1:8765/";
+const errors = [];
+let passed = 0;
+let dragRetries = 0, checkRetries = 0; // emulated touch drags occasionally don't start; a second drag is allowed
+const log = (...a) => console.log(...a);
+const ok = (c, msg) => { if (c) { passed++; log("  ✓", msg); } else { errors.push(msg); log("  ✗", msg); } };
+
+// Software rendering only: never touch the GPU (it may be busy, and tests don't need it).
+// Fully headless with software rendering: never the GPU, never a window on the desktop.
+const SAFE_ARGS = ["--headless=new", "--ozone-platform=headless", "--disable-gpu", "--use-gl=swiftshader"];
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || "/usr/bin/chromium", headless: true, args: SAFE_ARGS });
+
+const VIEWPORTS = [
+  { name: "chromebook", width: 1366, height: 768, touch: false },
+  { name: "phone", width: 390, height: 844, touch: true },
+];
+
+for (const vp of VIEWPORTS) if (!process.env.ONLY || process.env.ONLY === vp.name) await runViewport(vp);
+
+log(`\n${passed} checks passed, ${errors.length} problems${dragRetries + checkRetries ? ` (emulated touch: ${dragRetries} drag(s) and ${checkRetries} CHECK tap(s) needed a second try)` : ""}`);
+if (errors.length) { log("PROBLEMS:\n- " + errors.join("\n- ")); }
+else log("E2E PASSED, no console errors");
+await browser.close();
+process.exit(errors.length ? 1 : 0);
+
+// =====================================================================
+async function runViewport(vp) {
+  log(`\n=== ${vp.name} ${vp.width}×${vp.height}`);
+  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, hasTouch: vp.touch, isMobile: vp.touch, acceptDownloads: true });
+  const page = await ctx.newPage();
+  const cdp = vp.touch ? await ctx.newCDPSession(page) : null;
+  page.on("console", (m) => { if (m.type() === "error") errors.push(`[${vp.name}] console.error: ${m.text()}`); });
+  page.on("pageerror", (e) => errors.push(`[${vp.name}] pageerror: ${e.message}`));
+  page.on("requestfailed", (r) => { if (!/fonts\.g|jsdelivr/.test(r.url())) errors.push(`[${vp.name}] requestfailed: ${r.url()}`); });
+  const shotTaken = new Set();
+  let shotN = 0;
+  const shot = async (name, force = false) => {
+    if (!force && shotTaken.has(name)) return;
+    shotTaken.add(name);
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: `${OUT}/${vp.name}-${String(++shotN).padStart(2, "0")}-${name}.png` });
+  };
+  const wait = (ms) => page.waitForTimeout(ms);
+  const tap = async (sel) => { const l = page.locator(sel).first(); if (vp.touch) await l.tap(); else await l.click(); };
+  const EX = ".lesson-body .ex:not(.step-leave) "; // the current exercise only
+
+  await page.goto(BASE);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await wait(1200);
+  await shot("path-start");
+  ok(await page.locator(".node.is-current").count() === 1, "path shows one current level");
+  ok(await page.locator(".unit.is-soon").count() >= 1, "lessons that aren't ready show as coming soon");
+
+  // Settings: sound off (quiet tests) and the Esc key closes the dialog.
+  await tap(vp.width >= 1024 ? '.side-nav [data-act="settings"]' : '.path-top [data-act="settings"]');
+  await wait(500);
+  await shot("settings");
+  await tap('[data-switch="sfx"]');
+  ok(await page.evaluate(() => JSON.parse(localStorage.getItem("spreadsheets-practice.v1")).sfx === false), "sound can be switched off and is saved");
+  await page.keyboard.press("Escape");
+  await wait(400);
+  ok(await page.locator(".modal").count() === 0, "Esc closes Settings");
+
+  // Review before anything is done: a kind toast, no session.
+  await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
+  await wait(300);
+  ok(await page.locator(".toast").count() === 1, "Review with nothing practised shows a friendly note");
+
+  // ------------------------------------------------------------ every level, in path order
+  const nodeIds = await page.evaluate(() => [...document.querySelectorAll(".node[data-node]:not([data-soon])")].map((n) => n.dataset.node));
+  ok(nodeIds.length >= 6, `path has ${nodeIds.length} playable nodes`);
+  const wrongDone = new Set();
+  for (const [k, id] of nodeIds.entries()) {
+    await tap(`.node[data-node="${id}"]`);
+    await wait(450);
+    if (k === 0) await shot("path-popover");
+    await tap(`[data-start="${id}"]`);
+    await wait(900);
+    const res = await playSession(id, wrongDone);
+    ok(res.done, `${id}: finished (${res.steps} steps, ${res.wrong} wrong on purpose, ${res.retries} retries)`);
+    if (res.wrong) ok(res.retries >= 1, `${id}: wrong answers came back later`);
+    ok(res.questions >= 8 && res.questions <= (id.endsWith("-r") ? 16 : 12), `${id}: ${res.questions} questions (8–12 per level)`);
+    await shot(`complete-${k === 0 ? "first" : "level"}`);
+    ok(await page.locator(".complete-stars .star.is-on").count() >= 1, `${id}: stars on the complete screen`);
+    await tap("[data-done]");
+    await wait(1000);
+    ok(await page.locator(`.node[data-node="${id}"].is-done`).count() === 1, `${id}: marked done on the path`);
+  }
+  await shot("path-after", true);
+
+  // ------------------------------------------------------------ reload persistence
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem("spreadsheets-practice.v1")));
+  await page.reload();
+  await wait(1200);
+  ok(await page.locator(".node.is-done").count() === nodeIds.length, "after reload every finished node is still done");
+  ok(before.xp > 0 && (await page.locator(vp.width >= 1024 ? ".pstat--xp b" : ".chip--xp span").first().innerText()) === String(before.xp), `XP (${before.xp}) survives a reload`);
+  ok(Object.keys(before.items).length >= 20, `spaced-repetition scores saved for ${Object.keys(before.items).length} items`);
+
+  // ------------------------------------------------------------ Review button
+  await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
+  await wait(900);
+  const rev = await playSession("review", new Set(["*"]));
+  ok(rev.done && rev.questions >= 8, `Review session finished (${rev.questions} questions)`);
+  await tap("[data-done]");
+  await wait(900);
+
+  // ------------------------------------------------------------ My knowledge
+  if (await page.locator('[data-act="knowledge"]').count()) {
+    await tap(vp.width >= 1024 ? '.side-nav .side-item--kb' : '.path-top [data-act="knowledge"]');
+    await wait(700);
+    await shot("knowledge");
+    const rows = await page.locator(".kb-item").count();
+    ok(rows >= 20, `My knowledge lists ${rows} items`);
+    ok(await page.locator(".kb-item .kb-strength").count() >= 20, "every met item shows a strength label");
+    ok(await page.locator(".kb-group--know").count() >= 1 && await page.locator(".kb-group--do").count() >= 1, "items are split into Know and Do");
+    await tap('[data-act="back"]');
+    await wait(600);
+  }
+
+  // ------------------------------------------------------------ Download + load progress
+  if (await page.evaluate(() => !!document.querySelector('[data-act="settings"]'))) {
+    await tap(vp.width >= 1024 ? '.side-nav [data-act="settings"]' : '.path-top [data-act="settings"]');
+    await wait(500);
+    if (await page.locator("[data-download]").count()) {
+      const [dl] = await Promise.all([page.waitForEvent("download"), tap("[data-download]")]);
+      const file = path.join(tmpdir(), `e2e-${vp.name}-${dl.suggestedFilename()}`);
+      await dl.saveAs(file);
+      const text = readFileSync(file, "utf8");
+      ok(/^Spreadsheets practice: progress file/.test(text) && /\.txt$/.test(dl.suggestedFilename()), `downloads ${dl.suggestedFilename()} with a friendly first line`);
+      const saved = await page.evaluate(() => localStorage.getItem("spreadsheets-practice.v1"));
+      // reset
+      await tap("[data-reset]");
+      await tap("[data-reset]");
+      await wait(600);
+      ok(await page.locator(".node.is-done").count() === 0, "Reset progress clears every level");
+      // a broken file → kind error
+      await tap(vp.width >= 1024 ? '.side-nav [data-act="settings"]' : '.path-top [data-act="settings"]');
+      await wait(500);
+      const bad = path.join(tmpdir(), "e2e-broken.txt");
+      writeFileSync(bad, "this is my homework, not a progress file");
+      await page.setInputFiles("[data-load]", bad);
+      await wait(400);
+      await shot("load-broken");
+      ok(await page.locator(".load-msg.is-error").count() === 1, "a broken file shows a friendly error");
+      // the real file → summary → replace
+      await page.setInputFiles("[data-load]", file);
+      await wait(400);
+      await shot("load-confirm");
+      const summary = await page.locator(".load-msg").innerText();
+      ok(/Lesson 1/.test(summary) && /XP/.test(summary), `loading shows a summary first: “${summary.replace(/\s+/g, " ").slice(0, 90)}…”`);
+      await tap("[data-load-yes]");
+      await wait(900);
+      ok(await page.locator(".node.is-done").count() === nodeIds.length, "loading the file brings every level back");
+      ok(await page.evaluate((s) => localStorage.getItem("spreadsheets-practice.v1") === s, saved), "restored progress is identical to the download");
+    } else await page.keyboard.press("Escape");
+  }
+
+  // ------------------------------------------------------------ every exercise type (the hidden sampler)
+  await page.goto(BASE + "#/play/sampler");
+  await wait(1000);
+  const sam = await playSession("sampler", new Set(["*"]));
+  ok(sam.done && sam.steps >= 14, `the sampler plays one of every exercise type (${sam.steps} steps)`);
+  await page.goto(BASE);
+  await wait(1000);
+
+  // ------------------------------------------------------------ quit dialog
+  await tap(".node.is-done");
+  await wait(400);
+  await tap("[data-start]");
+  await wait(900);
+  await page.keyboard.press("Escape");
+  await wait(400);
+  await shot("quit-dialog");
+  ok(await page.locator(".modal .quit").count() === 1, "Esc in a level asks before leaving");
+  await tap('[data-q="leave"]');
+  await wait(700);
+  ok(await page.locator(".screen.path").count() === 1, "Leave goes back to the path");
+  await ctx.close();
+
+  // =================================================================== session player
+  async function playSession(id, wrongDone) {
+    const res = { done: false, steps: 0, wrong: 0, retries: 0, questions: 0 };
+    const seenIds = new Set();
+    for (let guard = 0; guard < 60; guard++) {
+      if (await page.locator(".screen.complete").count()) { res.done = true; break; }
+      const step = await page.evaluate(() => { const s = document.querySelector(".screen.lesson")?.__step; return s ? JSON.parse(JSON.stringify(s)) : null; });
+      if (!step) { await wait(400); continue; }
+      // Wait until the old step has gone and the new one has finished sliding in.
+      await page.waitForFunction(() => {
+        const ex = document.querySelector(".lesson-body .ex:not(.step-leave)");
+        return !document.querySelector(".step-leave") && ex && !ex.getAnimations().some((an) => an.playState === "running");
+      }, null, { timeout: 3000 }).catch(() => {});
+      res.steps++;
+      if (step.retry) res.retries++;
+      if (step.type !== "learn" && !step.retry) res.questions++;
+      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? "hotspot-ui" : step.type;
+      if (step.type === "learn") typeKey = "learn-" + await page.evaluate(() => {
+        const v = document.querySelector(".lesson-body .ex:not(.step-leave) .learn-visual");
+        if (!v) return "text";
+        return v.querySelector(".replay") ? "demo" : v.querySelector(".shot") ? "screenshot" : v.querySelector(".tab-menu") ? "menu" : v.querySelector(".tabs-bar") ? "tabs" : v.querySelector(".keycaps") ? "keys" : v.querySelector(".tool-icons") ? "icons" : v.querySelector(".step-chips") ? "steps" : "grid";
+      });
+      await shot(`ex-${typeKey}`);
+      // Answer wrong once per exercise type (per viewport), never on a retry.
+      const goWrong = !step.retry && step.type !== "learn" && step.type !== "match" && !wrongDone.has("*") && !wrongDone.has(typeKey);
+      if (goWrong) { wrongDone.add(typeKey); res.wrong++; }
+      await answer(step, !goWrong, typeKey);
+      // feedback
+      if (step.type === "learn") { await wait(500); continue; }
+      await page.waitForSelector(".feedback.is-open", { timeout: 4000 }).catch(() => {});
+      const state = await page.evaluate(() => { const s = document.querySelector(".feedback"); return s.classList.contains("is-open") ? (s.classList.contains("is-wrong") ? "wrong" : "correct") : "closed"; });
+      ok(state === (goWrong ? "wrong" : "correct"), `${id} ${typeKey}${step.retry ? " (retry)" : ""}: ${goWrong ? "wrong" : "right"} answer → ${state}`);
+      if (step.type === "fill") await wait(2600); // the fill animation plays under the sheet
+      await shot(`fb-${goWrong ? "wrong" : "right"}-${typeKey}`);
+      if (step.type === "fill" && !goWrong) {
+        const filled = await page.evaluate(() => [...document.querySelectorAll(".ex-fill .sh-cell[data-ref^='B']")].map((c) => c.textContent).filter(Boolean).length);
+        ok(filled >= step.end, `fill: the grid animates the fill (${filled} cells filled)`);
+      }
+      if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
+      await page.evaluate(() => { document.querySelector(".screen.lesson").__old = document.querySelector(".screen.lesson").__step; });
+      if (vp.touch) {
+        try { await page.locator('[data-act="continue"]').tap({ timeout: 4000 }); }
+        catch (e) {
+          const info = await page.evaluate(() => ({ sx: scrollX, sy: scrollY, vv: [visualViewport.offsetTop, visualViewport.height, visualViewport.scale], app: document.getElementById("app").scrollTop, scr: document.querySelector(".screen.lesson")?.scrollTop, r: document.querySelector('[data-act="continue"]').getBoundingClientRect().toJSON(), act: document.activeElement?.className }));
+          await page.screenshot({ path: `${OUT}/DEBUG-continue-${Date.now()}.png` });
+          ok(false, `${id} ${typeKey}: CONTINUE reachable ${JSON.stringify(info)}`);
+          await page.locator('[data-act="continue"]').dispatchEvent("click");
+        }
+      } else await page.keyboard.press("Enter"); // Enter = CONTINUE
+      const moved = await page.waitForFunction(() => { const s = document.querySelector(".screen.lesson"); return !s || s.__step !== s.__old; }, null, { timeout: 3000 }).then(() => true, () => false);
+      ok(moved, `${id} ${typeKey}: CONTINUE moves on`);
+      if (!moved) return res;
+      await wait(450);
+      seenIds.add(step.item);
+    }
+    return res;
+  }
+
+  async function answer(step, right, typeKey) {
+    const check = async () => {
+      if (!vp.touch) return page.keyboard.press("Enter"); // Enter = CHECK
+      await page.locator('.lesson-foot [data-act="main"]').tap();
+      const opened = await page.waitForSelector(".feedback.is-open", { timeout: 1500 }).then(() => true, () => false);
+      if (!opened && !(await page.locator('.lesson-foot [data-act="main"]').isDisabled())) {
+        checkRetries++;
+        log(`  (CHECK tap after an emulated drag didn't register; tapping again)`);
+        await page.locator('.lesson-foot [data-act="main"]').tap();
+      }
+    };
+    switch (step.type) {
+      case "learn": await tap('.lesson-foot [data-act="main"]'); return;
+      case "choice": {
+        await pickOption((t) => (right ? t === step.correct : t !== step.correct));
+        return check();
+      }
+      case "fill": {
+        const correct = await page.evaluate(async (s) => (await import("./js/exercises.js")).fillOptions(s.start, s.end).correct, step);
+        await pickOption((t) => (right ? t === correct : t !== correct));
+        return check();
+      }
+      case "keys": {
+        if (await page.locator(".key-zone").count()) {
+          const k = { "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter" }[step.combo];
+          await page.keyboard.press(right ? k : "Control+x");
+          return;
+        }
+        const want = step.label.replace(/\s/g, "");
+        await pickOption((t) => (right ? t.replace(/\s/g, "") === want : t.replace(/\s/g, "") !== want), true);
+        return check();
+      }
+      case "gridClick": {
+        const t = String(step.target);
+        let sel;
+        if (!right) sel = '.sh-cell[data-ref="A1"]';
+        else if (t === "handle") sel = "[data-handle]";
+        else if (t.startsWith("col:")) sel = `.sh-col[data-col="${t.charCodeAt(4) - 65}"]`;
+        else if (t.startsWith("row:")) sel = `.sh-row[data-row="${t.slice(4)}"]`;
+        else sel = `.sh-cell[data-ref="${t}"]`;
+        await tap(EX + sel);
+        return check();
+      }
+      case "gridName": {
+        const t = step.target;
+        await page.locator(EX + ".type-input").fill(right ? t.toLowerCase() : `${t.slice(1)}${t[0]}`);
+        return check();
+      }
+      case "rangeName": {
+        const [a, b] = step.target.split(":");
+        await page.locator(EX + ".type-input").fill(right ? step.target.toLowerCase() : `${b}:${a}`);
+        return check();
+      }
+      case "gridRange": {
+        const [a, b] = step.target.split(":");
+        await drag(EX + `.sh-cell[data-ref="${a}"]`, EX + `.sh-cell[data-ref="${right ? b : a}"]`);
+        if (await page.locator('.lesson-foot [data-act="main"]').isDisabled()) {
+          dragRetries++;
+          await page.evaluate(() => { window.__ev = []; const g = document.querySelector(".lesson-body .ex:not(.step-leave) .sheet-grid"); ["pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel"].forEach((t) => g.addEventListener(t, (e) => window.__ev.push(t + ":" + (e.target.dataset?.ref || e.target.className)), true)); });
+          await drag(EX + `.sh-cell[data-ref="${a}"]`, EX + `.sh-cell[data-ref="${right ? b : a}"]`);
+          if (await page.locator('.lesson-foot [data-act="main"]').isDisabled()) log("  DRAG DEBUG", await page.evaluate((a) => { const c = document.querySelector(`.lesson-body .ex:not(.step-leave) .sh-cell[data-ref="${a}"]`); const r = c.getBoundingClientRect(); const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return JSON.stringify({ ev: window.__ev.slice(0, 5), n: window.__ev.length, hit: el?.className, r: [r.x, r.y], exs: document.querySelectorAll(".lesson-body .ex").length, modal: !!document.querySelector(".modal, .scrim"), toast: !!document.querySelector(".toast") }); }, a));
+        }
+        return check();
+      }
+      case "gridMove": {
+        const wrongTo = step.to === "A1" ? "A2" : "A1";
+        await drag(EX + `.sh-cell[data-ref="${step.from}"]`, EX + `.sh-cell[data-ref="${right ? step.to : wrongTo}"]`);
+        if (await page.locator('.lesson-foot [data-act="main"]').isDisabled()) { dragRetries++; await drag(EX + `.sh-cell[data-ref="${step.from}"]`, EX + `.sh-cell[data-ref="${right ? step.to : wrongTo}"]`); }
+        return check();
+      }
+      case "hotspot": {
+        const other = await page.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].map((b) => b.dataset.region).find((r) => r !== t), step.target);
+        await tap(EX + `[data-region="${right ? step.target : other}"]`);
+        return check();
+      }
+      case "order": {
+        const seq = right ? step.steps : [...step.steps].reverse();
+        for (const s of seq) {
+          const i = await page.evaluate((s) => [...document.querySelectorAll(".order-card")].findIndex((b) => b.querySelector(".label").textContent === s), s);
+          await tap(EX + `.order-slotbg:nth-child(${i + 1}) .order-card`);
+          await wait(120);
+        }
+        return check();
+      }
+      case "match": {
+        for (const p of step.pairs) {
+          await tap(EX + `.match-card[data-side="t"]:has-text("${p.term}")`);
+          const i = await page.evaluate((d) => [...document.querySelectorAll('.match-card[data-side="d"]')].findIndex((b) => b.textContent.trim() === d), p.def);
+          await tap(EX + `.match-card[data-side="d"] >> nth=${i}`);
+          await wait(250);
+        }
+        return;
+      }
+      default: throw new Error("unknown step " + step.type);
+    }
+  }
+
+  async function pickOption(test, compact = false) {
+    const texts = await page.evaluate((compact) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option .label")].map((l) => (compact ? l.textContent.replace(/\s/g, "") : l.textContent.trim())), compact);
+    const i = texts.findIndex(test);
+    if (i < 0) throw new Error("no matching option in " + JSON.stringify(texts));
+    if (vp.touch) await page.locator(".lesson-body .ex:not(.step-leave) .option").nth(i).tap();
+    else await page.keyboard.press(String(i + 1)); // number keys pick options
+  }
+
+  async function drag(fromSel, toSel) {
+    const a = await page.locator(fromSel).first().boundingBox();
+    const b = await page.locator(toSel).first().boundingBox();
+    const p1 = { x: a.x + a.width / 2, y: a.y + a.height / 2 }, p2 = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    if (!vp.touch) {
+      await page.mouse.move(p1.x, p1.y);
+      await page.mouse.down();
+      for (let k = 1; k <= 8; k++) await page.mouse.move(p1.x + ((p2.x - p1.x) * k) / 8, p1.y + ((p2.y - p1.y) * k) / 8);
+      await page.mouse.up();
+    } else {
+      // A real touch drag through the DevTools protocol (touch + pointer events).
+      const pt = (p) => [{ x: p.x, y: p.y, id: 1 }];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pt(p1) });
+      for (let k = 1; k <= 8; k++) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pt({ x: p1.x + ((p2.x - p1.x) * k) / 8, y: p1.y + ((p2.y - p1.y) * k) / 8 }) });
+        await wait(16);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await wait(60);
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] }).catch(() => {});
+    }
+    await wait(250);
+  }
+}

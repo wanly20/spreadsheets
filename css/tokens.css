@@ -1,0 +1,133 @@
+/* Design tokens: the single source of colour, type, spacing, radius, shadow
+   and motion. Contrast is checked by tools/contrast.py, which reads the hex
+   values from this first :root block. Palette: spreadsheet green, with
+   selection blue and highlighter yellow as accents. */
+:root {
+  color-scheme: only light; /* light-only: stops Chrome/ChromeOS auto dark mode repainting it */
+  /* Sheet green (primary, correct) ------------------------------------- */
+  --green-50: #e7f5ec;
+  --green-100: #c9e9d4;
+  --green-300: #8fd0a6;
+  --green-400: #3fb36a;
+  --green-500: #1f9a4f;
+  --green-600: #137a3c;
+  --green-700: #0b5a2b;
+
+  /* Selection blue (focus, selection, Lesson 2) ------------------------ */
+  --blue-50: #e8f0fe;
+  --blue-100: #d3e3fd;
+  --blue-400: #5b9cf5;
+  --blue-500: #1a73e8;
+  --blue-600: #1659c7;
+  --blue-700: #0f428f;
+
+  /* Highlighter yellow (reward: XP, stars, done) ----------------------- */
+  --yellow-50: #fff6d9;
+  --yellow-300: #ffd860;
+  --yellow-400: #fbbc04;
+  --yellow-500: #e2a400;
+  --yellow-600: #a87900;
+  --yellow-ink: #3d2a00;
+
+  /* Coral ("not yet": never alarm red) --------------------------------- */
+  --coral-50: #fdece6;
+  --coral-100: #f9d3c6;
+  --coral-400: #ea8a66;
+  --coral-500: #d9643a;
+  --coral-600: #b8452a;
+  --coral-700: #8a2f19;
+
+  /* Cool neutrals */
+  --white: #ffffff;
+  --paper: #f5f9f6;
+  --line-100: #edf2ee;
+  --line-200: #dbe4dd;
+  --line-300: #c3cfc6;
+  --ink: #18271e;
+  --ink-soft: #4f5f55;
+  --ink-faint: #93a299;
+
+  /* The mini spreadsheet (Google Sheets look) */
+  --sheet-line: #e1e3e1;
+  --sheet-head: #f8f9fa;
+  --sheet-head-text: #444746;
+  --sheet-head-sel: #d3e3fd;
+  --sheet-head-sel-text: #0b57d0;
+  --sheet-sel: #1a73e8;
+
+  /* Semantic roles -------------------------------------------------------- */
+  --c-bg: var(--paper);
+  --c-surface: var(--white);
+  --c-border: var(--line-200);
+  --c-text: var(--ink);
+  --c-text-soft: var(--ink-soft);
+  --c-primary: var(--green-600);
+  --c-primary-edge: var(--green-700);
+  --c-correct: var(--green-600);
+  --c-correct-edge: var(--green-700);
+  --c-correct-bg: var(--green-50);
+  --c-correct-text: var(--green-700);
+  --c-wrong: var(--coral-600);
+  --c-wrong-edge: var(--coral-700);
+  --c-wrong-bg: var(--coral-50);
+  --c-wrong-text: var(--coral-700);
+  --c-focus: var(--blue-500);
+
+  /* Typography: a rounded display face for headings and buttons; Atkinson
+     Hyperlegible for everything you read (I, l and 1 differ and 0 is
+     slashed, which matters for cell references). */
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-learn: "Atkinson Hyperlegible", "Verdana", system-ui, sans-serif;
+  --font-sheet: Arial, Helvetica, "Liberation Sans", sans-serif;
+  --display-weight: 600;
+  --display-weight-bold: 700;
+
+  --fs-xs: 0.8125rem;   /* 13px  small labels */
+  --fs-sm: 0.9375rem;   /* 15px  secondary text */
+  --fs-md: 1.0625rem;   /* 17px  body, options */
+  --fs-lg: 1.25rem;     /* 20px  instructions */
+  --fs-xl: 1.5rem;      /* 24px  prompts */
+  --fs-2xl: 1.875rem;   /* 30px  new-term cards */
+  --fs-3xl: 2.375rem;   /* 38px  celebration */
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  --edge: 4px;
+  --edge-lg: 6px;
+  --shadow-sm: 0 1px 2px rgb(24 39 30 / 0.08);
+  --shadow-md: 0 6px 18px rgb(24 39 30 / 0.10);
+  --shadow-lg: 0 16px 40px rgb(24 39 30 / 0.18);
+  --shadow-sheet: 0 -10px 30px rgb(24 39 30 / 0.12);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-med: 260ms;
+  --dur-slow: 480ms;
+
+  --app-max: 430px;
+  --tap: 48px;
+  --footer-h: 104px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur-med: 1ms;
+    --dur-slow: 1ms;
+  }
+}

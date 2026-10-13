@@ -1,0 +1,72 @@
+/* Base: reset, page frame, typography helpers. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font-learn);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  color: var(--c-text);
+  background-color: var(--line-100);
+  /* Desktop backdrop: soft Salento confetti dots. Hidden behind the app on phones. */
+  /* Desktop backdrop: faint spreadsheet gridlines. Hidden behind the app on phones. */
+  background-image:
+    linear-gradient(rgb(24 39 30 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(24 39 30 / 0.05) 1px, transparent 1px);
+  background-size: 100px 24px, 100px 24px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+img { display: block; max-width: 100%; }
+[hidden] { display: none !important; }
+
+:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 3px; border-radius: var(--r-md); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* The app column: full screen on phones, a centred card on narrow desktop
+   windows (600–699px). From 700px css/layout.css takes over (tablet, desktop). */
+#app {
+  position: relative;
+  max-width: var(--app-max);
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--c-bg);
+  overflow: hidden;
+  overflow: clip; /* never scrollable, even programmatically (focus, scrollIntoView) */
+  isolation: isolate;
+}
+@media (min-width: 600px) and (max-width: 699.98px) {
+  #app { box-shadow: var(--shadow-lg); }
+  @media (min-height: 760px) {
+    body { display: grid; place-items: center; }
+    #app {
+      height: min(900px, calc(100dvh - 48px));
+      width: var(--app-max);
+      border-radius: 36px;
+      border: 8px solid var(--white);
+      box-shadow: 0 0 0 1px var(--line-300), var(--shadow-lg);
+    }
+  }
+}
+
+/* Typography helpers ---------------------------------------------------- */
+.display { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: 0.005em; }
+.hl { font-weight: 700; color: var(--green-700); }
+.h-title {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight-bold);
+  font-size: var(--fs-xl);
+  line-height: 1.2;
+  margin: 0;
+  color: var(--ink);
+}
+.muted { color: var(--c-text-soft); }

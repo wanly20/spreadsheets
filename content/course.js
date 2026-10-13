@@ -1,0 +1,44 @@
+// The learning path: which lessons exist and how each is split into levels.
+//
+// Levels list knowledge items by their exact `term` from knowledge_lessonN.js,
+// in the order they are taught (the slide order). Any item that is not listed
+// is added to the nearest level automatically, so editing the spreadsheet can
+// never break the app, but tools/check_content.mjs warns about it.
+//
+// To add a lesson: copy its knowledge file in (tools/sync_content.sh does it
+// once the lesson is listed here without comingSoon), add its levels, and
+// optionally write extra exercises in content/practice.js.
+export const course = {
+  lessons: [
+    {
+      n: 1,
+      title: "Lesson 1",
+      subtitle: "Cells, ranges, the fill handle, formatting and sheets",
+      theme: "green",
+      levels: [
+        { id: "1-1", title: "The grid", icon: "grid", terms: ["spreadsheet", "cell", "column", "row", "cell reference"] },
+        { id: "1-2", title: "Ranges and the fill handle", icon: "move-down", terms: ["range", "Name Box", "fill handle", "fill to copy", "fill a pattern"] },
+        { id: "1-3", title: "Move, clear and undo", icon: "undo", terms: ["move cells", "clear cell contents", "undo", "redo"] },
+        { id: "1-4", title: "Formatting", icon: "paint-bucket", terms: ["select, then apply", "text formatting", "fill colour", "borders"] },
+        { id: "1-5", title: "Sheets", icon: "layers", terms: ["sheet", "insert a sheet", "rename a sheet", "duplicate a sheet", "move a sheet", "colour a sheet tab"] },
+      ],
+      review: { id: "1-r", title: "Mixed review" },
+    },
+    {
+      n: 2,
+      title: "Lesson 2",
+      subtitle: "Formatting: width, wrap, merge, dates and money",
+      theme: "blue",
+      comingSoon: true,
+    },
+    {
+      n: 3,
+      title: "Lesson 3",
+      subtitle: "Coming after Lesson 2",
+      theme: "yellow",
+      comingSoon: true,
+    },
+  ],
+  // The big review at the end of the path, across every lesson that is ready.
+  finalReview: { id: "all-r", title: "Lesson 1 + 2 review", needs: [1, 2] },
+};

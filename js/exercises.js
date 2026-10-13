@@ -1,0 +1,632 @@
+// Exercise types. Each takes (step, api) and returns a controller:
+//   { el, footer?, aside?, mount?(), check?() -> result, onMain?(), onKey?(n), onSkip?(), destroy?() }
+// Results: { ok, title?, answer?, body?, explain?, after?() }  (after runs once the feedback shows).
+import { icon } from "./icons.js";
+import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg } from "./ui.js";
+import { sfx } from "./sound.js";
+import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
+import { renderVisual, fillValues, keycaps } from "./visuals.js";
+import { screens } from "../content/screens.js";
+
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match };
+
+const KICKER = {
+  choice: ["check", "Choose the answer"],
+  gridClick: ["pointer", "Click it"],
+  gridName: ["type", "Name the cell"],
+  gridRange: ["pointer", "Select the range"],
+  rangeName: ["type", "Name the range"],
+  fill: ["arrow-down", "Predict the fill"],
+  gridMove: ["hand", "Move it"],
+  keys: ["keyboard", "Press the keys"],
+  hotspot: ["target", "Find it on screen"],
+  order: ["list-ordered", "Put the steps in order"],
+  match: ["sparkles", "Match the pairs"],
+};
+
+function head(step, title, sub = "") {
+  const [ico, label] = KICKER[step.type] || ["sparkles", ""];
+  return `<div class="ex-head">
+    <span class="ex-kicker">${icon(ico, 16, 2.75)} ${label}${step.retrieval ? `<span class="ex-kicker__tag">${icon("repeat", 14, 2.75)} From earlier</span>` : ""}${step.retry ? `<span class="ex-kicker__tag ex-kicker__tag--again">${icon("rotate-ccw", 14, 2.75)} Try again</span>` : ""}</span>
+    <h1 class="h-title">${title}</h1>${sub ? `<p class="ex-sub">${sub}</p>` : ""}
+  </div>`;
+}
+
+const isTouchOnly = () => matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+const normRef = (s) => String(s).toUpperCase().replace(/\s+/g, "");
+
+// ================================================================ learn card
+function learn(step, api) {
+  const item = api.item(step.item);
+  const extra = item.extra?.learn || {};
+  const vis = extra.visual ? renderVisual(extra.visual) : null;
+  const isSkill = item.kind === "action";
+  const node = el(`
+    <div class="ex ex-learn">
+      <div class="learn-card">
+        <div class="learn-card__top">
+          <span class="badge ${isSkill ? "badge--blue" : ""}">${icon(isSkill ? "hand" : "sparkles", 16, 2.75)} ${isSkill ? "New skill" : "New word"}</span>
+          ${mascotImg("explain", "learn-card__mascot")}
+        </div>
+        <h1 class="learn-term">${esc(item.term)}</h1>
+        <p class="learn-def">${rich(item.def)}</p>
+        <div class="learn-visual"></div>
+        ${extra.note ? `<p class="note">${icon("lightbulb", 20, 2.5)}<span>${esc(extra.note)}</span></p>` : ""}
+      </div>
+    </div>`);
+  if (vis) $(".learn-visual", node).appendChild(vis.el); else $(".learn-visual", node).remove();
+  return {
+    el: node,
+    footer: { label: "Got it", enabled: true },
+    mount() { setTimeout(() => vis?.play?.(), 450); },
+    onMain() { sfx.tap(); api.next(); },
+  };
+}
+
+// ================================================================ options (shared)
+function optionsHtml(texts, { cls = "" } = {}) {
+  return `<div class="options ${cls}" role="group" aria-label="Answers">${texts.map((t, k) => `
+    <button class="press option" data-oi="${k}" aria-pressed="false">
+      <span class="face"><span class="key" aria-hidden="true">${k + 1}</span><span class="label">${t}</span></span>
+    </button>`).join("")}</div>`;
+}
+
+/** Wire up option buttons; returns helpers. `values[k]` is what option k means. */
+function wireOptions(node, api, values, onPick) {
+  const btns = $$(".option", node);
+  let chosen = null;
+  const choose = (b) => {
+    if (b.disabled) return;
+    btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    chosen = values[+b.dataset.oi];
+    sfx.select();
+    api.enableCheck(true);
+    onPick?.(chosen);
+  };
+  btns.forEach((b) => b.addEventListener("click", () => choose(b)));
+  return {
+    get chosen() { return chosen; },
+    onKey(n) { const b = btns[n - 1]; if (b) { choose(b); b.focus({ preventScroll: true }); } },
+    reveal(correct) {
+      btns.forEach((b) => {
+        b.disabled = true;
+        const v = values[+b.dataset.oi];
+        if (v === correct) b.classList.add("is-correct");
+        else if (v === chosen) b.classList.add("is-wrong");
+      });
+    },
+  };
+}
+
+// ================================================================ multiple choice
+function choice(step, api) {
+  const item = api.item(step.item);
+  const opts = shuffle([step.correct, ...step.wrong]);
+  const vis = step.visual ? renderVisual(step.visual) : null;
+  let promptHtml = "";
+  if (step.quote) promptHtml = `<blockquote class="quote">${esc(step.quote).replace(/_{3,}/g, '<span class="blank" aria-label="blank">____</span>')}</blockquote>`;
+  if (step.term) promptHtml = `<p class="term-chip">${esc(step.term)}</p>`;
+  const node = el(`
+    <div class="ex ex-choice ${step.long ? "is-long" : ""} ${step.termOptions ? "is-terms" : ""}">
+      ${head(step, esc(step.prompt))}
+      ${promptHtml}
+      <div class="ex-visual"></div>
+      ${optionsHtml(opts.map((o) => esc(o)), { cls: step.long ? "options--long" : "" })}
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  const o = wireOptions(node, api, opts);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { vis?.play?.(); },
+    onKey: (n) => o.onKey(n),
+    check({ skipped } = {}) {
+      o.reveal(step.correct);
+      const ok = !skipped && o.chosen === step.correct;
+      return { ok, answer: step.correct, explain: step.gen === "termToDef" ? null : undefined, item };
+    },
+  };
+}
+
+// ================================================================ grid: click a cell / header / the fill handle
+function gridClick(step, api) {
+  const t = String(step.target);
+  const kind = t === "handle" ? "handle" : t.startsWith("col:") ? "col" : t.startsWith("row:") ? "row" : "cell";
+  const val = t.replace(/^(col|row):/, "");
+  const spec = step.grid || { cols: Math.max(5, kind === "col" || kind === "cell" ? colIndex(val[0]) + 1 : 5), rows: Math.max(6, kind === "row" ? +val : kind === "cell" ? +val.slice(1) : 6) };
+  const prompt = step.prompt || {
+    cell: `Click cell <b class="ref">${val}</b>.`,
+    col: `Click the letter of column <b class="ref">${val}</b>.`,
+    row: `Click the number of row <b class="ref">${val}</b>.`,
+    handle: "Grab the fill handle.",
+  }[kind];
+  let pick = null;
+  const g = createGrid(spec, { mode: "click", label: "Spreadsheet. Arrow keys move; up from row 1 picks a column letter, left from column A picks a row number; Space grabs the fill handle.", onChange(p) { pick = p; sfx.select(); api.enableCheck(true); } });
+  const node = el(`<div class="ex ex-grid">${head(step, prompt)}<div class="ex-sheet"></div></div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const correct = (p) => p && p.kind === kind && (kind === "handle" || (kind === "cell" && p.ref === val) || (kind === "col" && p.col === val) || (kind === "row" && String(p.row) === val));
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => g.focus(), 300); },
+    check({ skipped } = {}) {
+      g.lock();
+      const ok = !skipped && correct(pick);
+      if (!ok) {
+        if (kind === "cell") g.mark(val, "ok");
+        if (kind === "col") g.markHeader("col", colIndex(val));
+        if (kind === "row") g.markHeader("row", +val);
+        if (kind === "handle") g.el.querySelector("[data-handle]")?.classList.add("is-mark-ok");
+        if (pick?.kind === "cell") g.mark(pick.ref, "bad");
+      }
+      let body = "";
+      if (!ok && kind === "cell" && pick?.kind === "cell") {
+        const p = pick.ref;
+        const flipped = `${colLetter(+p.slice(1) - 1)}${colIndex(p[0]) + 1}`;
+        body = flipped === val
+          ? `You clicked <b>${p}</b>: column ${p[0]}, row ${p.slice(1)}. For <b>${val}</b>, go across to column ${val[0]} first, then down to row ${val.slice(1)}.`
+          : `<b>${val}</b> means column ${val[0]} (the letters along the top), row ${val.slice(1)} (the numbers down the side).`;
+      }
+      if (!ok && (kind === "col" || kind === "row")) body = kind === "col" ? "Column letters are along the top." : "Row numbers are down the left side.";
+      return { ok, body: body ? `<span class="feedback__tip">${body}</span>` : "" };
+    },
+  };
+}
+
+// ================================================================ grid: type the highlighted cell's name
+function gridName(step, api) {
+  const target = step.target;
+  const g = createGrid({ cols: Math.max(5, colIndex(target[0]) + 1), rows: Math.max(6, +target.slice(1)), sel: target });
+  const node = el(`
+    <div class="ex ex-grid ex-type-ref">
+      ${head(step, "Which cell is highlighted?", "Type its cell reference.")}
+      <div class="ex-sheet"></div>
+      <div class="type-field">
+        <input class="type-input type-input--ref" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8"
+          aria-label="Cell reference of the highlighted cell" placeholder="Type it here">
+      </div>
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const input = $(".type-input", node);
+  input.addEventListener("input", () => api.enableCheck(input.value.trim().length > 0));
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => input.focus({ preventScroll: true }), 320); },
+    check({ skipped } = {}) {
+      input.readOnly = true; input.blur();
+      const got = normRef(input.value);
+      const ok = !skipped && got === target;
+      const field = $(".type-field", node);
+      if (!skipped) { field.classList.add(ok ? "is-correct" : "is-wrong"); if (!ok) restartAnim(field, "shake"); }
+      if (ok) return { ok };
+      const m = /^(\d+)([A-Z]+)$/.exec(got);
+      if (m && `${m[2]}${m[1]}` === target) {
+        return { ok: false, title: "Letter first!", answer: target,
+          body: `<span class="feedback__tip">You wrote <b>${esc(got)}</b>. A cell reference is the column letter first, then the row number: <b>${target}</b>. Never ${esc(got)}.</span>` };
+      }
+      return { ok: false, answer: target, body: `<span class="feedback__tip">Column ${target[0]} (along the top), row ${target.slice(1)} (down the side).</span>` };
+    },
+  };
+}
+
+// ================================================================ grid: drag to select a range
+function gridRange(step, api) {
+  const box = parseSel(step.target);
+  const spec = step.grid || { cols: Math.max(5, box.c2 + 1), rows: Math.max(6, box.r2 + 1) };
+  const touch = isTouchOnly();
+  const first = step.target.split(":")[0], last = step.target.split(":")[1];
+  const prompt = step.prompt || `Select the range <b class="ref">${step.target}</b>.`;
+  let picked = null;
+  const g = createGrid(spec, { mode: "range", label: "Spreadsheet: drag to select. Arrow keys move, Shift and arrows select.", onChange(p) { picked = p.sel; api.enableCheck(true); } });
+  const node = el(`<div class="ex ex-grid">${head(step, prompt, `${touch ? "Put your finger" : "Click"} on ${first}, then drag to ${last}.`)}<div class="ex-sheet"></div></div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => g.focus(), 300); },
+    check({ skipped } = {}) {
+      g.lock();
+      const ok = !skipped && sameBox(parseSel(picked), box);
+      if (!ok) g.mark(step.target, "ok");
+      return { ok, answer: ok ? "" : step.target,
+        body: ok ? "" : `<span class="feedback__tip">${picked ? `You selected <b>${esc(picked)}</b>. ` : ""}The range ${step.target} starts at ${first} and ends at ${last}.</span>` };
+    },
+  };
+}
+
+// ================================================================ grid: type the highlighted range
+function rangeName(step, api) {
+  const box = parseSel(step.target);
+  const g = createGrid({ cols: Math.max(5, box.c2 + 1), rows: Math.max(6, box.r2 + 1), sel: step.target });
+  const node = el(`
+    <div class="ex ex-grid ex-type-ref">
+      ${head(step, "Which range is selected?", "Type it the way a spreadsheet writes it.")}
+      <div class="ex-sheet"></div>
+      <div class="type-field">
+        <input class="type-input type-input--ref" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12"
+          aria-label="The selected range" placeholder="Type it here">
+      </div>
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const input = $(".type-input", node);
+  input.addEventListener("input", () => api.enableCheck(input.value.trim().length > 0));
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => input.focus({ preventScroll: true }), 320); },
+    check({ skipped } = {}) {
+      input.readOnly = true; input.blur();
+      const got = normRef(input.value);
+      const ok = !skipped && got === step.target;
+      const field = $(".type-field", node);
+      if (!skipped) { field.classList.add(ok ? "is-correct" : "is-wrong"); if (!ok) restartAnim(field, "shake"); }
+      if (ok) return { ok };
+      const [a, b] = step.target.split(":");
+      let tip = `First cell, a colon, then the last cell: <b>${step.target}</b>.`;
+      if (got === `${b}:${a}`) tip = `Nearly! Write the first cell first: <b>${step.target}</b>, said “${a} to ${b}”.`;
+      else if (/[-–]|TO|\.\./.test(got) && got.includes(a) && got.includes(b)) tip = `Use a colon ( : ) between the two cells. The colon means “to”: <b>${step.target}</b>.`;
+      return { ok: false, title: tip.startsWith("Nearly") ? "So close!" : undefined, answer: step.target, body: `<span class="feedback__tip">${tip}</span>` };
+    },
+  };
+}
+
+// ================================================================ predict the fill
+const seq = (a) => a.join(", ");
+export function fillOptions(start, end) {
+  const n = end - start.length;
+  const correct = seq([...start, ...fillValues(start, n)]);
+  const wrong = [];
+  const add = (a) => { const s = seq(a); if (s !== correct && !wrong.includes(s)) wrong.push(s); };
+  if (typeof start[0] !== "number") {
+    add([start[0], ...Array.from({ length: n }, (_, i) => `${start[0]}${i + 2}`)]);
+    add([start[0], ...Array(n).fill("(empty)")]);
+  } else if (start.length === 1) {
+    const v = start[0];
+    add([v, ...Array.from({ length: n }, (_, i) => v + i + 1)]);
+    add([v, ...Array.from({ length: n }, (_, i) => v * (i + 2))]);
+    add([v, ...Array(n).fill(0)]);
+  } else {
+    const [a, b] = start;
+    add([a, b, ...Array.from({ length: n }, (_, i) => b + i + 1)]);
+    add([a, b, ...Array(n).fill(b)]);
+    add([a, b, ...Array.from({ length: n }, (_, i) => (i % 2 ? b : a))]);
+    add([a, b, ...Array.from({ length: n }, (_, i) => b * 2 ** (i + 1))]);
+  }
+  return { correct, wrong: wrong.slice(0, 3) };
+}
+
+function fill(step, api) {
+  const { start, end } = step;
+  const col = "B", r0 = 2, last = r0 + end - 1;
+  const cells = {};
+  start.forEach((v, i) => { cells[`${col}${r0 + i}`] = v; });
+  const g = createGrid({ cols: 3, rows: last, cells, sel: `${col}${r0}:${col}${r0 + start.length - 1}` });
+  g.mark(`${col}${r0}:${col}${last}`, "target");
+  const fmt = (v) => (typeof v === "number" ? v : `“${v}”`);
+  const prompt = start.length === 1
+    ? `${col}${r0} holds <b>${esc(fmt(start[0]))}</b>. You drag its fill handle down to ${col}${last}.`
+    : `${col}${r0} holds <b>${fmt(start[0])}</b> and ${col}${r0 + 1} holds <b>${fmt(start[1])}</b>. You select both and drag the fill handle down to ${col}${last}.`;
+  const { correct, wrong } = fillOptions(start, end);
+  const opts = shuffle([correct, ...wrong]);
+  const node = el(`
+    <div class="ex ex-fill">
+      ${head(step, `What will ${col}${r0} to ${col}${last} show?`, prompt)}
+      <div class="fill-layout">
+        <div class="ex-sheet"></div>
+        ${optionsHtml(opts.map(esc), { cls: "options--seq" })}
+      </div>
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const o = wireOptions(node, api, opts);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey: (n) => o.onKey(n),
+    check({ skipped } = {}) {
+      o.reveal(correct);
+      const ok = !skipped && o.chosen === correct;
+      const why = start.length === 1
+        ? "One cell selected: the fill handle copies the same value."
+        : `Two cells show the pattern (${start[1] - start[0] >= 0 ? "+" : ""}${start[1] - start[0]} each time), so the fill handle keeps it going.`;
+      return { ok, answer: correct, body: `<span class="feedback__tip">${why}</span>`,
+        after() { g.clearMarks(); g.animateFill(col, r0, start, fillValues(start, end - start.length)); } };
+    },
+  };
+}
+
+// ================================================================ move a cell
+function gridMove(step, api) {
+  const { from, to, value } = step;
+  const b1 = parseSel(from), b2 = parseSel(to);
+  let moved = null;
+  const g = createGrid({ cols: Math.max(5, b1.c2 + 1, b2.c2 + 1), rows: Math.max(5, b1.r2, b2.r2), cells: { [from]: value }, sel: from },
+    { mode: "move", label: "Spreadsheet: drag a cell to move it. Keyboard: arrows to a cell, Space to pick it up, arrows, Space to drop.",
+      onChange(p) { moved = p; sfx.select(); api.enableCheck(true); } });
+  const node = el(`<div class="ex ex-grid">${head(step, `Move <b class="ref">${esc(value)}</b> from ${from} to <b class="ref">${to}</b>.`, "Grab the cell and drag it to its new place.")}<div class="ex-sheet"></div></div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => g.focus(), 300); },
+    check({ skipped } = {}) {
+      g.lock();
+      const ok = !skipped && moved?.to === to;
+      if (!ok) g.mark(to, "ok");
+      return { ok, answer: ok ? "" : `${value} in ${to}`,
+        body: ok ? `<span class="feedback__tip">In Google Sheets you grab the cell's edge: the cursor turns into a hand.</span>` : "" };
+    },
+  };
+}
+
+// ================================================================ press the shortcut
+const KEY_NAME = { ctrl: "Ctrl", shift: "Shift", alt: "Alt", enter: "Enter", delete: "Delete", backspace: "Backspace", space: "Space", escape: "Esc", tab: "Tab" };
+const ACCEPT = { delete: ["delete", "backspace", "alt+backspace"], "ctrl+y": ["ctrl+y", "ctrl+shift+z"], enter: ["enter"] };
+function comboOf(e) {
+  let k = e.code?.startsWith("Key") ? e.code.slice(3).toLowerCase() : e.code?.startsWith("Digit") ? e.code.slice(5) : (e.key || "").toLowerCase();
+  if (e.code === "NumpadEnter") k = "enter";
+  if (k === " ") k = "space";
+  return [(e.ctrlKey || e.metaKey) && "ctrl", e.shiftKey && "shift", e.altKey && "alt", k].filter(Boolean).join("+");
+}
+const comboLabel = (c) => c.split("+").map((p) => KEY_NAME[p] || p.toUpperCase());
+
+function keys(step, api, { forceChoice = false } = {}) {
+  if (forceChoice || isTouchOnly()) return keysChoice(step, api);
+  const vis = step.scene ? renderVisual(step.scene) : null;
+  const node = el(`
+    <div class="ex ex-keys">
+      ${head(step, esc(step.prompt))}
+      <div class="ex-visual"></div>
+      <div class="key-zone" aria-live="polite">
+        <span class="key-zone__icon">${icon("keyboard", 30, 2.25)}</span>
+        <span class="key-zone__text">Press the keys on your keyboard</span>
+        <span class="key-zone__pressed keycaps"></span>
+      </div>
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  const zone = $(".key-zone", node);
+  const accept = ACCEPT[step.combo] || [step.combo];
+  let done = false;
+  const onKey = (e) => {
+    if (done || document.querySelector(".modal")) return;
+    if (["Control", "Shift", "Alt", "Meta", "OS", "CapsLock", "Fn"].includes(e.key)) {
+      if (e.key === "Control" || e.key === "Meta") { $(".key-zone__pressed", node).innerHTML = keycaps(["Ctrl"]); zone.classList.add("is-holding"); }
+      return;
+    }
+    if (e.key === "Escape" || e.key === "Tab") return; // quit dialog / focus still work
+    const c = comboOf(e);
+    if (c === "enter" && step.combo !== "enter") return; // Enter is CHECK elsewhere: never a wrong answer here
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.repeat) return;
+    done = true;
+    const ok = accept.includes(c);
+    $(".key-zone__pressed", node).innerHTML = keycaps(comboLabel(c));
+    zone.classList.remove("is-holding");
+    zone.classList.add(ok ? "is-correct" : "is-wrong");
+    $(".key-zone__text", node).textContent = ok ? "That's it!" : "You pressed";
+    if (ok) {
+      sfx.select();
+      if (vis?.grid && step.scene.after) vis.grid.setCells(step.scene.after.cells);
+      if (step.combo === "enter" && vis?.grid) vis.grid.setSel(step.scene.grid.nameBox || "A1");
+    } else restartAnim(zone, "shake");
+    const note = c === "backspace" || c === "alt+backspace" ? "Backspace works too, and on a Chromebook it's the key you'll use." :
+      c === "ctrl+shift+z" ? "Ctrl + Shift + Z works too in Google Sheets." : "";
+    setTimeout(() => api.complete({
+      ok,
+      answer: step.label,
+      body: ok ? (note ? `<span class="feedback__tip">${note}</span>` : "") : `<span class="feedback__tip">You pressed <b>${comboLabel(c).join(" + ")}</b>.</span>`,
+    }), ok ? 550 : 300);
+  };
+  const keyUp = (e) => { if ((e.key === "Control" || e.key === "Meta") && !done) { $(".key-zone__pressed", node).innerHTML = ""; zone.classList.remove("is-holding"); } };
+  window.addEventListener("keydown", onKey, true);
+  window.addEventListener("keyup", keyUp, true);
+  const off = () => { window.removeEventListener("keydown", onKey, true); window.removeEventListener("keyup", keyUp, true); };
+  return {
+    el: node,
+    footer: { label: "Press the keys", enabled: false },
+    aside: ["skip", "no-keyboard"],
+    onSkip() { done = true; off(); api.complete({ ok: false, skipped: true, answer: step.label }); },
+    noKeyboard() { off(); api.replace(keysChoice(step, api)); },
+    destroy: off,
+  };
+}
+
+function keysChoice(step, api) {
+  const opts = shuffle([step.label, ...step.wrong]);
+  const vis = step.scene ? renderVisual(step.scene) : null;
+  const node = el(`
+    <div class="ex ex-keys ex-keys--choice">
+      ${head({ ...step, type: "choice" }, esc(step.prompt), "Which would you press?")}
+      <div class="ex-visual"></div>
+      ${optionsHtml(opts.map((o) => `<span class="keycaps keycaps--sm">${keycaps(o.split(" + "))}</span>`), { cls: "options--keys" })}
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  const o = wireOptions(node, api, opts);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey: (n) => o.onKey(n),
+    check({ skipped } = {}) {
+      o.reveal(step.label);
+      const ok = !skipped && o.chosen === step.label;
+      if (ok && vis?.grid && step.scene.after) vis.grid.setCells(step.scene.after.cells);
+      return { ok, answer: step.label };
+    },
+  };
+}
+
+// ================================================================ find it on screen
+function hotspot(step, api) {
+  const node = el(`<div class="ex ex-hotspot">${head(step, esc(step.prompt))}<div class="hot-stage"></div></div>`);
+  const stage = $(".hot-stage", node);
+  let regions = [];
+  if (step.screen) {
+    const s = screens[step.screen];
+    // On narrow screens show a window of the screenshot around the answer, so
+    // small things (the fill handle) stay big enough to tap.
+    const narrow = window.innerWidth < 700 && s.w > 700;
+    const t = s.regions[step.target].r;
+    let cx = 0, cw = s.w;
+    if (narrow) {
+      cw = 520;
+      const want = t[0] + t[2] / 2 - cw * (0.3 + 0.4 * ((t[0] * 7) % 10) / 10);
+      cx = Math.max(0, Math.min(s.w - cw, Math.round(want)));
+    }
+    const fig = el(`<figure class="shot shot--hot" style="--ar:${cw}/${s.h};--w:${s.w}px">
+      <img src="${s.src}" alt="${esc(s.alt)}" draggable="false" style="width:${(s.w / cw) * 100}%;margin-left:${(-cx / cw) * 100}%">
+    </figure>`);
+    let k = 0;
+    for (const [id, reg] of Object.entries(s.regions)) {
+      const [x, y, w, h] = reg.r;
+      if (x < cx || x + w > cx + cw) continue;
+      regions.push(id);
+      fig.appendChild(el(`<button type="button" class="hot" data-region="${id}" aria-label="Area ${++k}" aria-pressed="false"
+        style="left:${((x - cx) / cw) * 100}%;top:${(y / s.h) * 100}%;width:${(w / cw) * 100}%;height:${(h / s.h) * 100}%"><span class="hot__ring"></span></button>`));
+    }
+    stage.appendChild(fig);
+  } else {
+    const vis = renderVisual(step.ui, { interactiveHits: true });
+    stage.appendChild(vis.el);
+    vis.hits.forEach((h) => { h.dataset.region = h.dataset.hit; h.classList.add("hot-ui"); h.setAttribute("aria-pressed", "false"); regions.push(h.dataset.hit); });
+  }
+  const btns = $$("[data-region]", stage);
+  let chosen = null;
+  const choose = (b) => {
+    btns.forEach((x) => { x.setAttribute("aria-pressed", String(x === b)); x.classList.toggle("is-chosen", x === b); });
+    chosen = b.dataset.region;
+    sfx.select();
+    api.enableCheck(true);
+  };
+  btns.forEach((b) => b.addEventListener("click", () => { if (!node.classList.contains("is-locked")) choose(b); }));
+  const label = (id) => step.screen ? screens[step.screen].regions[id].label : id === "+" ? "the + button" : id === "All sheets" ? "the All sheets button" : /^[A-Z][a-z]/.test(id) && !step.ui?.tabs ? id : `the ${id} tab`;
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey(n) { const b = btns[n - 1]; if (b) { choose(b); b.focus({ preventScroll: true }); } },
+    check({ skipped } = {}) {
+      node.classList.add("is-locked");
+      const ok = !skipped && chosen === step.target;
+      btns.forEach((b) => {
+        b.disabled = true;
+        if (b.dataset.region === step.target) b.classList.add("is-correct");
+        else if (b.dataset.region === chosen) b.classList.add("is-wrong");
+      });
+      return { ok, answer: ok ? "" : label(step.target),
+        body: !ok && chosen ? `<span class="feedback__tip">You tapped ${esc(label(chosen))}.</span>` : "" };
+    },
+  };
+}
+
+// ================================================================ steps in order
+function order(step, api) {
+  const n = step.steps.length;
+  let bankOrder = shuffle(step.steps.map((_, i) => i));
+  if (bankOrder.every((v, i) => v === i)) bankOrder = [...bankOrder.slice(1), bankOrder[0]];
+  const node = el(`
+    <div class="ex ex-order">
+      ${head(step, esc(step.prompt), "Tap the steps in the order you'd do them.")}
+      <ol class="order-slots" aria-label="Your order">${step.steps.map((_, i) => `<li class="order-slot"><span class="order-slot__n">${i + 1}</span></li>`).join("")}</ol>
+      <div class="order-bank" aria-label="Steps">
+        ${bankOrder.map((si, k) => `<span class="order-slotbg"><button class="press order-card" data-si="${si}"><span class="face"><span class="key" aria-hidden="true">${k + 1}</span><span class="label">${esc(step.steps[si])}</span></span></button></span>`).join("")}
+      </div>
+    </div>`);
+  const slots = $$(".order-slot", node);
+  const placed = [];
+  const render = () => {
+    slots.forEach((s, i) => {
+      s.querySelector(".order-chip")?.remove();
+      s.classList.toggle("is-filled", i < placed.length);
+      if (i < placed.length) s.appendChild(el(`<button class="order-chip" data-placed="${i}" aria-label="Remove: ${esc(step.steps[placed[i]])}">${esc(step.steps[placed[i]])}</button>`));
+    });
+    $$(".order-card", node).forEach((b) => { const used = placed.includes(+b.dataset.si); b.classList.toggle("is-used", used); b.disabled = used; });
+    api.enableCheck(placed.length === n);
+  };
+  node.addEventListener("click", (e) => {
+    if (node.classList.contains("is-locked")) return;
+    const card = e.target.closest(".order-card");
+    const chip = e.target.closest(".order-chip");
+    if (card && !card.disabled) { placed.push(+card.dataset.si); sfx.tap(); render(); restartAnim(slots[placed.length - 1], "pop"); }
+    if (chip) { placed.splice(+chip.dataset.placed, 1); sfx.tap(); render(); }
+  });
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey(k) {
+      if (node.classList.contains("is-locked")) return;
+      if (k === "Backspace") { if (placed.length) { placed.pop(); render(); } return; }
+      const card = $$(".order-card", node)[k - 1];
+      if (card && !card.disabled) card.click();
+    },
+    check({ skipped } = {}) {
+      node.classList.add("is-locked");
+      const ok = !skipped && placed.every((v, i) => v === i);
+      slots.forEach((s, i) => s.classList.add(placed[i] === i ? "is-right" : "is-off"));
+      return { ok, answer: ok ? "" : step.steps.map((s, i) => `${i + 1}. ${s}`).join("<br>"), answerHtml: true };
+    },
+  };
+}
+
+// ================================================================ match pairs (term ↔ definition)
+function match(step, api) {
+  const left = shuffle(step.pairs.map((p, i) => ({ i, text: p.term })));
+  const right = shuffle(step.pairs.map((p, i) => ({ i, text: p.def })));
+  const node = el(`
+    <div class="ex ex-match">
+      ${head(step, "Match each term to its meaning")}
+      <div class="match-grid">
+        <div class="match-col">${left.map((x, k) => `<button class="press option match-card match-card--term" data-side="t" data-i="${x.i}"><span class="face" data-key="${k + 1}"><span class="label">${esc(x.text)}</span></span></button>`).join("")}</div>
+        <div class="match-col">${right.map((x, k) => `<button class="press option match-card" data-side="d" data-i="${x.i}"><span class="face" data-key="${left.length + k + 1}"><span class="label">${esc(x.text)}</span></span></button>`).join("")}</div>
+      </div>
+    </div>`);
+  let sel = { t: null, d: null };
+  let matched = 0;
+  const missed = new Set();
+  node.addEventListener("click", (e) => {
+    const b = e.target.closest(".match-card");
+    if (!b || b.disabled || b.classList.contains("is-busy")) return;
+    const side = b.dataset.side;
+    if (sel[side] === b) { b.setAttribute("aria-pressed", "false"); sel[side] = null; return; }
+    sel[side]?.setAttribute("aria-pressed", "false");
+    sel[side] = b;
+    b.setAttribute("aria-pressed", "true");
+    sfx.select();
+    if (sel.t && sel.d) {
+      const a = sel.t, c = sel.d;
+      sel = { t: null, d: null };
+      if (a.dataset.i === c.dataset.i) {
+        matched++;
+        sfx.pair();
+        [a, c].forEach((x) => { x.setAttribute("aria-pressed", "false"); x.classList.add("is-correct"); restartAnim(x, "pop"); x.disabled = true; });
+        setTimeout(() => [a, c].forEach((x) => x.classList.add("is-done")), 450);
+        if (matched === step.pairs.length) {
+          setTimeout(() => api.complete({ ok: true, itemsWrong: [...missed].map((i) => step.items[i]),
+            body: `<span class="feedback__tip">${missed.size ? `All matched. You sorted out ${missed.size} mix-up${missed.size > 1 ? "s" : ""} on the way.` : "All matched on the first go!"}</span>` }), 600);
+        }
+      } else {
+        missed.add(+a.dataset.i);
+        sfx.wrong();
+        [a, c].forEach((x) => { x.classList.add("is-wrong", "is-busy"); restartAnim(x, "shake"); });
+        setTimeout(() => [a, c].forEach((x) => { x.classList.remove("is-wrong", "is-busy"); x.setAttribute("aria-pressed", "false"); }), 520);
+      }
+    }
+  });
+  const cards = [...$$('.match-card[data-side="t"]', node), ...$$('.match-card[data-side="d"]', node)];
+  return {
+    el: node,
+    footer: { label: "Match them all", enabled: false },
+    aside: ["skip"],
+    onSkip() { api.next(); },
+    onKey(k) { const b = cards[k - 1]; if (b && !b.disabled) { b.click(); b.focus({ preventScroll: true }); } },
+  };
+}
