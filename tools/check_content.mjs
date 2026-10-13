@@ -92,7 +92,10 @@ for (const it of model.items) {
         else if (!s.regions[e.target]) err(`${where}: ${e.screen} has no region ${e.target}`);
         else if (Object.keys(s.regions).length < 3) err(`${where}: ${e.screen} needs 3+ regions to choose from`);
       } else if (e.ui) {
-        const ok = e.ui.tabmenu ? TAB_MENU.includes(e.target) : e.ui.tabs ? ["+", "All sheets", ...e.ui.tabs.tabs].includes(e.target) : false;
+        const heads = (n, col) => Array.from({ length: n }, (_, i) => (col ? String.fromCharCode(65 + i) : String(i + 1)));
+        const lines = (h) => [...h, ...h.slice(1).map((x, i) => `${h[i]}|${x}`)];
+        const ok = e.ui.tabmenu ? TAB_MENU.includes(e.target) : e.ui.tabs ? ["+", "All sheets", ...e.ui.tabs.tabs].includes(e.target)
+          : e.ui.colheads ? lines(heads(e.ui.colheads.n || 4, true)).includes(e.target) : e.ui.rowheads ? lines(heads(e.ui.rowheads.n || 4, false)).includes(e.target) : false;
         if (!ok) err(`${where}: ${e.target} isn't something you can tap in that picture`);
       } else err(`${where}: needs screen or ui`);
       if (!e.prompt) err(`${where}: needs a prompt`);

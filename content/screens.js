@@ -33,6 +33,11 @@ export const screens = {
       colC: { r: [50, 30, 144, 32], label: "the header of column C" },
     },
   },
+  "merge-button": {
+    src: "assets/screens/merge-button.webp", w: 128, h: 68,
+    alt: "The merge cells button, grey because fewer than two cells are selected",
+    regions: { merge: { r: [10, 10, 70, 48], label: "Merge cells" }, menu: { r: [84, 14, 34, 40], label: "the merge menu arrow" } },
+  },
   "sheets-ribbon": {
     src: "assets/screens/sheets-ribbon.webp", w: 700, h: 54,
     alt: "The right-hand end of the Google Sheets toolbar",

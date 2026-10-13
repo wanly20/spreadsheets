@@ -6,6 +6,8 @@
 //   keys      ["Ctrl", "Z"] keycaps
 //   tabs      { tabs, active, highlight, editing, dragging, colours } the sheet tabs bar
 //   tabmenu   { tab, highlight } a tab with its two-finger-tap menu open
+//   colheads  { n, highlight } column letters with the lines between them ("B|C") to tap
+//   rowheads  { n, highlight } row numbers with the lines between them ("2|3")
 //   steps     ["Select the cells", "Choose a tool"]
 //   fillDemo  { start, end } the fill handle, animated (with a replay button)
 //   moveDemo  { from, to, value } moving a cell, animated
@@ -55,6 +57,8 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
   if (spec.keys) wrap.appendChild(el(`<div class="keycaps" aria-label="${esc(spec.keys.join(" + "))}">${keycaps(spec.keys)}</div>`));
   if (spec.tabs) wrap.appendChild(tabsBar(spec.tabs));
   if (spec.tabmenu) wrap.appendChild(tabMenu(spec.tabmenu));
+  if (spec.colheads) wrap.appendChild(headStrip("col", spec.colheads));
+  if (spec.rowheads) wrap.appendChild(headStrip("row", spec.rowheads));
   if (spec.steps) {
     wrap.appendChild(el(`<ol class="step-chips">${spec.steps.map((s, i) => `${i ? `<li class="step-chips__arrow" aria-hidden="true">${icon("arrow-right", 22, 2.75)}</li>` : ""}<li class="step-chip"><b>${i + 1}</b>${esc(s)}</li>`).join("")}</ol>`));
   }
@@ -119,4 +123,18 @@ export function tabMenu({ tab, highlight }) {
         <span class="sheet-tab is-active is-pressed"><span class="sheet-tab__name">${esc(tab)}</span>${icon("chevron-down", 14, 2.5)}</span>
       </div>
     </div>`);
+}
+
+/** Column letters (or row numbers) with the dividing lines you drag to resize. */
+export function headStrip(kind, { n = 4, highlight } = {}) {
+  const names = Array.from({ length: n }, (_, i) => (kind === "col" ? String.fromCharCode(65 + i) : String(i + 1)));
+  const parts = [];
+  names.forEach((x, i) => {
+    parts.push(`<button type="button" class="head-cell" data-hit="${x}" aria-label="${kind === "col" ? "Column" : "Row"} ${x}">${x}</button>`);
+    if (i < n - 1) {
+      const line = `${x}|${names[i + 1]}`;
+      parts.push(`<button type="button" class="head-line ${highlight === line ? "is-ring" : ""}" data-hit="${line}" aria-label="The line between ${x} and ${names[i + 1]}"><span></span></button>`);
+    }
+  });
+  return el(`<div class="head-strip head-strip--${kind}" role="group" aria-label="${kind === "col" ? "Column letters" : "Row numbers"}">${parts.join("")}</div>`);
 }

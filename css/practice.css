@@ -34,8 +34,8 @@
 .sheet-grid {
   position: relative;
   display: grid;
-  grid-template-columns: var(--hw) repeat(var(--cols), minmax(0, 1fr));
-  grid-template-rows: var(--hh) repeat(var(--rows), var(--rh));
+  grid-template-columns: var(--hw) var(--col-tracks, repeat(var(--cols), minmax(0, 1fr)));
+  grid-template-rows: var(--hh) var(--row-tracks, repeat(var(--rows), var(--rh)));
   touch-action: manipulation;
 }
 .msheet--range .sheet-grid, .msheet--move .sheet-grid { touch-action: none; }
@@ -55,9 +55,15 @@
   padding: 0 6px;
   border-right: 1px solid var(--sheet-line);
   border-bottom: 1px solid var(--sheet-line);
-  display: flex; align-items: center;
+  display: flex; align-items: flex-end; padding-bottom: 6px; /* bottom is the default, as in Sheets */
   white-space: nowrap; overflow: hidden;
+  line-height: 1.25;
 }
+.sh-cell.is-spill { overflow: visible; position: relative; z-index: 1; }
+.sh-cell.is-wrap { white-space: normal; overflow-wrap: anywhere; }
+.sh-cell.is-clip { overflow: hidden; }
+.sh-cell[style*="align-items: flex-start"] { padding-top: 4px; }
+.sh-cell.is-frozen, .sh-row.is-frozen { border-bottom: 4px solid #bdc1c6; }
 .sh-cell.is-num { justify-content: flex-end; }
 .sh-cell.is-new { animation: cell-in 0.3s var(--ease-out); }
 @keyframes cell-in { from { background: var(--blue-100); } }
@@ -290,3 +296,19 @@ button.tabs-bar__btn { cursor: pointer; }
 .sheet-tab.is-active { background: #e1e9f7; }
 button.sheet-tab:not(:disabled) { cursor: default; }
 .tabs-bar .hot-ui:not(:disabled) { cursor: pointer; }
+
+/* Column letters / row numbers with the lines between them */
+.head-strip { display: flex; align-items: stretch; background: var(--sheet-head); border: 1px solid var(--sheet-line); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 0 var(--line-200); font-family: var(--font-sheet); }
+.head-strip--col { width: min(100%, 440px); height: 44px; }
+.head-strip--row { flex-direction: column; width: 72px; }
+.head-cell { flex: 1; min-width: 0; min-height: 40px; border: 0; background: none; font: inherit; font-size: 15px; color: var(--sheet-head-text); }
+.head-line { position: relative; flex: none; width: 22px; padding: 0; border: 0; background: none; }
+.head-line span { position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: #c4c7c5; border-radius: 1px; }
+.head-strip--row .head-line { width: auto; height: 22px; }
+.head-strip--row .head-line span { left: 6px; right: 6px; top: 50%; bottom: auto; width: auto; height: 2px; margin: -1px 0 0; }
+.head-line.is-ring span, .head-line.is-chosen span { background: var(--blue-500); }
+.head-line.is-correct span { background: var(--green-500); }
+.head-line.is-wrong span { background: var(--coral-500); }
+.head-strip--col .head-line { cursor: col-resize; }
+.head-strip--row .head-line { cursor: row-resize; }
+.sh-cell.is-wrap { padding-top: 4px; }

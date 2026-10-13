@@ -61,8 +61,17 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
   let sel = parseSel(spec.sel, S);
   const showBar = spec.nameBox != null && spec.nameBox !== false || spec.formula != null;
 
+  // Column widths (relative) and row heights (px), as in Google Sheets.
+  function tracks() {
+    const w = Array.from({ length: cols }, (_, c) => `minmax(0, ${spec.widths?.[colLetter(c)] ?? 1}fr)`).join(" ");
+    const h = Array.from({ length: rows }, (_, r) => (spec.heights?.[r + 1] === "auto" ? "minmax(var(--rh), auto)" : spec.heights?.[r + 1] ? `${spec.heights[r + 1]}px` : "var(--rh)")).join(" ");
+    return `--col-tracks:${w};--row-tracks:${h}`;
+  }
+  const merges = (spec.merges || []).map((m) => parseSel(m, { cols, rows }));
+  const coveredBy = (c, r) => merges.find((m) => c >= m.c1 && c <= m.c2 && r >= m.r1 && r <= m.r2);
+
   const root = el(`
-    <div class="msheet msheet--${mode}" style="--cols:${cols};--rows:${rows}">
+    <div class="msheet msheet--${mode}" style="--cols:${cols};--rows:${rows};${tracks()}">
       ${showBar ? `<div class="sheet-bar" aria-hidden="true">
         <div class="sheet-namebox"><span class="sheet-namebox__text"></span>${icon("chevron-down", 14, 2.5)}</div>
         <div class="sheet-fx"><i>fx</i><span class="sheet-fx__text"></span></div>
@@ -70,7 +79,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       <div class="sheet-grid" ${mode === "static" ? 'aria-hidden="true"' : `tabindex="0" role="application" aria-label="${esc(label)}"`}>
         <div class="sh-corner" style="grid-area:1/1"></div>
         ${Array.from({ length: cols }, (_, c) => `<div class="sh-col" data-col="${c}" style="grid-area:1/${c + 2}">${colLetter(c)}</div>`).join("")}
-        ${Array.from({ length: rows }, (_, r) => `<div class="sh-row" data-row="${r + 1}" style="grid-area:${r + 2}/1">${r + 1}</div>`).join("")}
+        ${Array.from({ length: rows }, (_, r) => `<div class="sh-row ${spec.frozen === r + 1 ? "is-frozen" : ""}" data-row="${r + 1}" style="grid-area:${r + 2}/1">${spec.rowLabels?.[r] ?? r + 1}</div>`).join("")}
         ${Array.from({ length: rows }, (_, r) => Array.from({ length: cols }, (_, c) => `<div class="sh-cell" data-ref="${colLetter(c)}${r + 1}" style="grid-area:${r + 2}/${c + 2}"></div>`).join("")).join("")}
         <div class="sh-sel" hidden><span class="sh-handle" data-handle></span></div>
       </div>
@@ -92,6 +101,17 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       d.style.color = st.color || "";
       d.style.fontWeight = st.b ? "700" : "";
       d.style.textAlign = st.align || "";
+      d.style.justifyContent = st.align === "center" ? "center" : st.align === "right" ? "flex-end" : st.align === "left" ? "flex-start" : "";
+      d.style.alignItems = st.valign === "top" ? "flex-start" : st.valign === "middle" ? "center" : "";
+      d.classList.toggle("is-wrap", st.wrap === "wrap");
+      d.classList.toggle("is-clip", st.wrap === "clip");
+      d.classList.toggle("is-frozen", spec.frozen === +ref.slice(1));
+      // Text longer than its cell spills into an empty cell next door (the default).
+      const p = parseRef(ref), next = `${colLetter(p.c + 1)}${p.r}`;
+      d.classList.toggle("is-spill", typeof v === "string" && v !== "" && !st.wrap && (cells[next] == null || cells[next] === "") && p.c + 1 < cols);
+      const m = coveredBy(p.c, p.r);
+      d.hidden = !!m && !(m.c1 === p.c && m.r1 === p.r);
+      if (m && m.c1 === p.c && m.r1 === p.r) place(d, m);
     });
   }
 

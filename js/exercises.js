@@ -507,7 +507,16 @@ function hotspot(step, api) {
     api.enableCheck(true);
   };
   btns.forEach((b) => b.addEventListener("click", () => { if (!node.classList.contains("is-locked")) choose(b); }));
-  const label = (id) => step.screen ? screens[step.screen].regions[id].label : id === "+" ? "the + button" : id === "All sheets" ? "the All sheets button" : /^[A-Z][a-z]/.test(id) && !step.ui?.tabs ? id : `the ${id} tab`;
+  const label = (id) => {
+    if (step.screen) return screens[step.screen].regions[id].label;
+    if (step.ui?.colheads || step.ui?.rowheads) {
+      const what = step.ui.colheads ? "column" : "row";
+      return id.includes("|") ? `the line between ${what}s ${id.replace("|", " and ")}` : `${what} ${id}`;
+    }
+    if (id === "+") return "the + button";
+    if (id === "All sheets") return "the All sheets button";
+    return step.ui?.tabs ? `the ${id} tab` : id;
+  };
   return {
     el: node,
     footer: { label: "Check", enabled: false },
