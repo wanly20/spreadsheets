@@ -105,6 +105,14 @@ async function answer(step) {
     }
     case "keys": await key({ "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter", "ctrl+`": "Control+Backquote" }[step.combo]); return;
     case "formula": await p.keyboard.type(step.accept[0].toLowerCase()); return;
+    case "lockRef": {
+      const refs = await p.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .lock-ref")].map((b) => b.dataset.ref));
+      // Lock a wrong one and unlock it again, then lock the right one(s).
+      const other = refs.findIndex((r) => !step.lock.includes(r));
+      await key(String(other + 1)); await key(String(other + 1));
+      for (const r of step.lock) await key(String(refs.indexOf(r) + 1));
+      return;
+    }
     case "gaps": {
       // A wrong chip first, then Backspace takes it back, then the answers.
       const wrong = step.chips.findIndex((c) => !step.answers.map((a) => a.toLowerCase()).includes(c.toLowerCase()));

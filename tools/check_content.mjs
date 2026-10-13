@@ -54,7 +54,7 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
 
 // ------------------------------------------------------------ extra practice
 const GRID_TYPES = new Set(["gridClick", "gridName", "gridRange", "rangeName", "gridMove"]);
-const TYPES = new Set(["choice", "fill", "keys", "hotspot", "order", "formula", ...GRID_TYPES]);
+const TYPES = new Set(["choice", "fill", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
 const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter", "ctrl+`"]);
 const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
@@ -103,7 +103,14 @@ for (const it of model.items) {
     }
     if (e.type === "formula") {
       if (!e.prompt || !Array.isArray(e.accept) || !e.accept.length) err(`${where}: needs a prompt and accepted answers`);
-      (e.accept || []).forEach((a) => { if (!/^=[A-Z0-9:()+\-*/.]+$/.test(a)) err(`${where}: accepted answer ${a} must start with = and use + - * / only`); });
+      (e.accept || []).forEach((a) => { if (!/^=[A-Z0-9:()+\-*/.$]+$/.test(a)) err(`${where}: accepted answer ${a} must start with = and use + - * / only`); });
+    }
+    if (e.type === "lockRef") {
+      const refs = (e.formula || "").match(/[A-Z]\d+/g) || [];
+      if (!e.prompt || !/^=/.test(e.formula || "") || /\$/.test(e.formula)) err(`${where}: needs a prompt and a formula starting with =, without $`);
+      if (refs.length < 2 || new Set(refs).size !== refs.length) err(`${where}: the formula needs 2+ different references`);
+      if (!Array.isArray(e.lock) || !e.lock.length || e.lock.some((r) => !refs.includes(r))) err(`${where}: lock must list references from the formula`);
+      if (e.lock?.length === refs.length) err(`${where}: at least one reference must stay relative`);
     }
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
   });

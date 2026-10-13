@@ -48,7 +48,18 @@ export const course = {
       ],
       review: { id: "3-r", title: "Mixed review" },
     },
+    {
+      n: 4,
+      title: "Lesson 4",
+      subtitle: "Relative and absolute references, percentages, deleting rows",
+      theme: "green",
+      levels: [
+        { id: "4-1", title: "References that move, and $", icon: "lock", terms: ["relative reference", "percentage in a cell", "absolute reference"] },
+        { id: "4-2", title: "When to lock, and deleting rows", icon: "layers", terms: ["when to lock a reference", "delete a row or column"] },
+      ],
+      review: { id: "4-r", title: "Mixed review" },
+    },
   ],
   // The big review at the end of the path, across every lesson that is ready.
-  finalReview: { id: "all-r", title: "Lessons 1–3 review", needs: [1, 2, 3] },
+  finalReview: { id: "all-r", title: "Lessons 1–4 review", needs: [1, 2, 3, 4] },
 };

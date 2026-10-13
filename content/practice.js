@@ -19,6 +19,8 @@
 //   keys       press the real shortcut (multiple choice on touch screens)
 //   hotspot    tap something on a real screenshot (`screen`) or a drawn part of Sheets (`ui`)
 //   order      put the steps in order
+//   formula    type a formula (accept: [...], hint?: a line under the prompt); $ is fine to type
+//   lockRef    tap the references in a formula to lock them with $ (formula: "=A2*D1", lock: ["D1"])
 // Grid targets can be a list: one is picked at random each time.
 
 const shop = { A1: "Item", B1: "Price", C1: "Qty", D1: "Total", A2: "Pen", B2: 2, C2: 3, D2: 6, A3: "Ruler", B3: 3, C3: 2, D3: 6 };
@@ -458,6 +460,80 @@ export const practice = {
       { type: "hotspot", fact: "paint roller", screen: "sheets-basic", target: "paintFormat", prompt: "Tap the paint format button (the paint roller)." },
       { type: "order", fact: "click the cell that looks right", prompt: "Put the steps in order to copy D2's look onto D3:D9.", steps: ["Click D2, the cell that looks right", "Click the paint roller", "Drag over D3:D9"] },
       { type: "choice", fact: "not what is in the cell", prompt: "D2 is bold and in dollars. You paint format D2 onto D9, which holds 50. What's in D9 now?", correct: "Still 50: it just looks like $50.00, in bold", wrong: ["The same number as D2", "Nothing: it's cleared", "50 with no formatting"] },
+    ],
+  },
+  // ======================================================= Lesson 4
+  "relative reference": {
+    learn: { visual: { grid: { cols: 3, rows: 4, widths: { C: 1.4 }, cells: { A1: "Cost", B1: "Qty", C1: "Total", A2: 3, B2: 20, C2: "=A2*B2", A3: 4, B3: 15, C3: "=A3*B3", A4: 2, B4: 30, C4: "=A4*B4" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 } }, sel: "C2:C4" } },
+      note: "Filled down from C2, with the formulas showing: every reference moves with the row. That's a relative reference." },
+    exercises: [
+      { type: "choice", fact: "it moves with the row", prompt: "C2 holds =A2*B2. You fill it down to C5. What's in C5?", correct: "=A5*B5", wrong: ["=A2*B2", "=A5*B2", "=A3*B3"] },
+      { type: "choice", fact: "Every reference is this kind unless you lock it", prompt: "You type =A2*B2, with no $ signs. What kind of references are A2 and B2?", correct: "Relative: they move when you fill", wrong: ["Absolute: they stay the same when you fill", "Locked: they can't be changed", "Neither: only $ references have a kind"] },
+      { type: "choice", fact: "it moves with the row", prompt: "B2 holds =A2*D1 and shows the right answer. You fill it down to B3. What's in B3?",
+        visual: { grid: { cols: 4, rows: 3, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: "=A2*D1", A3: 150 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B2" } },
+        correct: "=A3*D2", wrong: ["=A3*D1", "=A2*D1", "=A3*$D$1"] },
+      { type: "choice", fact: "it moves with the row", prompt: "B3 now holds =A3*D2, but the rate is in D1. D2 is empty. What does B3 show?",
+        visual: { grid: { cols: 4, rows: 3, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: 20, A3: 150, B3: "?" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B3" } },
+        correct: "0: it multiplies by an empty cell", wrong: ["15: 10% of 150", "20: the same as B2", "An error message"] },
+      { type: "formula", fact: "=A2*B2 becomes =A3*B3", prompt: "D2 holds =B2*C2. You fill it down to D4. Type the formula that's now in D4.", accept: ["=B4*C4", "=C4*B4"] },
+    ],
+  },
+  "percentage in a cell": {
+    learn: { visual: { grid: { cols: 3, rows: 2, cells: { A1: "Rate", B1: "10%", A2: 200, B2: 20 }, style: { A1: { b: 1 }, B1: { align: "right" } }, sel: "B2", nameBox: true, formula: "=A2*B1" } },
+      note: "B1 shows 10%, but the number it holds is 0.1. So =A2*B1 is 200 × 0.1 = 20: 10% of 200." },
+    exercises: [
+      { type: "choice", fact: "it holds 0.1", prompt: "You type 10% into B1. What number does B1 hold?", correct: "0.1", wrong: ["10", "1.0", "100"] },
+      { type: "choice", fact: "it holds 0.1", prompt: "F1 shows 25%. What number does it hold?", visual: { grid: { cols: 6, rows: 1, cells: { E1: "Share", F1: "25%" }, style: { F1: { align: "right" } }, sel: "F1" } }, correct: "0.25", wrong: ["25", "2.5", "0.025"] },
+      { type: "choice", fact: "=200*B1 gives 20", prompt: "B1 holds 10%. What does =200*B1 show?", correct: "20", wrong: ["2000", "210", "0.1"] },
+      { type: "choice", fact: "Multiply by that cell to get 10% of a number", prompt: "B2 holds 300 and F1 holds 10%. What does =B2*F1 show?",
+        visual: { grid: { cols: 6, rows: 2, cells: { B1: "Total", B2: 300, E1: "Rate", F1: "10%" }, style: { F1: { align: "right" } } } }, correct: "30", wrong: ["3000", "310", "3"] },
+      { type: "choice", fact: "Multiply by that cell", prompt: "G1 holds 20% and C2 holds 50. What does =C2*G1 show?", correct: "10", wrong: ["1000", "70", "2.5"] },
+      { type: "formula", fact: "Multiply by that cell", prompt: "A2 holds 200. B1 holds 10%. In C2, work out 10% of A2.", accept: ["=A2*B1", "=B1*A2"],
+        visual: { grid: { cols: 3, rows: 2, cells: { A1: "Total", B1: "10%", A2: 200 }, style: { A1: { b: 1 }, B1: { align: "right" } }, sel: "C2" } } },
+    ],
+  },
+  "absolute reference": {
+    learn: { visual: { grid: { cols: 4, rows: 4, widths: { B: 1.5 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: "=A2*$D$1", A3: 150, B3: "=A3*$D$1", A4: 80, B4: "=A4*$D$1" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right", bg: "#e7f5ec" } }, sel: "B2:B4" } },
+      note: "Filled down, with the formulas showing: A moves with the row, $D$1 never moves. Every row uses the rate in D1." },
+    exercises: [
+      { type: "choice", fact: "a $ before the letter AND the number", prompt: "Which one is an absolute (locked) reference?", correct: "$B$13", wrong: ["B13", "$B13", "B$13"] },
+      { type: "choice", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. What's in C5?", correct: "=B5*$F$1", wrong: ["=B5*$F$4", "=B2*$F$1", "=B5*F5"] },
+      { type: "choice", fact: "It stays the same when you fill", prompt: "B2 holds =A2*$D$1. You fill it down to B4. What does B4 show?",
+        visual: { grid: { cols: 4, rows: 4, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: 20, A3: 150, B3: 15, A4: 80, B4: "?" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B4" } },
+        correct: "8", wrong: ["0", "20", "80"] },
+      { type: "choice", fact: "$ is Shift + 4", prompt: "Which keys type the $ sign?", correct: "Shift + 4", wrong: ["Shift + 8", "Ctrl + 4", "Alt + 4"] },
+      { type: "lockRef", fact: "a $ before the letter AND the number", prompt: "Every row uses the rate in D1. Lock it, so it stays the same when you fill down.", formula: "=A2*D1", lock: ["D1"],
+        visual: { grid: { cols: 4, rows: 3, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, A3: 150 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B2" } } },
+      { type: "formula", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. Type the formula that's now in C5.", hint: "$F$1 is locked. B2 is not.", accept: ["=B5*$F$1", "=$F$1*B5"] },
+    ],
+  },
+  "when to lock a reference": {
+    learn: { visual: { grid: { cols: 3, rows: 5, widths: { A: 1.3 }, cells: { A1: "Ticket price", B1: 2, A3: "Class", B3: "Tickets", C3: "Money", A4: "7A", B4: 48, C4: "=B4*$B$1", A5: "7B", B5: 35, C5: "=B5*$B$1" }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 }, B1: { bg: "#e7f5ec" } }, sel: "C4:C5" } },
+      note: "Every row uses the same one cell, the price in B1, so it's locked. Change B1 and every answer updates." },
+    exercises: [
+      { type: "lockRef", fact: "When every row uses the same one cell", prompt: "C4 is tickets sold (B4) × the ticket price (B1). Lock the reference every row shares.", formula: "=B4*B1", lock: ["B1"],
+        visual: { grid: { cols: 3, rows: 5, widths: { A: 1.3 }, cells: { A1: "Ticket price", B1: 2, A3: "Class", B3: "Tickets", C3: "Money", A4: "7A", B4: 48, A5: "7B", B5: 35 }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 } }, sel: "C4" } } },
+      { type: "lockRef", fact: "Lock it with $", prompt: "H4 works out each stall's charity share: its total (E4) × the charity rate (B10). Lock the right reference.", formula: "=E4*B10", lock: ["B10"] },
+      { type: "choice", fact: "When every row uses the same one cell", prompt: "D5 holds =C5*B2. B2 is the class share (25%), and every row uses it. Which reference gets the $?", correct: "B2: every row uses the same share", wrong: ["C5: it's the first one", "Both of them", "Neither: $ is only for SUM"] },
+      { type: "formula", fact: "Lock it with $", prompt: "Tickets sold are in B4. The ticket price is in B1, and every row uses it. In C4, write the formula so it still works when you fill it down.", hint: "Lock the price with $ (Shift + 4). In Google Sheets, F4 adds the $ signs for you.", accept: ["=B4*$B$1", "=$B$1*B4"],
+        visual: { grid: { cols: 3, rows: 4, widths: { A: 1.3 }, cells: { A1: "Ticket price", B1: 2, A3: "Class", B3: "Tickets", C3: "Money", A4: "7A", B4: 48 }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 } }, sel: "C4" } } },
+      { type: "choice", fact: "changing that one cell updates every answer", prompt: "H4:H8 all use $B$10, which holds 10%. You change B10 to 15%. What happens?", correct: "Every answer in H4:H8 updates by itself", wrong: ["Only H4 changes", "Nothing until you fill down again", "The formulas stop working"] },
+      { type: "choice", fact: "a rate, a price, a budget", prompt: "You fill a formula down a list of stalls. Which one should be locked with $?", correct: "The charity rate, in one cell", wrong: ["Each stall's own total", "Each stall's own name", "The row the formula is in"] },
+    ],
+  },
+  "delete a row or column": {
+    learn: { visual: { grid: { cols: 3, rows: 5, cells: { A1: "Class", B1: "Tickets", A2: "7A", B2: 48, A3: "7B", B3: 35, A4: "7C", B4: 60, A5: "7D", B5: 22 }, style: { A1: { b: 1 }, B1: { b: 1 } }, sel: "4:4" } },
+      note: "Right-click the row number 4 → Delete row: 7C is gone and 7D moves up. The Delete key would only empty the cells." },
+    exercises: [
+      { type: "choice", fact: "The Delete key alone only empties the cells", prompt: "Which one removes row 6 completely?", correct: "Right-click the 6 → Delete row", wrong: ["Click row 6 and press the Delete key", "Right-click the 6 → Insert 1 row above", "Press Ctrl + Z"] },
+      { type: "gridClick", fact: "Right-click (two-finger tap) the row number", target: "row:4", prompt: "To delete a whole row, you right-click its row number. Tap the row number for 7C.",
+        grid: { cols: 3, rows: 5, cells: { A1: "Class", B1: "Tickets", A2: "7A", B2: 48, A3: "7B", B3: 35, A4: "7C", B4: 60, A5: "7D", B5: 22 } } },
+      { type: "choice", fact: "Everything below moves up", prompt: "You delete row 3 (7B). What's in A3 now?",
+        visual: { grid: { cols: 3, rows: 5, cells: { A1: "Class", B1: "Tickets", A2: "7A", B2: 48, A3: "7B", B3: 35, A4: "7C", B4: 60, A5: "7D", B5: 22 }, style: { A1: { b: 1 }, B1: { b: 1 } }, sel: "3:3" } },
+        correct: "7C: the rows below move up", wrong: ["Nothing: row 3 is blank", "7B", "7D"] },
+      { type: "choice", fact: "the blank row stays", prompt: "You select row 3 and press the Delete key. What happens?", correct: "The cells are emptied, but the blank row stays", wrong: ["Row 3 is gone and the rows below move up", "Everything to the right moves left", "Nothing at all"] },
+      { type: "choice", fact: "everything to the right moves left", prompt: "You delete column B. What happens to column C?", correct: "It moves left and becomes column B", wrong: ["It stays column C, next to an empty B", "It moves right", "It's deleted too"] },
+      { type: "choice", fact: "Everything below moves up", prompt: "C4 holds =B4*$B$12. You delete row 7. What does C4 say now?", correct: "=B4*$B$11: it follows the cell", wrong: ["=B4*$B$12: it's locked", "=B4*$B$13", "=B3*$B$11"] },
     ],
   },
 };

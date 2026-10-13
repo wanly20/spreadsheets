@@ -182,8 +182,9 @@ async function runViewport(vp) {
   // ------------------------------------------------------------ every exercise type (the hidden sampler)
   await page.goto(BASE + "#/play/sampler");
   await wait(1000);
-  const sam = await playSession("sampler", new Set(["*"]));
-  ok(sam.done && sam.steps >= 14, `the sampler plays one of every exercise type (${sam.steps} steps)`);
+  // Types not yet answered wrong in a level (e.g. a formula with $) get a wrong answer here.
+  const sam = await playSession("sampler", wrongDone);
+  ok(sam.done && sam.steps >= 15, `the sampler plays one of every exercise type (${sam.steps} steps)`);
   await page.goto(BASE);
   await wait(1000);
 
@@ -217,7 +218,7 @@ async function runViewport(vp) {
       res.steps++;
       if (step.retry) res.retries++;
       if (step.type !== "learn" && !step.retry) res.questions++;
-      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? "hotspot-ui" : step.type;
+      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? "hotspot-ui" : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
       if (step.type === "learn") typeKey = "learn-" + await page.evaluate(() => {
         const v = document.querySelector(".lesson-body .ex:not(.step-leave) .learn-visual");
         if (!v) return "text";
@@ -239,7 +240,7 @@ async function runViewport(vp) {
         const filled = await page.evaluate(() => [...document.querySelectorAll(".ex-fill .sh-cell[data-ref^='B']")].map((c) => c.textContent).filter(Boolean).length);
         ok(filled >= step.end, `fill: the grid animates the fill (${filled} cells filled)`);
       }
-      if (step.type === "formula" && goWrong) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
+      if (step.type === "formula" && goWrong && !step.accept[0].includes("$")) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
       if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
       await page.evaluate(() => { document.querySelector(".screen.lesson").__old = document.querySelector(".screen.lesson").__step; });
       if (vp.touch) {
@@ -309,8 +310,32 @@ async function runViewport(vp) {
         return check();
       }
       case "formula": {
-        await page.locator(EX + ".type-input").fill(right ? step.accept[0].toLowerCase() : step.accept[0].slice(1));
-        return check();
+        // Wrong: no = (or, for a formula with $, no $ at all).
+        const lock = step.accept[0].includes("$");
+        await page.locator(EX + ".type-input").fill(right ? step.accept[0].toLowerCase() : lock ? step.accept[0].replace(/\$/g, "") : step.accept[0].slice(1));
+        await check();
+        if (!right && lock) {
+          await page.waitForSelector(".feedback.is-open", { timeout: 4000 }).catch(() => {});
+          ok(/Lock it/.test(await page.locator(".feedback__title").innerText()) && /F4/.test(await page.locator(".feedback__body").innerText()), "a formula missing its $ gets the kind “Lock it!” tip, with F4");
+        }
+        return;
+      }
+      case "lockRef": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `lockRef: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `lockRef: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        const refs = await page.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .lock-ref")].map((b) => b.dataset.ref));
+        const want = right ? step.lock : refs.filter((r) => !step.lock.includes(r)).slice(0, 1);
+        for (const r of want) {
+          const i = refs.indexOf(r);
+          if (vp.touch) await page.locator(EX + ".lock-ref").nth(i).tap(); else await page.keyboard.press(String(i + 1));
+          await wait(120);
+        }
+        ok(await page.locator(EX + '.lock-ref[aria-pressed="true"] .lock-ref__t').first().innerText().then((t) => t.startsWith("$")), "lockRef: a tapped reference gets its $ signs");
+        await check();
+        await page.waitForSelector(".feedback.is-open", { timeout: 4000 }).catch(() => {});
+        if (!right) ok(/move with the row/.test(await page.locator(".feedback__body").innerText()), "lockRef: locking the wrong reference explains why it should move");
+        return;
       }
       case "gaps": {
         const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });

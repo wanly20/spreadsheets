@@ -8,7 +8,7 @@ import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./g
 import { renderVisual, fillValues, keycaps } from "./visuals.js";
 import { screens } from "../content/screens.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula, gaps };
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
@@ -23,6 +23,7 @@ const KICKER = {
   order: ["list-ordered", "Put the steps in order"],
   formula: ["type", "Write the formula"],
   gaps: ["list-ordered", "Fill the gaps"],
+  lockRef: ["lock", "Lock the reference"],
   match: ["sparkles", "Match the pairs"],
 };
 
@@ -650,6 +651,17 @@ export const normFormula = (s) => String(s).replace(/\s+/g, "").toUpperCase().re
 /** Kind feedback for a formula that isn't accepted. */
 export function formulaTip(got, accept) {
   const want = accept[0];
+  // Absolute references: a missing or half $.
+  const bare = (f) => f.replace(/\$/g, "");
+  if (want.includes("$") && accept.some((a) => bare(a) === bare(got))) {
+    const ref = (/\$([A-Z])\$(\d+)/.exec(want) || []).slice(1).join("");
+    if (!got.includes("$")) return { title: "Lock it!", tip: `Every row uses ${ref}, so it needs a $: $${ref[0]}$${ref.slice(1)}. Type $ with Shift + 4, or click the reference and press F4.` };
+    const over = (got.match(/\$[A-Z]\$\d+/g) || []).map(bare).filter((r) => r !== ref);
+    if (over.length) return { title: "Too many $", tip: `Only ${ref} is shared by every row. ${over.join(" and ")} should move with the row, so leave it without $.` };
+    return { title: "Almost!", tip: `Put a $ before the letter AND before the number: $${ref[0]}$${ref.slice(1)}. The other reference stays as it is, so it moves with the row.` };
+  }
+  if (!want.includes("$") && got.includes("$") && accept.includes(bare(got))) return { title: "No $ needed here", tip: "This one should move with the row when you fill it, so leave it relative (no $)." };
+  if (got.includes("%")) return { tip: "Point at the cell that holds the percentage, so changing that one cell updates the answer." };
   if (!got.startsWith("=") && accept.includes(`=${got}`)) return { title: "Almost!", tip: `Start with = . Without it, ${got} is just text in the cell.` };
   if (/[A-Z]\d+X[A-Z]?\d+/.test(got) || got.includes("×")) return { tip: "Multiply with * (Shift + 8), never x." };
   if (got.includes("÷")) return { tip: "Divide with / , never ÷." };
@@ -664,7 +676,7 @@ function formula(step, api) {
   const vis = step.visual ? renderVisual(step.visual) : null;
   const node = el(`
     <div class="ex ex-formula">
-      ${head(step, esc(step.prompt))}
+      ${head(step, esc(step.prompt), step.hint ? esc(step.hint) : "")}
       <div class="ex-visual"></div>
       <div class="type-field formula-field">
         <span class="formula-field__fx" aria-hidden="true">fx</span>
@@ -767,6 +779,76 @@ function gaps(step, api) {
       slots.forEach((s, i) => { s.classList.remove("is-active"); s.classList.add(right(i) ? "is-right" : "is-off"); });
       chips.forEach((b) => (b.disabled = true));
       return { ok, explain: null, body: `<span class="feedback__def feedback__def--full"><b>${esc(item.term)}:</b> ${rich(item.def)}</span>` };
+    },
+  };
+}
+
+// ================================================================ lock the reference (tap a reference to add $, like F4)
+const REF_RE = /\$?[A-Z]\$?\d+/g;
+const lockedRef = (r) => `$${r[0]}$${r.slice(1)}`;
+function lockRef(step, api) {
+  const vis = step.visual ? renderVisual(step.visual) : null;
+  // The formula as text pieces and reference buttons.
+  const parts = [];
+  let last = 0;
+  for (const m of step.formula.matchAll(REF_RE)) {
+    if (m.index > last) parts.push({ text: step.formula.slice(last, m.index) });
+    parts.push({ ref: m[0].replace(/\$/g, "") });
+    last = m.index + m[0].length;
+  }
+  if (last < step.formula.length) parts.push({ text: step.formula.slice(last) });
+  const refs = parts.filter((p) => p.ref).map((p) => p.ref);
+  const locked = new Set();
+  let k = 0;
+  const node = el(`
+    <div class="ex ex-lock">
+      ${head(step, esc(step.prompt), "Tap a reference to lock it with $. Tap again to unlock it.")}
+      <div class="ex-visual"></div>
+      <div class="lock-bar" role="group" aria-label="The formula">
+        <span class="lock-bar__fx" aria-hidden="true">fx</span>
+        <span class="lock-bar__f">${parts.map((p) => p.text != null ? `<span class="lock-op">${esc(p.text)}</span>` : `<button type="button" class="press lock-ref" data-ref="${p.ref}" aria-pressed="false"><span class="face"><span class="key" aria-hidden="true">${++k}</span><span class="lock-ref__t">${p.ref}</span></span></button>`).join("")}</span>
+      </div>
+      <p class="lock-hint">${icon("lightbulb", 18, 2.5)}<span>In Google Sheets: click the reference in the formula and press <b>F4</b>, or type <b>$</b> (Shift + 4).</span></p>
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  const btns = $$(".lock-ref", node);
+  const render = () => btns.forEach((b) => {
+    const on = locked.has(b.dataset.ref);
+    b.setAttribute("aria-pressed", String(on));
+    b.querySelector(".lock-ref__t").textContent = on ? lockedRef(b.dataset.ref) : b.dataset.ref;
+    b.setAttribute("aria-label", `${b.dataset.ref}, ${on ? "locked" : "not locked"}`);
+  });
+  const toggle = (b) => {
+    if (b.disabled) return;
+    const r = b.dataset.ref;
+    if (locked.has(r)) locked.delete(r); else locked.add(r);
+    sfx.select();
+    restartAnim(b, "pop");
+    render();
+    api.enableCheck(true);
+  };
+  btns.forEach((b) => b.addEventListener("click", () => toggle(b)));
+  render();
+  const text = (lockSet) => parts.map((p) => (p.text != null ? p.text : lockSet.has(p.ref) ? lockedRef(p.ref) : p.ref)).join("");
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { vis?.play?.(); },
+    onKey(n) { const b = btns[n - 1]; if (b) { toggle(b); b.focus({ preventScroll: true }); } },
+    check({ skipped } = {}) {
+      btns.forEach((b) => (b.disabled = true));
+      const want = new Set(step.lock);
+      const ok = !skipped && refs.every((r) => want.has(r) === locked.has(r));
+      btns.forEach((b) => { const r = b.dataset.ref; if (want.has(r) === locked.has(r)) { if (want.has(r)) b.classList.add("is-correct"); } else b.classList.add("is-wrong"); });
+      if (ok) return { ok, body: `<span class="feedback__tip">${esc(text(want))}: ${esc(step.lock.map(lockedRef).join(", "))} stays put, the rest moves with the row.</span>` };
+      const shared = step.lock.filter((r) => !locked.has(r)), extra = [...locked].filter((r) => !want.has(r));
+      let tip = "";
+      if (skipped) tip = "";
+      else if (shared.length && !extra.length) tip = `Every row uses ${shared.join(" and ")}, so lock it.`;
+      else if (extra.length && !shared.length) tip = `${extra.join(" and ")} should move with the row: each row uses its own. Leave it without $.`;
+      else tip = `Lock the one cell every row shares (${step.lock.join(", ")}). Leave the others to move with the row.`;
+      return { ok: false, answer: text(want), body: tip ? `<span class="feedback__tip">${esc(tip)}</span>` : "" };
     },
   };
 }

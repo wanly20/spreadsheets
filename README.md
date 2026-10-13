@@ -55,7 +55,7 @@ nearest level. The checker tells you so you can tidy up the level list.
 |---|---|
 | `content/knowledge_lessonN.js` | Copies of the Knowledge Bank (generated: don't edit) |
 | `content/course.js` | The path: lessons, their levels (lists of terms), "coming soon" |
-| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas…) |
+| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $…) |
 | `content/screens.js` | Real Google Sheets screenshots and their tappable areas |
 | `js/brand.js` | **App name and mascot, in one place** |
 | `js/course.js` | Builds levels and reviews from the content |
@@ -63,12 +63,12 @@ nearest level. The checker tells you so you can tidy up the level list.
 | `js/lesson.js` · `js/app.js` · `js/store.js` | Lesson runner, screens and settings, saved progress |
 | `css/tokens.css` | Colours, type and spacing (`python3 tools/contrast.py` checks WCAG AA) |
 
-## Adding a lesson (Lessons 1–3 are in; Lesson 4 next)
+## Adding a lesson (Lessons 1–4 are in; Lesson 5 next)
 
-1. In `content/course.js`, add the lesson after Lesson 3 (`n: 4`, a title, a subtitle and a theme), with its levels.
-   Each level is a list of 3–6 terms, copied exactly from `knowledge_lesson4.js`, in slide order.
-   Add `review: { id: "4-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
-2. Run `tools/sync_content.sh`: it copies `knowledge_lesson4.js` and checks everything.
+1. In `content/course.js`, add the lesson after Lesson 4 (`n: 5`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
+   Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson5.js`, in slide order.
+   Add `review: { id: "5-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
+2. Run `tools/sync_content.sh`: it copies `knowledge_lesson5.js` and checks everything.
 3. Optional but worthwhile: in `content/practice.js`, add a learn-card picture and a few hands-on
    exercises for each new term. The comments at the top of that file list the exercise types.
    Without them, every term still gets term ↔ definition questions.

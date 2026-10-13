@@ -81,6 +81,7 @@ export function buildModel(knowledge) {
       warnings.push(`content/practice.js has exercises for "${term}", which isn't in any ready lesson`);
     }
   }
+  allItems = items;
   return { lessons, items, byId, warnings };
 }
 
@@ -136,18 +137,32 @@ export function termPrompt(item) {
   return re.test(text) ? null : text;
 }
 
-/** Wrong chips for "Fill the gaps": hidden words of other items, never one of the answers. */
+/** Every item of every ready lesson (set by buildModel), for topping up wrong chips. */
+let allItems = [];
+
+/**
+ * Wrong chips for "Fill the gaps": hidden words of other items in the same
+ * pool first, then (if there aren't enough) of the rest of its lesson and of earlier lessons, nearest first.
+ * Never one of the answers.
+ */
 function gapDistractors(item, pool, answers, n, rng) {
   const lower = new Set(answers.map((a) => a.toLowerCase()));
-  const cands = [];
-  for (const x of shuffleR(pool, rng)) {
-    if (x.id === item.id) continue;
-    for (const w of blanksOf(x.def)) if (!lower.has(w.toLowerCase()) && !cands.some((c) => c.toLowerCase() === w.toLowerCase())) cands.push(w);
-  }
+  const seen = new Set(lower);
   // Prefer chips of a similar length to the answers, so the length doesn't give it away.
   const avg = answers.reduce((s, a) => s + a.length, 0) / answers.length;
-  cands.sort((p, q) => Math.abs(p.length - avg) - Math.abs(q.length - avg) + (rng() - 0.5) * 6);
-  return cands.slice(0, n);
+  const words = (list) => {
+    const out = [];
+    for (const x of shuffleR(list, rng)) {
+      if (x.id === item.id) continue;
+      for (const w of blanksOf(x.def)) if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); out.push(w); }
+    }
+    return out.map((w) => [Math.abs(w.length - avg) + rng() * 6, w]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
+  };
+  const out = words(pool).slice(0, n);
+  for (let l = item.lesson; out.length < n && l >= 1; l--) {
+    out.push(...words(allItems.filter((x) => x.lesson === l)).slice(0, n - out.length));
+  }
+  return out;
 }
 
 /** The automatic exercises every item gets. */
@@ -155,7 +170,7 @@ export function genericExercises(item, pool, rng) {
   const out = [];
   const blanks = blanksOf(item.def);
   if (blanks.length) {
-    const wrong = gapDistractors(item, pool.length >= 4 ? pool : [...pool, ...pool], blanks, blanks.length <= 2 ? 3 : 2, rng);
+    const wrong = gapDistractors(item, pool, blanks, blanks.length <= 2 ? 3 : 2, rng);
     out.push({ type: "gaps", gen: "gaps", item: item.id, def: item.def, answers: blanks, showTerm: !blanksGiveAway(item), chips: shuffleR([...blanks, ...wrong], rng) });
   }
   const prompt = termPrompt(item);

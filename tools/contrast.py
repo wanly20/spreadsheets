@@ -50,6 +50,8 @@ PAIRS = [
     ("ink-soft", "line-100", "secondary text on tinted rows", 4.5),
     ("ink", "line-100", "fill-the-gaps: text in a gap", 4.5),
     ("ink", "blue-50", "fill-the-gaps: text in the active gap", 4.5),
+    ("blue-700", "blue-50", "lock the reference: a locked reference", 4.5),
+    ("coral-700", "coral-50", "lock the reference: a wrong reference", 4.5),
     ("yellow-ink", "yellow-50", "tip text on yellow", 4.5),
     ("ink-faint", "white", "disabled label (exempt, shown for info)", 0),
 ]

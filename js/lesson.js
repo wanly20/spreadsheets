@@ -250,7 +250,7 @@ export function runLesson(app, session, hooks) {
       if (e.repeat) { e.preventDefault(); return; }
       if (mode === "feedback") { e.preventDefault(); contBtn.click(); return; }
       const isButton = t?.matches("button, a[href]") && t !== mainBtn;
-      if (isButton && !(t.matches(".option, .hot, .hot-ui, .word-chip, .gap") && !mainBtn.disabled)) return;
+      if (isButton && !(t.matches(".option, .hot, .hot-ui, .word-chip, .gap, .lock-ref") && !mainBtn.disabled)) return;
       e.preventDefault();
       if (!mainBtn.disabled) mainBtn.click();
     } else if (e.key === "Escape") confirmQuit();

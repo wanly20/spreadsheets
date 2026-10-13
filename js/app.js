@@ -362,7 +362,7 @@ function play(id) {
 
 function samplerSteps() {
   const out = [];
-  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "match"];
+  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "lockRef", "match"];
   const items = model.items;
   for (const kind of want) {
     let step = null;
@@ -380,6 +380,8 @@ function samplerSteps() {
   }
   // Every shortcut that isn't Ctrl+Z too (e.g. Ctrl + ` to show formulas).
   for (const it of items) for (const e of authoredExercises(it, Math.random)) if (e.type === "keys" && e.combo === "ctrl+`") out.push(e);
+  // And a formula with $ (an absolute reference).
+  for (const it of items) { const e = authoredExercises(it, Math.random).find((x) => x.type === "formula" && x.accept[0].includes("$")); if (e) { out.push(e); break; } }
   return out;
 }
 
