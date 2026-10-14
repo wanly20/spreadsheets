@@ -103,6 +103,10 @@ async function answer(step) {
       const correct = await p.evaluate(async (s) => (await import("./js/exercises.js")).fillOptions(s.start, s.end).correct, step);
       const i = await optionIndex(".option .label", correct); await key(String(i + 1)); return;
     }
+    case "fillFormula": {
+      const correct = await p.evaluate(async (s) => (await import("./js/exercises.js")).fillFormulaOptions(s.formula, s.from, s.to).correct, step);
+      const i = await optionIndex(".option .label", correct); await key(String(i + 1)); return;
+    }
     case "keys": await key({ "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter", "ctrl+`": "Control+Backquote" }[step.combo]); return;
     case "formula": await p.keyboard.type(step.accept[0].toLowerCase()); return;
     case "lockRef": {

@@ -19,6 +19,11 @@ const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
 const { TAB_MENU, fillValues } = await import(path.join(ROOT, "js/visuals.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
+// js/exercises.js needs a browser to load, so the fill-formula helpers are read straight from it.
+const exSrc = readFileSync(path.join(ROOT, "js/exercises.js"), "utf8");
+const fillHelpers = exSrc.slice(exSrc.indexOf("const FREF_RE"), exSrc.indexOf("function fillFormula("));
+const { fillFormulaOptions } = Function("colLetter", "colIndex", fillHelpers.replace(/export /g, "") + "\nreturn { fillFormulaOptions };")(
+  (c) => String.fromCharCode(65 + c), (L) => L.toUpperCase().charCodeAt(0) - 65);
 
 const errors = [], warnings = [];
 const err = (m) => errors.push(m), warn = (m) => warnings.push(m);
@@ -54,7 +59,7 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
 
 // ------------------------------------------------------------ extra practice
 const GRID_TYPES = new Set(["gridClick", "gridName", "gridRange", "rangeName", "gridMove"]);
-const TYPES = new Set(["choice", "fill", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
+const TYPES = new Set(["choice", "fill", "fillFormula", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
 const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter", "ctrl+`"]);
 const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
@@ -111,6 +116,21 @@ for (const it of model.items) {
       if (refs.length < 2 || new Set(refs).size !== refs.length) err(`${where}: the formula needs 2+ different references`);
       if (!Array.isArray(e.lock) || !e.lock.length || e.lock.some((r) => !refs.includes(r))) err(`${where}: lock must list references from the formula`);
       if (e.lock?.length === refs.length) err(`${where}: at least one reference must stay relative`);
+    }
+    if (e.type === "fillFormula") {
+      const sameLine = isRef(e.from || "") && isRef(e.to || "") && (e.from[0] === e.to[0]) !== (e.from.slice(1) === e.to.slice(1));
+      if (!sameLine) err(`${where}: from and to must be two cells in the same row or the same column`);
+      else if (e.to[0] < e.from[0] || +e.to.slice(1) < +e.from.slice(1)) err(`${where}: fill right or down only (from ${e.from} to ${e.to})`);
+      else if (!/^=[A-Z0-9:()+\-*/.$]+$/.test(e.formula || "") || !/[A-Z]\d/.test(e.formula)) err(`${where}: formula must start with = and hold a reference`);
+      else {
+        const o = fillFormulaOptions(e.formula, e.from, e.to);
+        if (!o.correct) err(`${where}: the filled formula goes off the sheet`);
+        if (o.wrong.length < 3) err(`${where}: only ${o.wrong.length} wrong options can be worked out`);
+        if (o.wrong.includes(o.correct)) err(`${where}: a wrong option equals the right one`);
+        const cols = e.grid?.cols || 0, rows = e.grid?.rows || 0, last = parseSel(e.to);
+        if (!e.grid || last.c1 >= cols || last.r1 > rows) err(`${where}: the grid must include ${e.to}`);
+        if (e.grid?.cells?.[e.from] != null) err(`${where}: leave ${e.from} out of the grid cells (the formula goes there)`);
+      }
     }
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
   });

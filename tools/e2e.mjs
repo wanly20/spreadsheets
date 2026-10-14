@@ -184,9 +184,33 @@ async function runViewport(vp) {
   await wait(1000);
   // Types not yet answered wrong in a level (e.g. a formula with $) get a wrong answer here.
   const sam = await playSession("sampler", wrongDone);
-  ok(sam.done && sam.steps >= 15, `the sampler plays one of every exercise type (${sam.steps} steps)`);
+  ok(sam.done && sam.steps >= 16, `the sampler plays one of every exercise type (${sam.steps} steps)`);
   await page.goto(BASE);
   await wait(1000);
+
+  // ------------------------------------------------------------ Lesson 5: kind tips for functions and brackets
+  if (!vp.touch) {
+    const tips = await page.evaluate(async () => {
+      const { formulaTip, normFormula } = await import("./js/exercises.js");
+      const t = (got, accept) => formulaTip(normFormula(got), accept.map(normFormula));
+      return {
+        colon: t("=max(b4-b9)", ["=MAX(B4:B9)"]),
+        name: t("=MAX(C2:C9)", ["=MIN(C2:C9)"]),
+        brackets: t("=AVERAGE B2:B6", ["=AVERAGE(B2:B6)", "=SUM(B2:B6)/5"]),
+        order: t("=B2+C2/2", ["=(B2+C2)/2", "=(C2+B2)/2"]),
+        lock: t("=D4/D9", ["=D4/$D$9"]),
+      };
+    });
+    ok(/colon/.test(tips.colon.tip), `=MAX(B4-B9) gets the colon tip: “${tips.colon.tip}”`);
+    ok(/MIN gives the lowest/.test(tips.name.tip), `=MAX for a MIN question gets the “which function” tip`);
+    ok(/in brackets: =AVERAGE\(first:last\)/.test(tips.brackets.tip), `=AVERAGE B2:B6 gets the brackets tip`);
+    ok(tips.order.title === "Brackets!" && /× and ÷ go before/.test(tips.order.tip), `=B2+C2/2 gets the order-of-operations tip`);
+    ok(tips.lock.title === "Lock it!" && /Chromebook/.test(tips.lock.tip), `a missing $ still gets the Chromebook-friendly “Lock it!” tip`);
+    await page.goto(BASE);
+    await wait(900);
+    ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–5 review/.test(t)), "the big review is called “Lessons 1–5 review”");
+    ok(await page.locator(".unit--blue").filter({ hasText: "Lesson 5" }).count() === 1, "Lesson 5 is on the path (blue)");
+  }
 
   // ------------------------------------------------------------ quit dialog
   await tap(".node.is-done");
@@ -235,10 +259,18 @@ async function runViewport(vp) {
       const state = await page.evaluate(() => { const s = document.querySelector(".feedback"); return s.classList.contains("is-open") ? (s.classList.contains("is-wrong") ? "wrong" : "correct") : "closed"; });
       ok(state === (goWrong ? "wrong" : "correct"), `${id} ${typeKey}${step.retry ? " (retry)" : ""}: ${goWrong ? "wrong" : "right"} answer → ${state}`);
       if (step.type === "fill") await wait(2600); // the fill animation plays under the sheet
+      if (step.type === "fillFormula") await wait(450 * 4 + 600);
       await shot(`fb-${goWrong ? "wrong" : "right"}-${typeKey}`);
       if (step.type === "fill" && !goWrong) {
         const filled = await page.evaluate(() => [...document.querySelectorAll(".ex-fill .sh-cell[data-ref^='B']")].map((c) => c.textContent).filter(Boolean).length);
         ok(filled >= step.end, `fill: the grid animates the fill (${filled} cells filled)`);
+      }
+      if (step.type === "fillFormula") {
+        const want = await page.evaluate(async (s) => (await import("./js/exercises.js")).fillFormulaOptions(s.formula, s.from, s.to).correct, step);
+        const shown = await page.locator(EX + `.sh-cell[data-ref="${step.to}"]`).innerText();
+        ok(shown === want, `fillFormula: the fill plays out and ${step.to} shows ${want} (${shown})`);
+        const across = step.from[0] !== step.to[0];
+        ok((across ? /letters move/ : /numbers move/).test(await page.locator(".feedback__body").innerText()), `fillFormula: the feedback says the ${across ? "letters" : "numbers"} move`);
       }
       if (step.type === "formula" && goWrong && !step.accept[0].includes("$")) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
       if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
@@ -281,6 +313,15 @@ async function runViewport(vp) {
       case "fill": {
         const correct = await page.evaluate(async (s) => (await import("./js/exercises.js")).fillOptions(s.start, s.end).correct, step);
         await pickOption((t) => (right ? t === correct : t !== correct));
+        return check();
+      }
+      case "fillFormula": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `fillFormula: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `fillFormula: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        const o = await page.evaluate(async (s) => (await import("./js/exercises.js")).fillFormulaOptions(s.formula, s.from, s.to), step);
+        ok(o.wrong.length === 3 && !o.wrong.includes(o.correct), `fillFormula: 1 right and 3 different wrong options for ${step.formula}`);
+        await pickOption((t) => (right ? t === o.correct : t !== o.correct));
         return check();
       }
       case "keys": {

@@ -24,6 +24,9 @@ export const screens = {
       row2: { r: [0, 253, 62, 31], label: "the header of row 2" },
       cellC2: { r: [352, 255, 128, 26], label: "cell C2" },
       fillHandle: { r: [482, 271, 24, 24], label: "the fill handle" },
+      percent: { r: [430, 90, 38, 38], label: "Format as percent (%)" },
+      decDecrease: { r: [475, 90, 38, 38], label: "Decrease decimal places (.0 ←)" },
+      decIncrease: { r: [521, 90, 38, 38], label: "Increase decimal places (.00 →)" },
     },
   },
   "fill-handle": {

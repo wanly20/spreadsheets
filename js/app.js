@@ -362,7 +362,7 @@ function play(id) {
 
 function samplerSteps() {
   const out = [];
-  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "lockRef", "match"];
+  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "fillFormula", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "lockRef", "match"];
   const items = model.items;
   for (const kind of want) {
     let step = null;

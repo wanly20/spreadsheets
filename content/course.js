@@ -59,7 +59,19 @@ export const course = {
       ],
       review: { id: "4-r", title: "Mixed review" },
     },
+    {
+      n: 5,
+      title: "Lesson 5",
+      subtitle: "MAX, MIN and AVERAGE, decimals and %, order of operations",
+      theme: "blue",
+      levels: [
+        { id: "5-1", title: "MAX, MIN and AVERAGE", icon: "zap", terms: ["MAX", "MIN", "AVERAGE"] },
+        { id: "5-2", title: "Fill across, decimals and %", icon: "arrow-right", terms: ["fill across", "decimal places buttons", "percentage format"] },
+        { id: "5-3", title: "Which part goes first?", icon: "list-ordered", terms: ["order of operations", "a fixed number in a formula"] },
+      ],
+      review: { id: "5-r", title: "Mixed review" },
+    },
   ],
   // The big review at the end of the path, across every lesson that is ready.
-  finalReview: { id: "all-r", title: "Lessons 1–4 review", needs: [1, 2, 3, 4] },
+  finalReview: { id: "all-r", title: "Lessons 1–5 review", needs: [1, 2, 3, 4, 5] },
 };

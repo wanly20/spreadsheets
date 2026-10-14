@@ -15,6 +15,8 @@
 //   gridRange  drag to select a range
 //   rangeName  a range is highlighted: type it
 //   fill       predict what the fill handle makes (answers are worked out, then animated)
+//   fillFormula predict a formula after a fill down or across (formula: "=MAX(B2:B5)", from: "B6", to: "D6", grid?)
+//              (the options are worked out: the right one and three likely mistakes; then the fill is animated)
 //   gridMove   drag a cell to a new place
 //   keys       press the real shortcut (multiple choice on touch screens)
 //   hotspot    tap something on a real screenshot (`screen`) or a drawn part of Sheets (`ui`)
@@ -24,6 +26,13 @@
 // Grid targets can be a list: one is picked at random each time.
 
 const shop = { A1: "Item", B1: "Price", C1: "Qty", D1: "Total", A2: "Pen", B2: 2, C2: 3, D2: 6, A3: "Ruler", B3: 3, C3: 2, D3: 6 };
+
+// Lesson 5: one team's points (MAX 30, MIN 9, SUM 94, AVERAGE 18.8).
+const pts = { A1: "Team", B1: "Points", A2: "Rockets", B2: 12, A3: "Comets", B3: 30, A4: "Stars", B4: 18, A5: "Meteors", B5: 25, A6: "Planets", B6: 9 };
+const ptsStyle = { A1: { b: 1 }, B1: { b: 1 }, A8: { b: 1 } };
+// Ring toss: a bullseye scores 5, a hit scores 3. Every way of writing it.
+const ringToss = [];
+for (const a of ["B4*5", "5*B4"]) for (const b of ["C4*3", "3*C4"]) for (const [x, y] of [[a, b], [b, a]]) ringToss.push(`=${x}+${y}`, `=(${x})+(${y})`);
 
 export const practice = {
   // ======================================================= Lesson 1
@@ -534,6 +543,121 @@ export const practice = {
       { type: "choice", fact: "the blank row stays", prompt: "You select row 3 and press the Delete key. What happens?", correct: "The cells are emptied, but the blank row stays", wrong: ["Row 3 is gone and the rows below move up", "Everything to the right moves left", "Nothing at all"] },
       { type: "choice", fact: "everything to the right moves left", prompt: "You delete column B. What happens to column C?", correct: "It moves left and becomes column B", wrong: ["It stays column C, next to an empty B", "It moves right", "It's deleted too"] },
       { type: "choice", fact: "Everything below moves up", prompt: "C4 holds =B4*$B$12. You delete row 7. What does C4 say now?", correct: "=B4*$B$11: it follows the cell", wrong: ["=B4*$B$12: it's locked", "=B4*$B$13", "=B3*$B$11"] },
+    ],
+  },
+  // ======================================================= Lesson 5
+  MAX: {
+    learn: { visual: { grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { ...pts, A8: "Highest", B8: 30 }, style: ptsStyle, sel: "B8", nameBox: true, formula: "=MAX(B2:B6)" } },
+      note: "MAX looks at every value in B2:B6 and gives the highest: 30 (the Comets)." },
+    exercises: [
+      { type: "choice", fact: "gives the highest value in the range", prompt: "B8 holds =MAX(B2:B6). What does B8 show?",
+        visual: { grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { ...pts, A8: "Highest", B8: "?" }, style: ptsStyle, sel: "B8" } },
+        correct: "30", wrong: ["9", "94", "18.8"] },
+      { type: "formula", fact: "the range in brackets", prompt: "Write a function that gives the highest value in B4:B9.", accept: ["=MAX(B4:B9)"] },
+      { type: "choice", fact: "Same shape as SUM", prompt: "Which one finds the highest score in C2:C9?", correct: "=MAX(C2:C9)", wrong: ["=MAX(C2-C9)", "MAX(C2:C9)", "=MAX C2:C9"] },
+      { type: "gridRange", fact: "the range in brackets", target: ["B2:B6"], prompt: "You've typed =MAX( into B8. Now drag over the points: B2 to B6.",
+        grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { ...pts, A8: "Highest", B8: "=MAX(" } } },
+      { type: "choice", fact: "gives the highest value in the range", prompt: "You want the stall that took the most money. Which function do you use?", correct: "MAX", wrong: ["MIN", "SUM", "AVERAGE"] },
+    ],
+  },
+  MIN: {
+    learn: { visual: { grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { ...pts, A8: "Lowest", B8: 9 }, style: ptsStyle, sel: "B8", nameBox: true, formula: "=MIN(B2:B6)" } },
+      note: "MIN gives the lowest: 9 (the Planets). MAX and MIN have the same shape but opposite jobs." },
+    exercises: [
+      { type: "choice", fact: "gives the lowest value in the range", prompt: "B8 holds =MIN(B2:B6). What does B8 show?",
+        visual: { grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { ...pts, A8: "Lowest", B8: "?" }, style: ptsStyle, sel: "B8" } },
+        correct: "9", wrong: ["30", "12", "0"] },
+      { type: "formula", fact: "gives the lowest value in the range", prompt: "Write a function that gives the lowest value in C2:C9.", accept: ["=MIN(C2:C9)"] },
+      { type: "choice", fact: "gives the lowest value in the range", prompt: "A week of temperatures is in B2:B8. Which formula finds the coldest one?", correct: "=MIN(B2:B8)", wrong: ["=MAX(B2:B8)", "=SUM(B2:B8)", "=AVERAGE(B2:B8)"] },
+      { type: "choice", fact: "gives the lowest value in the range", prompt: "C2:C6 hold 7, 3, 9, 3 and 5. What does =MIN(C2:C6) show?",
+        visual: { grid: { cols: 3, rows: 6, cells: { C2: 7, C3: 3, C4: 9, C5: 3, C6: 5 } } }, correct: "3", wrong: ["6", "9", "27"] },
+    ],
+  },
+  AVERAGE: {
+    learn: { visual: { grid: { cols: 2, rows: 8, widths: { A: 1.2 }, cells: { A1: "Day", B1: "Laps", A2: "Mon", B2: 4, A3: "Tue", B3: 6, A4: "Wed", B4: 8, A5: "Thu", B5: 10, A6: "Fri", B6: 12, A8: "Average", B8: 8 }, style: ptsStyle, sel: "B8", nameBox: true, formula: "=AVERAGE(B2:B6)" } },
+      note: "Add them up: 4 + 6 + 8 + 10 + 12 = 40. Divide by how many there are (5): 40 ÷ 5 = 8." },
+    exercises: [
+      { type: "choice", fact: "every value added up, then divided by how many there are", prompt: "B2:B6 hold 4, 9, 1, 6 and 10. What does =AVERAGE(B2:B6) show?",
+        visual: { grid: { cols: 2, rows: 6, cells: { B1: "Points", B2: 4, B3: 9, B4: 1, B5: 6, B6: 10 }, style: { B1: { b: 1 } } } }, correct: "6", wrong: ["30", "10", "5"] },
+      { type: "choice", fact: "gives the mean", prompt: "Say it: what's the average of 10 and 20?", correct: "15", wrong: ["30", "10", "2"] },
+      { type: "formula", fact: "gives the mean", prompt: "Write a function that gives the average (the mean) of B2 to B6.", accept: ["=AVERAGE(B2:B6)", "=SUM(B2:B6)/5"] },
+      { type: "choice", fact: "every value added up, then divided by how many there are", prompt: "How does AVERAGE work out 2, 4 and 6?", correct: "2 + 4 + 6 = 12, then 12 ÷ 3 = 4",
+        wrong: ["2 + 4 + 6 = 12, then 12 ÷ 2 = 6", "2 × 4 × 6 = 48, then 48 ÷ 3 = 16", "It gives the highest: 6"] },
+      { type: "choice", fact: "gives the mean", prompt: "Which formula gives the average of B2:B6?", correct: "=AVERAGE(B2:B6)", wrong: ["=SUM(B2:B6)", "=AVERAGE(B2-B6)", "=AVERAGE B2:B6"] },
+    ],
+  },
+  "fill across": {
+    learn: { visual: { grid: { cols: 4, rows: 5, widths: { A: 0.8, B: 1.3, C: 1.3, D: 1.3 }, cells: { B1: "Quiz 1", C1: "Quiz 2", D1: "Quiz 3", A2: "Ava", B2: 7, C2: 9, D2: 6, A3: "Leo", B3: 8, C3: 5, D3: 10, A5: "Best", B5: "=MAX(B2:B3)", C5: "=MAX(C2:C3)", D5: "=MAX(D2:D3)" }, style: { B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 }, A5: { b: 1 } }, sel: "B5:D5" } },
+      note: "Filled right from B5, with the formulas showing: the letters move (B, C, D). The row numbers stay the same." },
+    exercises: [
+      { type: "fillFormula", fact: "=MAX(B2:B10) becomes =MAX(C2:C10)", formula: "=MAX(B2:B3)", from: "B5", to: "D5",
+        grid: { cols: 4, rows: 5, widths: { A: 0.8, B: 1.3, C: 1.3, D: 1.3 }, cells: { B1: "Quiz 1", C1: "Quiz 2", D1: "Quiz 3", A2: "Ava", B2: 7, C2: 9, D2: 6, A3: "Leo", B3: 8, C3: 5, D3: 10, A5: "Best" }, style: { B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 }, A5: { b: 1 } } } },
+      { type: "fillFormula", fact: "Drag the fill handle to the right", formula: "=AVERAGE(B2:B4)", from: "B6", to: "C6",
+        grid: { cols: 3, rows: 6, widths: { A: 0.9, B: 1.6, C: 1.6 }, cells: { B1: "Term 1", C1: "Term 2", A2: "Ava", B2: 70, C2: 80, A3: "Leo", B3: 65, C3: 75, A4: "Mia", B4: 90, C4: 85, A6: "Average" }, style: { B1: { b: 1 }, C1: { b: 1 }, A6: { b: 1 } } } },
+      { type: "fillFormula", fact: "Filling down moves the numbers instead", formula: "=B2/$B$6", from: "C2", to: "C4",
+        grid: { cols: 3, rows: 6, widths: { A: 0.9, C: 1.5 }, cells: { A1: "Stall", B1: "Takings", C1: "Share", A2: "Cakes", B2: 60, A3: "Books", B3: 30, A4: "Plants", B4: 30, A6: "Total", B6: 120 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, A6: { b: 1 } } } },
+      { type: "fillFormula", fact: "its column letters move", formula: "=B3*$A$1", from: "B4", to: "D4",
+        grid: { cols: 4, rows: 4, widths: { B: 1.3, C: 1.3, D: 1.3 }, cells: { A1: "10%", A3: "Sales", B3: 200, C3: 150, D3: 80, A4: "Share" }, style: { A1: { align: "right" }, A3: { b: 1 }, A4: { b: 1 } } } },
+      { type: "choice", fact: "its column letters move", prompt: "You fill a formula across, to the right. What changes in it?", correct: "The column letters", wrong: ["The row numbers", "Nothing: it copies exactly", "The function's name"] },
+      { type: "formula", fact: "=MAX(B2:B10) becomes =MAX(C2:C10)", prompt: "B13 holds =MIN(B4:B9). You fill it right to D13. Type the formula that's now in D13.", accept: ["=MIN(D4:D9)"] },
+    ],
+  },
+  "decimal places buttons": {
+    learn: { visual: { image: "sheets-basic", highlight: "decDecrease" },
+      note: "Fewer decimals (.0 ←) and more decimals (.00 →). Click fewer decimals until 26.666667 shows 27. Click the cell: it still holds 26.666…" },
+    exercises: [
+      { type: "hotspot", fact: "Two toolbar buttons", screen: "sheets-basic", target: "decDecrease", prompt: "Tap the button that shows fewer decimal places." },
+      { type: "hotspot", fact: "Two toolbar buttons", screen: "sheets-basic", target: "decIncrease", prompt: "Tap the button that shows more decimal places." },
+      { type: "choice", fact: "Only the look changes", prompt: "A cell shows 26.666667. You click fewer decimals until it's a whole number. What does it show, and what does it hold?",
+        correct: "Shows 27, still holds 26.666…", wrong: ["Shows 27, now holds 27", "Shows 26, now holds 26", "Shows 26, still holds 26.666…"] },
+      { type: "choice", fact: "the cell still holds every decimal", prompt: "C2 holds =AVERAGE(B2:B4), which is 26.666… You clicked fewer decimals, so C2 shows 27. D2 holds =C2*3. What does D2 show?",
+        visual: { grid: { cols: 4, rows: 4, widths: { C: 1.2 }, cells: { B1: "Score", C1: "Average", D1: "× 3", B2: 20, B3: 30, B4: 30, C2: 27, D2: "?" }, style: { B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2" } },
+        correct: "80: it uses 26.666…, not 27", wrong: ["81: it uses 27", "27", "78"] },
+      { type: "choice", fact: "change how many decimal places a number shows", prompt: "B5 shows 3.5. You click more decimals once. What does it show now?", correct: "3.50", wrong: ["3.5", "35", "4"] },
+      { type: "choice", fact: "Only the look changes", prompt: "Why click fewer decimals on an average like 26.666667?", correct: "It's easier to read. The value doesn't change.", wrong: ["It makes the answer more exact", "It changes the value to 27", "It deletes the formula"] },
+    ],
+  },
+  "percentage format": {
+    learn: { visual: { image: "sheets-basic", highlight: "percent" },
+      note: "A formula gives 0.25. Click % and it shows 25%. In Lesson 4 you typed 10% into a cell. Here the formula makes the number, and % only changes the look." },
+    exercises: [
+      { type: "choice", fact: "0.25 shows as 25%", prompt: "A cell holds 0.4. You click %. What shows?", correct: "40%", wrong: ["0.4%", "4%", "400%"] },
+      { type: "choice", fact: "The cell still holds 0.25", prompt: "A cell shows 25% because you clicked %. What number does it hold?", correct: "0.25", wrong: ["25", "2.5", "250"] },
+      { type: "hotspot", fact: "shows a number as a percentage", screen: "sheets-basic", target: "percent", prompt: "Tap the button that shows a number as a percentage." },
+      { type: "choice", fact: "Format → Number → Percent", prompt: "Which menu also shows a number as a percentage?", correct: "Format → Number → Percent", wrong: ["Insert → Percent", "Data → Number → Percent", "View → Percent"] },
+      { type: "choice", fact: "shows a number as a percentage", prompt: "I4:I9 hold each stall's share of the takings. I10 holds =SUM(I4:I9) and shows 1. What should you do?",
+        correct: "Click %: 1 shows as 100%", wrong: ["Change the formula: it should give 100", "Type 100% over it", "Delete row 10"] },
+      { type: "choice", fact: "0.25 shows as 25%", prompt: "I4 shows 0.2865. You click %. What shows?", correct: "28.65%", wrong: ["0.2865%", "2865%", "0.29%"] },
+    ],
+  },
+  "order of operations": {
+    learn: { visual: { steps: ["Brackets ( )", "× and ÷ (* and /)", "+ and −"] },
+      note: "=2+3*4: 3*4 first (12), then + 2. That's 14. =(2+3)*4: the brackets first (5), then × 4. That's 20." },
+    exercises: [
+      { type: "choice", fact: "=2+3*4 is 14", prompt: "What does =4+6*2 give?", correct: "16", wrong: ["20", "12", "48"] },
+      { type: "choice", fact: "then × and ÷", prompt: "What does =10-6/2 give?", correct: "7", wrong: ["2", "13", "4"] },
+      { type: "choice", fact: "brackets go first", prompt: "Which formula gives 20?", correct: "=(2+3)*4", wrong: ["=2+3*4", "=2*3+4", "=2+(3*4)"] },
+      { type: "choice", fact: "brackets go first", prompt: "B2 holds 6 and C2 holds 4. Which formula gives their average, 5?", correct: "=(B2+C2)/2", wrong: ["=B2+C2/2", "=B2/2+C2", "=(B2+C2)*2"] },
+      { type: "choice", fact: "then × and ÷", prompt: "B2 holds 6 and C2 holds 4. What does =B2+C2/2 give?", correct: "8: only C2 is halved", wrong: ["5: the average", "10", "3"] },
+      { type: "formula", fact: "brackets go first", prompt: "B2 and C2 hold two scores. In D2, add them up, then halve the total. Use + and /.", accept: ["=(B2+C2)/2", "=(C2+B2)/2"],
+        visual: { grid: { cols: 4, rows: 2, cells: { B1: "Test 1", C1: "Test 2", D1: "Average", B2: 6, C2: 4 }, style: { B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2" } } },
+      { type: "choice", fact: "then × and ÷", prompt: "B2 holds 6 and C2 holds 4. What does =B2*5+C2*3 give?", correct: "42", wrong: ["102", "18", "60"] },
+    ],
+  },
+  "a fixed number in a formula": {
+    learn: { visual: { grid: { cols: 4, rows: 2, widths: { B: 1.3, C: 1, D: 1.1 }, cells: { A1: "Team", B1: "Bullseyes", C1: "Hits", D1: "Points", A2: "Rockets", B2: 12, C2: 30, D2: 150 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2", nameBox: true, formula: "=B2*5+C2*3" } },
+      note: "5 and 3 are the game's rules: they never change, so they can go straight in the formula. A price might change, so it goes in a cell." },
+    exercises: [
+      { type: "choice", fact: "a game's points rule", prompt: "A hit is worth 3 points. That's the game's rule. Do you type 3 into the formula, or use a cell?", correct: "Type 3: it never changes", wrong: ["Use a cell, locked with $", "Use a cell, without $", "Leave the 3 out"] },
+      { type: "choice", fact: "Anything that might change goes in a cell", prompt: "Which one should go in a cell, not straight into the formula?", correct: "The ticket price", wrong: ["12, the months in a year", "7, the days in a week", "2, to halve a number"] },
+      { type: "choice", fact: "12 months in a year", prompt: "Which number is fine to type straight into a formula?", correct: "12, the months in a year", wrong: ["The ticket price", "The charity rate", "The class budget"] },
+      { type: "formula", fact: "12 months in a year", prompt: "B2 holds the cost for a whole year. In C2, work out the cost for one month.", accept: ["=B2/12"],
+        visual: { grid: { cols: 3, rows: 2, widths: { B: 1.2, C: 1.2 }, cells: { A1: "Item", B1: "Per year", C1: "Per month", A2: "Phone", B2: 360 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 } }, sel: "C2" } } },
+      { type: "formula", fact: "a game's points rule", prompt: "A bullseye scores 5 and a hit scores 3. Bullseyes are in B4 and hits are in C4. In D4, work out the points.", accept: ringToss,
+        visual: { grid: { cols: 4, rows: 4, widths: { B: 1.3, D: 1.1 }, cells: { A3: "Team", B3: "Bullseyes", C3: "Hits", D3: "Points", A4: "Rockets", B4: 12, C4: 30 }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 }, D3: { b: 1 } }, sel: "D4" } } },
+      { type: "lockRef", fact: "locked with $ if every row uses it", prompt: "E4 is each team's share: its points (D4) ÷ all the teams' points (D9). Lock the reference every row shares.", formula: "=D4/D9", lock: ["D9"] },
+      { type: "choice", fact: "Anything that might change goes in a cell", prompt: "The ticket price ($2) is in B1, and it might change. Tickets sold are in B4. You'll fill C4 down the list. What goes in C4?",
+        correct: "=B4*$B$1", wrong: ["=B4*2", "=B4*B1", "=$B$4*B1"] },
     ],
   },
 };

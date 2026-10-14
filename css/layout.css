@@ -270,6 +270,7 @@
   .lesson .option > .face { min-height: 64px; padding: var(--sp-3) var(--sp-5); }
   .lesson .option .key { width: 32px; height: 32px; }
   .ex-choice:not(.is-long) .options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3) var(--sp-4); }
+  .ex-fillf .options { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3) var(--sp-4); }
   .lesson .note { font-size: var(--fs-md); padding: var(--sp-3) var(--sp-5); }
   .learn-card { padding: var(--sp-6) var(--sp-8); }
   .learn-card__mascot { width: 104px; right: 18px; top: -26px; }

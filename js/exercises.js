@@ -2,13 +2,13 @@
 //   { el, footer?, aside?, mount?(), check?() -> result, onMain?(), onKey?(n), onSkip?(), destroy?() }
 // Results: { ok, title?, answer?, body?, explain?, after?() }  (after runs once the feedback shows).
 import { icon } from "./icons.js";
-import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg } from "./ui.js";
+import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
 import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
 import { renderVisual, fillValues, keycaps } from "./visuals.js";
 import { screens } from "../content/screens.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, fillFormula, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
@@ -17,6 +17,7 @@ const KICKER = {
   gridRange: ["pointer", "Select the range"],
   rangeName: ["type", "Name the range"],
   fill: ["arrow-down", "Predict the fill"],
+  fillFormula: ["arrow-right", "Predict the fill"],
   gridMove: ["hand", "Move it"],
   keys: ["keyboard", "Press the keys"],
   hotspot: ["target", "Find it on screen"],
@@ -340,6 +341,89 @@ function fill(step, api) {
         : `Two cells show the pattern (${start[1] - start[0] >= 0 ? "+" : ""}${start[1] - start[0]} each time), so the fill handle keeps it going.`;
       return { ok, answer: correct, body: `<span class="feedback__tip">${why}</span>`,
         after() { g.clearMarks(); g.animateFill(col, r0, start, fillValues(start, end - start.length)); } };
+    },
+  };
+}
+
+// ================================================================ predict a filled formula (down or across)
+// The references move with the fill: across moves the letters, down moves the
+// numbers, and a $ keeps that part where it is.
+const FREF_RE = /(?<![A-Z$])(\$?)([A-Z])(\$?)(\d+)/g;
+/** A formula moved dc columns and dr rows, as the fill handle does it ($ parts stay). */
+export function shiftFormula(f, dc, dr, { ignoreLocks = false, onlyFirst = false } = {}) {
+  let k = 0, bad = false;
+  const out = f.replace(FREF_RE, (m, lc, c, lr, r) => {
+    if (onlyFirst && k++ > 0) return m;
+    const ci = lc && !ignoreLocks ? colIndex(c) : colIndex(c) + dc;
+    const row = lr && !ignoreLocks ? +r : +r + dr;
+    if (ci < 0 || ci > 25 || row < 1) bad = true;
+    return `${lc}${colLetter(ci)}${lr}${row}`;
+  });
+  return bad ? null : out; // null: off the edge of the sheet
+}
+/** Where the fill goes, from one cell to another in the same row or column. */
+export function fillMove(from, to) {
+  const dc = colIndex(to[0]) - colIndex(from[0]), dr = +to.slice(1) - +from.slice(1);
+  return { dc, dr, across: dc !== 0, n: Math.abs(dc || dr) };
+}
+/** The right formula and three likely mistakes. */
+export function fillFormulaOptions(formula, from, to) {
+  const { dc, dr, n } = fillMove(from, to);
+  const sc = Math.sign(dc), sr = Math.sign(dr);
+  const correct = shiftFormula(formula, dc, dr);
+  const wrong = [];
+  const add = (f) => { if (f && f !== correct && !wrong.includes(f)) wrong.push(f); };
+  add(formula); // copied as it is
+  add(shiftFormula(formula, dr, dc)); // the other part moved (numbers instead of letters)
+  if (formula.includes("$")) add(shiftFormula(formula, dc, dr, { ignoreLocks: true })); // the $ ignored
+  if (n > 1) add(shiftFormula(formula, sc, sr)); // only one step
+  add(shiftFormula(formula, dc, dr, { onlyFirst: true })); // only the first reference moved
+  add(shiftFormula(formula, sc * (n + 1), sr * (n + 1))); // one step too many
+  return { correct, wrong: wrong.slice(0, 3) };
+}
+
+function fillFormula(step, api) {
+  const { from, to, formula } = step;
+  const { dc, dr, across, n } = fillMove(from, to);
+  const g = createGrid({ ...step.grid, cells: { ...(step.grid?.cells || {}), [from]: formula }, sel: from });
+  g.mark(`${from}:${to}`, "target");
+  const { correct, wrong } = fillFormulaOptions(formula, from, to);
+  const opts = shuffle([correct, ...wrong]);
+  const node = el(`
+    <div class="ex ex-fillf">
+      ${head(step, `What's in ${to} now?`, `${from} holds <b class="ref">${esc(formula)}</b>. You drag its fill handle ${across ? "right" : "down"} to ${to}. (Formulas are showing.)`)}
+      <div class="ex-sheet"></div>
+      ${optionsHtml(opts.map(esc), { cls: "options--formulas" })}
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const o = wireOptions(node, api, opts);
+  const pause = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? 0 : ms));
+  // After CHECK: the fill plays out, one cell at a time, showing each formula.
+  async function play() {
+    g.clearMarks();
+    const sc = Math.sign(dc), sr = Math.sign(dr);
+    await pause(300);
+    for (let i = 1; i <= n; i++) {
+      const ref = `${colLetter(colIndex(from[0]) + sc * i)}${+from.slice(1) + sr * i}`;
+      g.setCells({ [ref]: shiftFormula(formula, sc * i, sr * i) });
+      g.setSel(`${from}:${ref}`);
+      g.el.querySelector(`.sh-cell[data-ref="${ref}"]`)?.classList.add("is-new");
+      await pause(450);
+    }
+  }
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey: (k) => o.onKey(k),
+    check({ skipped } = {}) {
+      o.reveal(correct);
+      const ok = !skipped && o.chosen === correct;
+      const why = across
+        ? "Fill across: the column letters move, one letter for each column. The row numbers stay the same."
+        : "Fill down: the row numbers move, one for each row. The column letters stay the same.";
+      const lock = formula.includes("$") ? " A reference with $ never moves, whichever way you fill." : "";
+      return { ok, answer: correct, body: `<span class="feedback__tip">${esc(why + lock)}</span>`, after: play };
     },
   };
 }
@@ -668,7 +752,17 @@ export function formulaTip(got, accept) {
   const m = /^=([A-Z]\d+)-([A-Z]\d+)$/.exec(want);
   if (m && got === `=${m[2]}-${m[1]}`) return { title: "Wrong way round", tip: `With − the order matters: what you have first (${m[1]}), then take away what you spend.` };
   if (/^=[\d+\-*/().]+$/.test(got)) return { tip: "Use the cell references, not the numbers in them, so the answer updates by itself." };
-  if (/^=SUM\(/.test(want) && /^=SUM[^(]/.test(got)) return { tip: "A function's range goes in brackets: =SUM(first:last)." };
+  // Functions: brackets, a colon, the right name.
+  const fn = /^=([A-Z]+)\(([A-Z]\d+):([A-Z]\d+)\)$/.exec(want);
+  if (fn) {
+    const [, name, a, b] = fn;
+    if (got.startsWith(`=${name}`) && got[name.length + 1] !== "(") return { tip: `A function's range goes in brackets: =${name}(first:last).` };
+    if (got === `=${name}(${a}-${b})` || got === `=${name}(${a};${b})`) return { title: "Almost!", tip: `Put a colon (:) between the first and last cell: ${a}:${b} means ${a} to ${b}.` };
+    const other = /^=(SUM|MAX|MIN|AVERAGE)\((.+)\)$/.exec(got);
+    if (other && other[1] !== name && other[2] === `${a}:${b}`) return { title: "Another function", tip: "SUM adds up. MAX gives the highest. MIN gives the lowest. AVERAGE gives the mean." };
+  }
+  // Order of operations: the same formula without its brackets.
+  if (want.includes("(") && !/^=[A-Z]+\(/.test(want) && accept.some((a) => a.replace(/[()]/g, "") === got)) return { title: "Brackets!", tip: "× and ÷ go before + and −. Put brackets round the part that must go first." };
   return { tip: "" };
 }
 

@@ -263,7 +263,7 @@ button.tabs-bar__btn { cursor: pointer; }
 /* =================================================================== predict the fill */
 .fill-layout { display: grid; gap: var(--sp-4); }
 .ex-fill .msheet { width: min(100%, 300px); }
-.options--seq .label { font-family: var(--font-learn); font-weight: 700; letter-spacing: 0.02em; }
+.options--seq .label, .options--formulas .label { font-family: var(--font-learn); font-weight: 700; letter-spacing: 0.02em; }
 
 /* =================================================================== steps in order */
 .order-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
@@ -385,3 +385,7 @@ button.sheet-tab:not(:disabled) { cursor: default; }
 @media (pointer: coarse) { .lock-ref .key { display: none; } }
 .lock-hint { display: flex; gap: var(--sp-2); align-items: flex-start; margin: 0; color: var(--ink-soft); font-size: var(--fs-sm); }
 .lock-hint .icon { flex: none; color: var(--yellow-600); }
+
+/* =================================================================== predict a filled formula */
+.ex-fillf .msheet { width: min(100%, calc(var(--hw) + var(--cols) * 128px)); }
+.ex-fillf .sh-cell { font-size: 13px; }
