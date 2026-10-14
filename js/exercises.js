@@ -655,7 +655,7 @@ export function formulaTip(got, accept) {
   const bare = (f) => f.replace(/\$/g, "");
   if (want.includes("$") && accept.some((a) => bare(a) === bare(got))) {
     const ref = (/\$([A-Z])\$(\d+)/.exec(want) || []).slice(1).join("");
-    if (!got.includes("$")) return { title: "Lock it!", tip: `Every row uses ${ref}, so it needs a $: $${ref[0]}$${ref.slice(1)}. Type $ with Shift + 4, or click the reference and press F4.` };
+    if (!got.includes("$")) return { title: "Lock it!", tip: `Every row uses ${ref}, so it needs a $: $${ref[0]}$${ref.slice(1)}. On Windows: click the reference and press F4. On a Chromebook: type $ (Shift + 4).` };
     const over = (got.match(/\$[A-Z]\$\d+/g) || []).map(bare).filter((r) => r !== ref);
     if (over.length) return { title: "Too many $", tip: `Only ${ref} is shared by every row. ${over.join(" and ")} should move with the row, so leave it without $.` };
     return { title: "Almost!", tip: `Put a $ before the letter AND before the number: $${ref[0]}$${ref.slice(1)}. The other reference stays as it is, so it moves with the row.` };
@@ -808,7 +808,7 @@ function lockRef(step, api) {
         <span class="lock-bar__fx" aria-hidden="true">fx</span>
         <span class="lock-bar__f">${parts.map((p) => p.text != null ? `<span class="lock-op">${esc(p.text)}</span>` : `<button type="button" class="press lock-ref" data-ref="${p.ref}" aria-pressed="false"><span class="face"><span class="key" aria-hidden="true">${++k}</span><span class="lock-ref__t">${p.ref}</span></span></button>`).join("")}</span>
       </div>
-      <p class="lock-hint">${icon("lightbulb", 18, 2.5)}<span>In Google Sheets: click the reference in the formula and press <b>F4</b>, or type <b>$</b> (Shift + 4).</span></p>
+      <p class="lock-hint">${icon("lightbulb", 18, 2.5)}<span>On Windows: click the reference in the formula and press <b>F4</b>. On a Chromebook: type <b>$</b> (Shift + 4).</span></p>
     </div>`);
   if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
   const btns = $$(".lock-ref", node);
