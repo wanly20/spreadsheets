@@ -694,7 +694,7 @@ export const practice = {
       { type: "choice", fact: "smallest number first", prompt: "You sort the table by Players, A → Z. Which game is in the top row?",
         visual: { grid: { cols: 2, rows: 6, widths: { A: 1.5 }, cells: games, style: headStyle } }, correct: "Darts", wrong: ["Lucky dip", "Ring toss", "Coconut shy"] },
       { type: "sortPredict", fact: "largest number first", ...helpers, by: "Hours", dir: "za", widths: { A: 1.2 } },
-      { type: "sortPredict", fact: "earliest letter", head: ["Game", "Players"], rows: [["Ring toss", 18], ["Darts", 9], ["Hook-a-duck", 25], ["Coconut shy", 12]], by: "Game", dir: "az", widths: { A: 1.5 } },
+      { type: "sortPredict", fact: "earliest letter", head: ["Game", "Players"], rows: [["Darts", 9], ["Ring toss", 18], ["Coconut shy", 12], ["Hook-a-duck", 25]], by: "Game", dir: "az", widths: { A: 1.5 } },
       { type: "sortPredict", fact: "Z → A (descending)", head: ["Stall", "Total"], rows: [["Lemonade", 210], ["Book swap", 65], ["Cake stall", 245], ["Raffle", 165]], by: "Total", dir: "za", widths: { A: 1.4 } },
     ],
   },
@@ -743,7 +743,7 @@ export const practice = {
     exercises: [
       { type: "hotspot", fact: "Add another sort column", ui: { sortWindow: { range: "A1 to B7", by: "Year", col: "A", dir: "az" } }, target: "Add another sort column", prompt: "You want a second column to sort by. Tap what adds it." },
       { type: "sortPredict", fact: "like year level, then last name inside each year", head: ["Year", "Last name"], rows: [[8, "Grant"], [7, "Moss"], [9, "Lane"], [7, "King"], [8, "Owen"]], by: "Year", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
-      { type: "sortPredict", fact: "the second only orders rows that tie on the first", head: ["House", "Last name"], rows: [["Red", "Nguyen"], ["Blue", "Patel"], ["Red", "Adams"], ["Blue", "Kim"]], by: "House", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
+      { type: "sortPredict", fact: "the second only orders rows that tie on the first", head: ["House", "Last name"], rows: [["Red", "Nguyen"], ["Blue", "Patel"], ["Blue", "Kim"], ["Red", "Adams"]], by: "House", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
       { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "You sort by Year, then by Last name. Grant and Owen are both in Year 8. What decides which one comes first?", correct: "The second column: Last name", wrong: ["The first column: Year", "Whoever was typed first", "Nothing: it's random"] },
       { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "When does the second sort column change anything?", correct: "Only when rows tie on the first column", wrong: ["Always: it sorts every row again", "Never: only the first column counts", "Only when the first column holds numbers"] },
       { type: "choice", fact: "the first column orders everything", prompt: "You sort by House, A → Z, then by Last name, A → Z. Which row goes on top?",

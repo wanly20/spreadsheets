@@ -18,7 +18,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
 const { TAB_MENU, fillValues, dataMenuHits, sortWindowHits } = await import(path.join(ROOT, "js/visuals.js"));
-const { sortOptions, sortTies } = await import(path.join(ROOT, "js/sort.js"));
+const { sortOptions, sortTies, rowsText } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
 // js/exercises.js needs a browser to load, so the fill-formula helpers are read straight from it.
 const exSrc = readFileSync(path.join(ROOT, "js/exercises.js"), "utf8");
@@ -151,6 +151,10 @@ for (const it of model.items) {
         if (!e.then && new Set(e.rows.map((r) => String(r[e.head.indexOf(e.by)]).toLowerCase())).size !== e.rows.length) err(`${where}: values in ${e.by} must all differ`);
         const o = sortOptions(e);
         if (o.wrong.length < 3) err(`${where}: only ${o.wrong.length} wrong options can be worked out`);
+        // The start must look clearly unsorted: not already in order, and not one swap away from it.
+        const moved = o.correct.filter((r, i) => rowsText([r]) !== rowsText([e.rows[i]])).length;
+        if (moved === 0) err(`${where}: the rows are already in the sorted order: mix them up`);
+        else if (moved === 2) err(`${where}: the sorted order is just one swap away from the start: mix the rows up more`);
       }
     }
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
