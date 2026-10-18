@@ -119,6 +119,8 @@ async function runViewport(vp) {
   ok(await page.locator(".node.is-done").count() === nodeIds.length, "after reload every finished node is still done");
   ok(before.xp > 0 && (await page.locator(vp.width >= 1024 ? ".pstat--xp b" : ".chip--xp span").first().innerText()) === String(before.xp), `XP (${before.xp}) survives a reload`);
   ok(Object.keys(before.items).length >= 20, `spaced-repetition scores saved for ${Object.keys(before.items).length} items`);
+  const l6Saved = Object.keys(before.items).filter((k) => k.startsWith("6:"));
+  ok(l6Saved.length === 5, `Lesson 6's 5 terms have review scores, so Review can bring them back (${l6Saved.length})`);
 
   // ------------------------------------------------------------ Review button
   await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
@@ -135,6 +137,9 @@ async function runViewport(vp) {
     await shot("knowledge");
     const rows = await page.locator(".kb-item").count();
     ok(rows >= 20, `My knowledge lists ${rows} items`);
+    const kb6 = page.locator(".kb-lesson").filter({ has: page.locator("h2", { hasText: "Lesson 6" }) });
+    ok(await kb6.locator(".kb-item").count() === 5 && await kb6.locator(".kb-group--know .kb-item").count() === 1 && await kb6.locator(".kb-group--do .kb-item").count() === 4,
+      "My knowledge lists Lesson 6: sort under Know, four skills under Do");
     ok(await page.locator(".kb-item .kb-strength").count() >= 20, "every met item shows a strength label");
     ok(await page.locator(".kb-group--know").count() >= 1 && await page.locator(".kb-group--do").count() >= 1, "items are split into Know and Do");
     await tap('[data-act="back"]');
@@ -184,7 +189,7 @@ async function runViewport(vp) {
   await wait(1000);
   // Types not yet answered wrong in a level (e.g. a formula with $) get a wrong answer here.
   const sam = await playSession("sampler", wrongDone);
-  ok(sam.done && sam.steps >= 16, `the sampler plays one of every exercise type (${sam.steps} steps)`);
+  ok(sam.done && sam.steps >= 19, `the sampler plays one of every exercise type (${sam.steps} steps)`);
   await page.goto(BASE);
   await wait(1000);
 
@@ -210,8 +215,16 @@ async function runViewport(vp) {
     ok(tips.lock.title === "Lock it!" && /Chromebook/.test(tips.lock.tip), `a missing $ still gets the Chromebook-friendly “Lock it!” tip`);
     await page.goto(BASE);
     await wait(900);
-    ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–5 review/.test(t)), "the big review is called “Lessons 1–5 review”");
+    ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–6 review/.test(t)), "the big review is called “Lessons 1–6 review”");
+    ok(await page.locator('.node[data-node="all-r"]').count() === 1, "the big review keeps its id (all-r), so saved progress still counts");
     ok(await page.locator(".unit--blue").filter({ hasText: "Lesson 5" }).count() === 1, "Lesson 5 is on the path (blue)");
+    ok(await page.locator(".unit--yellow").filter({ hasText: "Lesson 6" }).count() === 1, "Lesson 6 is on the path (yellow)");
+    const l6 = await page.evaluate(async () => {
+      const { course } = await import("./content/course.js");
+      return { final: course.finalReview.needs, nodes: [...document.querySelectorAll(".node[data-node^='6-']")].map((n) => n.dataset.node) };
+    });
+    ok(l6.final.includes(6), "Lesson 6 is in the big review");
+    ok(["6-1", "6-2", "6-r"].every((id) => l6.nodes.includes(id)), `Lesson 6 has its levels and mixed review (${l6.nodes.join(", ")})`);
   }
 
   // ------------------------------------------------------------ quit dialog
@@ -244,7 +257,7 @@ async function runViewport(vp) {
       res.steps++;
       if (step.retry) res.retries++;
       if (step.type !== "learn" && !step.retry) res.questions++;
-      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? "hotspot-ui" : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
+      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? (step.ui.dataMenu ? "hotspot-menu" : step.ui.sortWindow ? "hotspot-sortwin" : "hotspot-ui") : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
       if (step.type === "learn") typeKey = "learn-" + await page.evaluate(() => {
         const v = document.querySelector(".lesson-body .ex:not(.step-leave) .learn-visual");
         if (!v) return "text";
@@ -262,6 +275,7 @@ async function runViewport(vp) {
       ok(state === (goWrong ? "wrong" : "correct"), `${id} ${typeKey}${step.retry ? " (retry)" : ""}: ${goWrong ? "wrong" : "right"} answer → ${state}`);
       if (step.type === "fill") await wait(2600); // the fill animation plays under the sheet
       if (step.type === "fillFormula") await wait(450 * 4 + 600);
+      if (step.type === "sortPredict") await wait(900);
       await shot(`fb-${goWrong ? "wrong" : "right"}-${typeKey}`);
       if (step.type === "fill" && !goWrong) {
         const filled = await page.evaluate(() => [...document.querySelectorAll(".ex-fill .sh-cell[data-ref^='B']")].map((c) => c.textContent).filter(Boolean).length);
@@ -273,6 +287,14 @@ async function runViewport(vp) {
         ok(shown === want, `fillFormula: the fill plays out and ${step.to} shows ${want} (${shown})`);
         const across = step.from[0] !== step.to[0];
         ok((across ? /letters move/ : /numbers move/).test(await page.locator(".feedback__body").innerText()), `fillFormula: the feedback says the ${across ? "letters" : "numbers"} move`);
+      }
+      if (goWrong && (typeKey === "hotspot-menu" || typeKey === "hotspot-sortwin")) ok(/You tapped/.test(await page.locator(".feedback__body").innerText()), `${typeKey}: a wrong tap says what was tapped`);
+      if (step.type === "sortPredict") {
+        const want = await page.evaluate(async (s) => (await import("./js/sort.js")).sortOptions(s).correct.map((r) => String(r[0])), step);
+        const shown = await page.evaluate((n) => Array.from({ length: n }, (_, i) => document.querySelector(`.lesson-body .ex:not(.step-leave) .sh-cell[data-ref="A${i + 2}"]`)?.textContent), step.rows.length);
+        ok(JSON.stringify(shown) === JSON.stringify(want), `sortPredict: the rows move into their sorted order (${shown.join(", ")})`);
+        ok(await page.locator(EX + ".option.is-correct").count() === 1, "sortPredict: the right table is marked");
+        ok(/Each whole row moves together/.test(await page.locator(".feedback__body").innerText()), "sortPredict: the feedback says each row moves together");
       }
       if (step.type === "formula" && goWrong && !step.accept[0].includes("$")) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
       if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
@@ -324,6 +346,17 @@ async function runViewport(vp) {
         const o = await page.evaluate(async (s) => (await import("./js/exercises.js")).fillFormulaOptions(s.formula, s.from, s.to), step);
         ok(o.wrong.length === 3 && !o.wrong.includes(o.correct), `fillFormula: 1 right and 3 different wrong options for ${step.formula}`);
         await pickOption((t) => (right ? t === o.correct : t !== o.correct));
+        return check();
+      }
+      case "sortPredict": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `sortPredict: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `sortPredict: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        const o = await page.evaluate(async (s) => { const S = await import("./js/sort.js"); const r = S.sortOptions(s); return { correct: S.rowsText(r.correct), wrong: r.wrong.map(S.rowsText) }; }, step);
+        ok(o.wrong.length === 3 && !o.wrong.includes(o.correct) && new Set(o.wrong).size === 3, `sortPredict: 1 right and 3 different wrong tables for ${step.by}, ${step.dir}${step.then ? ` then ${step.then.by}` : ""}`);
+        const vals = await page.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option")].map((b) => b.dataset.v));
+        const i = vals.findIndex((v) => (right ? v === o.correct : v !== o.correct));
+        if (vp.touch) await page.locator(EX + ".option").nth(i).tap(); else await page.keyboard.press(String(i + 1));
         return check();
       }
       case "keys": {

@@ -17,9 +17,13 @@
 //   fill       predict what the fill handle makes (answers are worked out, then animated)
 //   fillFormula predict a formula after a fill down or across (formula: "=MAX(B2:B5)", from: "B6", to: "D6", grid?)
 //              (the options are worked out: the right one and three likely mistakes; then the fill is animated)
+//   sortPredict predict a table after a sort (head: [...], rows: [[...], ...], by: "Hours", dir: "az" | "za",
+//              then?: { by, dir }, widths?) (the options are worked out: the right table and three likely
+//              mistakes, such as the wrong way round or one column sorted alone; then the rows move)
 //   gridMove   drag a cell to a new place
 //   keys       press the real shortcut (multiple choice on touch screens)
-//   hotspot    tap something on a real screenshot (`screen`) or a drawn part of Sheets (`ui`)
+//   hotspot    tap something on a real screenshot (`screen`) or a drawn part of Sheets (`ui`:
+//              tabs, tabmenu, colheads, rowheads, dataMenu, sortWindow; see js/visuals.js)
 //   order      put the steps in order
 //   formula    type a formula (accept: [...], hint?: a line under the prompt); $ is fine to type
 //   lockRef    tap the references in a formula to lock them with $ (formula: "=A2*D1", lock: ["D1"])
@@ -33,6 +37,13 @@ const ptsStyle = { A1: { b: 1 }, B1: { b: 1 }, A8: { b: 1 } };
 // Ring toss: a bullseye scores 5, a hit scores 3. Every way of writing it.
 const ringToss = [];
 for (const a of ["B4*5", "5*B4"]) for (const b of ["C4*3", "3*C4"]) for (const [x, y] of [[a, b], [b, a]]) ringToss.push(`=${x}+${y}`, `=(${x})+(${y})`);
+
+// Lesson 6: tables to sort (headings in row 1).
+const helpers = { head: ["Helper", "Hours"], rows: [["Sam", 4], ["Priya", 7], ["Tom", 2], ["Lily", 5]] };
+const helperCells = { A1: "Helper", B1: "Hours", A2: "Sam", B2: 4, A3: "Priya", B3: 7, A4: "Tom", B4: 2, A5: "Lily", B5: 5 };
+const headStyle = { A1: { b: 1 }, B1: { b: 1 }, A7: { b: 1 } };
+const games = { A1: "Game", B1: "Players", A2: "Ring toss", B2: 18, A3: "Darts", B3: 9, A4: "Hook-a-duck", B4: 25, A5: "Coconut shy", B5: 12, A6: "Lucky dip", B6: 30 };
+const houses = { A1: "House", B1: "Last name", A2: "Red", B2: "Nguyen", A3: "Blue", B3: "Patel", A4: "Red", B4: "Adams", A5: "Blue", B5: "Kim" };
 
 export const practice = {
   // ======================================================= Lesson 1
@@ -667,6 +678,76 @@ export const practice = {
       { type: "lockRef", fact: "locked with $ if every row uses it", prompt: "E4 is each team's share: its points (D4) ÷ all the teams' points (D9). Lock the reference every row shares.", formula: "=D4/D9", lock: ["D9"] },
       { type: "choice", fact: "Anything that might change goes in a cell", prompt: "The ticket price ($2) is in B1, and it might change. Tickets sold are in B4. You'll fill C4 down the list. What goes in C4?",
         correct: "=B4*$B$1", wrong: ["=B4*2", "=B4*B1", "=$B$4*B1"] },
+    ],
+  },
+  // ======================================================= Lesson 6
+  sort: {
+    learn: { visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: { A1: "Helper", B1: "Hours", A2: "Priya", B2: 7, A3: "Lily", B3: 5, A4: "Sam", B4: 4, A5: "Tom", B5: 2 }, style: headStyle } },
+      note: "Sorted by Hours, Z → A: the most hours on top. Google Sheets says A → Z and Z → A for numbers too." },
+    exercises: [
+      { type: "choice", fact: "Z → A (descending)", prompt: "Which sort puts the most hours at the top?",
+        visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: helperCells, style: headStyle } }, correct: "Hours, Z → A", wrong: ["Hours, A → Z", "Helper, A → Z", "Helper, Z → A"] },
+      { type: "choice", fact: "earliest letter or smallest number first", prompt: "You want the last names in alphabetical order, Adams first. Which sort do you use?", correct: "Last name, A → Z", wrong: ["Last name, Z → A", "First name, Z → A", "Hours, A → Z"] },
+      { type: "choice", fact: "smallest number first", prompt: "You sort 9, 2 and 5, A → Z. What order do you get?", correct: "2, 5, 9", wrong: ["9, 5, 2", "9, 2, 5", "5, 2, 9"] },
+      { type: "choice", fact: "A → Z (ascending)", prompt: "Which one is ascending?", correct: "A → Z: smallest number first", wrong: ["Z → A: largest number first", "A → Z: largest number first", "Z → A: smallest number first"] },
+      { type: "choice", fact: "latest letter or largest number first", prompt: "You sort Chen, Adams and Brooks, Z → A. Which name comes first?", correct: "Chen", wrong: ["Adams", "Brooks"] },
+      { type: "choice", fact: "smallest number first", prompt: "You sort the table by Players, A → Z. Which game is in the top row?",
+        visual: { grid: { cols: 2, rows: 6, widths: { A: 1.5 }, cells: games, style: headStyle } }, correct: "Darts", wrong: ["Lucky dip", "Ring toss", "Coconut shy"] },
+      { type: "sortPredict", fact: "largest number first", ...helpers, by: "Hours", dir: "za", widths: { A: 1.2 } },
+      { type: "sortPredict", fact: "earliest letter", head: ["Game", "Players"], rows: [["Ring toss", 18], ["Darts", 9], ["Hook-a-duck", 25], ["Coconut shy", 12]], by: "Game", dir: "az", widths: { A: 1.5 } },
+      { type: "sortPredict", fact: "Z → A (descending)", head: ["Stall", "Total"], rows: [["Lemonade", 210], ["Book swap", 65], ["Cake stall", 245], ["Raffle", 165]], by: "Total", dir: "za", widths: { A: 1.4 } },
+    ],
+  },
+  "select the whole table first": {
+    learn: { visual: { grid: { cols: 2, rows: 6, widths: { A: 1.2 }, cells: { ...helperCells, A6: "Total", B6: 18 }, style: { ...headStyle, A6: { b: 1 } }, sel: "A1:B5" } },
+      note: "Both columns are selected. The total row is not." },
+    exercises: [
+      { type: "choice", fact: "Leave out any total row underneath", prompt: "You want to sort the helpers by Hours. Which range do you select?",
+        visual: { grid: { cols: 2, rows: 7, widths: { A: 1.2 }, cells: { ...helperCells, A7: "Total", B7: 18 }, style: headStyle } }, correct: "A1:B5", wrong: ["B1:B5", "A1:B7", "A1:A5"] },
+      { type: "choice", fact: "names no longer match their numbers", prompt: "Mia selected only column B and sorted it Z → A. Now Sam has 7 hours, but he did 4. What went wrong?",
+        visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: { A1: "Helper", B1: "Hours", A2: "Sam", B2: 7, A3: "Priya", B3: 5, A4: "Tom", B4: 4, A5: "Lily", B5: 2 }, style: headStyle } },
+        correct: "The hours moved, but the names didn't", wrong: ["The names moved, but the hours didn't", "She sorted A → Z", "Nothing: it's right"] },
+      { type: "keys", fact: "the rows get scrambled", prompt: "Oops! You sorted only column B, and the rows got scrambled. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Delete", "Enter"] },
+      { type: "choice", fact: "Leave out any total row underneath", prompt: "A total row sits under the data. Do you select it too, before you sort?", correct: "No: only the data rows", wrong: ["Yes: select everything", "Only the total row", "Yes, then delete it"] },
+      { type: "choice", fact: "so each row moves together", prompt: "Why do you select every column before you sort?", correct: "So each row moves together", wrong: ["So only one column moves", "So the headings disappear", "So the total gets sorted too"] },
+      { type: "sortPredict", fact: "each row moves together", head: ["Player", "Goals"], rows: [["Ava", 3], ["Leo", 8], ["Mia", 1], ["Zoe", 5]], by: "Goals", dir: "az", widths: { A: 1.2 } },
+    ],
+  },
+  "sort range": {
+    learn: { visual: { dataMenu: { open: true, sub: true, highlight: "Advanced range sorting options" } },
+      note: "Select the table first. Then Data → Sort range → Advanced range sorting options opens the sort window." },
+    exercises: [
+      { type: "hotspot", fact: "Data → Sort range", ui: { dataMenu: {} }, target: "Data", prompt: "Which menu has the sorting tools? Tap it." },
+      { type: "hotspot", fact: "Data → Sort range", ui: { dataMenu: { open: true } }, target: "Sort range", prompt: "You've selected your table, and the Data menu is open. Tap the item that sorts the range you selected." },
+      { type: "hotspot", fact: "Advanced range sorting options", ui: { dataMenu: { open: true, sub: true } }, target: "Advanced range sorting options", prompt: "Tap the option that opens the sort window." },
+      { type: "order", fact: "Advanced range sorting options", prompt: "Sort a table by one column.", steps: ["Select the whole table", "Data → Sort range", "Advanced range sorting options", "Pick the column and the order, then click Sort"] },
+      { type: "hotspot", fact: "then click Sort", ui: { sortWindow: { range: "A1 to B5", by: "Hours", dir: "za" } }, target: "Sort", prompt: "Everything is set. Tap the button that does the sort." },
+      { type: "hotspot", fact: "A → Z or Z → A", ui: { sortWindow: { range: "A1 to B5", by: "Hours", dir: "az" } }, target: "Z → A", prompt: "You want the most hours at the top. Tap the order you need." },
+      { type: "hotspot", fact: "Pick the column to sort by", ui: { sortWindow: { range: "A1 to B5", by: "Helper", dir: "az" } }, target: "Sort by", prompt: "Tap where you pick the column to sort by." },
+    ],
+  },
+  "data has header row": {
+    learn: { visual: { sortWindow: { range: "A1 to B5", header: true, by: "Hours", dir: "za", highlight: "Data has header row" } },
+      note: "Ticked: the headings stay on top, and Sort by shows Hours, not Column B." },
+    exercises: [
+      { type: "hotspot", fact: "A tick box in the sort window", ui: { sortWindow: { range: "A1 to B5", header: false, col: "B", dir: "za" } }, target: "Data has header row", prompt: "Your selection includes the headings in row 1. Tap what you need to tick." },
+      { type: "choice", fact: "Tick it when your selection includes the row of headings", prompt: "You selected A1:B6, and row 1 holds the headings. What do you do in the sort window?", correct: "Tick Data has header row", wrong: ["Leave Data has header row unticked", "Delete the headings first", "Add another sort column"] },
+      { type: "choice", fact: "shows their names instead of \"Column A\"", prompt: "Data has header row isn't ticked. The hours are in column B, under the heading Hours. What does the Sort by list show?", correct: "Column B", wrong: ["Hours", "Helper", "Column A"] },
+      { type: "choice", fact: "they stay on top", prompt: "You tick Data has header row and sort. Where are the headings now?", correct: "Still on top, in row 1", wrong: ["Sorted in with the data", "At the bottom", "Gone: they were deleted"] },
+      { type: "choice", fact: "Tick it when your selection includes the row of headings", prompt: "You forgot the tick, and your headings got sorted in with the data. What do you do?", correct: "Ctrl + Z, then sort again with the box ticked", wrong: ["Type the headings again", "Delete row 1", "Add another sort column"] },
+    ],
+  },
+  "sort by two columns": {
+    learn: { visual: { grid: { cols: 2, rows: 7, widths: { B: 1.3 }, cells: { A1: "Year", B1: "Last name", A2: 7, B2: "Ash", A3: 7, B3: "Diaz", A4: 7, B4: "Hart", A5: 8, B5: "Bell", A6: 8, B6: "Fox", A7: 9, B7: "Ellis" }, style: headStyle } },
+      note: "The Year 7s stay together. Inside Year 7, the names go A → Z." },
+    exercises: [
+      { type: "hotspot", fact: "Add another sort column", ui: { sortWindow: { range: "A1 to B7", by: "Year", col: "A", dir: "az" } }, target: "Add another sort column", prompt: "You want a second column to sort by. Tap what adds it." },
+      { type: "sortPredict", fact: "like year level, then last name inside each year", head: ["Year", "Last name"], rows: [[8, "Grant"], [7, "Moss"], [9, "Lane"], [7, "King"], [8, "Owen"]], by: "Year", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
+      { type: "sortPredict", fact: "the second only orders rows that tie on the first", head: ["House", "Last name"], rows: [["Red", "Nguyen"], ["Blue", "Patel"], ["Red", "Adams"], ["Blue", "Kim"]], by: "House", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
+      { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "You sort by Year, then by Last name. Grant and Owen are both in Year 8. What decides which one comes first?", correct: "The second column: Last name", wrong: ["The first column: Year", "Whoever was typed first", "Nothing: it's random"] },
+      { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "When does the second sort column change anything?", correct: "Only when rows tie on the first column", wrong: ["Always: it sorts every row again", "Never: only the first column counts", "Only when the first column holds numbers"] },
+      { type: "choice", fact: "the first column orders everything", prompt: "You sort by House, A → Z, then by Last name, A → Z. Which row goes on top?",
+        visual: { grid: { cols: 2, rows: 5, widths: { B: 1.3 }, cells: houses, style: headStyle } }, correct: "Blue, Kim", wrong: ["Blue, Patel", "Red, Adams", "Red, Nguyen"] },
     ],
   },
 };

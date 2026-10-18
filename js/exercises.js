@@ -5,10 +5,11 @@ import { icon } from "./icons.js";
 import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
 import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
-import { renderVisual, fillValues, keycaps } from "./visuals.js";
+import { renderVisual, fillValues, keycaps, SORT_WINDOW_LABEL, MENU_BAR } from "./visuals.js";
 import { screens } from "../content/screens.js";
+import { sortOptions, rowsText, dirLabel } from "./sort.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, fillFormula, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
+export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, fillFormula, sortPredict, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
@@ -18,6 +19,7 @@ const KICKER = {
   rangeName: ["type", "Name the range"],
   fill: ["arrow-down", "Predict the fill"],
   fillFormula: ["arrow-right", "Predict the fill"],
+  sortPredict: ["arrow-down-up", "Predict the sort"],
   gridMove: ["hand", "Move it"],
   keys: ["keyboard", "Press the keys"],
   hotspot: ["target", "Find it on screen"],
@@ -428,6 +430,63 @@ function fillFormula(step, api) {
   };
 }
 
+// ================================================================ predict the sort
+// A small table (headings in row 1). The options are whole tables: the right
+// sort and three likely mistakes (the wrong way, one column sorted alone, …).
+// After CHECK the rows move into their new order.
+function sortPredict(step, api) {
+  const { head: heads, rows } = step;
+  const nc = heads.length, last = rows.length + 1;
+  const range = `A1:${colLetter(nc - 1)}${last}`;
+  const toCells = (list) => {
+    const cells = {};
+    heads.forEach((h, c) => { cells[`${colLetter(c)}1`] = h; });
+    list.forEach((r, i) => r.forEach((v, c) => { cells[`${colLetter(c)}${i + 2}`] = v; }));
+    return cells;
+  };
+  const style = Object.fromEntries(heads.map((_, c) => [`${colLetter(c)}1`, { b: 1 }]));
+  const g = createGrid({ cols: nc, rows: last, widths: step.widths, cells: toCells(rows), style, sel: range });
+  const { correct, wrong } = sortOptions(step);
+  const opts = shuffle([correct, ...wrong]);
+  const how = `by <b>${esc(step.by)}</b>, ${dirLabel(step.dir)}${step.then ? `, then by <b>${esc(step.then.by)}</b>, ${dirLabel(step.then.dir)}` : ""}`;
+  const optHtml = (list) => `<span class="sort-opt" style="--n:${nc}">${list.map((r) => r.map((v) => `<span class="sort-opt__c">${esc(v)}</span>`).join("")).join("")}</span>`;
+  const node = el(`
+    <div class="ex ex-sortp">
+      ${head(step, "What will the table look like?", `You select ${range}, tick <b>Data has header row</b> and sort ${how}.`)}
+      <div class="sortp-layout">
+        <div class="ex-sheet"></div>
+        ${optionsHtml(opts.map(optHtml), { cls: "options--tables" })}
+      </div>
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  $$(".option", node).forEach((b, k) => { b.dataset.v = rowsText(opts[k]); b.setAttribute("aria-label", `Option ${k + 1}: ${rowsText(opts[k])}`); });
+  const values = opts.map(rowsText);
+  const o = wireOptions(node, api, values);
+  const pause = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? 0 : ms));
+  async function play() {
+    await pause(350);
+    g.setSel(range);
+    g.setCells(toCells(correct));
+    correct.forEach((r, i) => { if (rowsText([r]) !== rowsText([rows[i]])) heads.forEach((_, c) => g.el.querySelector(`.sh-cell[data-ref="${colLetter(c)}${i + 2}"]`)?.classList.add("is-new")); });
+  }
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey: (k) => o.onKey(k),
+    check({ skipped } = {}) {
+      const right = rowsText(correct);
+      o.reveal(right);
+      const ok = !skipped && o.chosen === right;
+      const numbers = typeof rows[0][heads.indexOf(step.by)] === "number";
+      const first = step.dir === "az" ? (numbers ? "smallest number first" : "earliest letter first") : (numbers ? "largest number first" : "latest letter first");
+      let why = `${step.by}, ${dirLabel(step.dir)}: ${first}. Each whole row moves together, so nothing gets mixed up.`;
+      if (step.then) why += ` Rows that tie on ${step.by} are put in order by ${step.then.by}.`;
+      return { ok, body: `<span class="feedback__tip">${esc(why)}</span>`, after: play };
+    },
+  };
+}
+
 // ================================================================ move a cell
 function gridMove(step, api) {
   const { from, to, value } = step;
@@ -601,6 +660,8 @@ function hotspot(step, api) {
       const what = step.ui.colheads ? "column" : "row";
       return id.includes("|") ? `the line between ${what}s ${id.replace("|", " and ")}` : `${what} ${id}`;
     }
+    if (step.ui?.sortWindow) return SORT_WINDOW_LABEL[id] || id;
+    if (step.ui?.dataMenu) return MENU_BAR.includes(id) ? `the ${id} menu` : id;
     if (id === "+") return "the + button";
     if (id === "All sheets") return "the All sheets button";
     return step.ui?.tabs ? `the ${id} tab` : id;

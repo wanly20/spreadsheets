@@ -4,7 +4,7 @@
 // keys only: number keys for options / areas / steps / pairs, arrows (+ Shift,
 // Space) on the mini spreadsheet, typing references, the real shortcut keys,
 // Enter for CHECK and CONTINUE, Esc for the quit dialog. Plays the whole
-// sampler (one of every exercise type) and Lesson 1's first level.
+// sampler (one of every exercise type), Lesson 1's first level and Lesson 6's two levels.
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 const require = createRequire(import.meta.url);
@@ -47,6 +47,13 @@ await playAll("1-1");
 await p.goto(BASE + "#/play/sampler");
 await wait(1200);
 await playAll("sampler");
+
+// Lesson 6 (sorting): both levels, keyboard only.
+for (const id of ["6-1", "6-2"]) {
+  await p.goto(BASE + "#/play/" + id);
+  await wait(1200);
+  await playAll(id);
+}
 
 console.log(`\n${passed} checks passed, ${errors.length} problems`);
 console.log(errors.length ? "PROBLEMS:\n- " + errors.join("\n- ") : "KEYBOARD RUN PASSED, no console errors");
@@ -106,6 +113,11 @@ async function answer(step) {
     case "fillFormula": {
       const correct = await p.evaluate(async (s) => (await import("./js/exercises.js")).fillFormulaOptions(s.formula, s.from, s.to).correct, step);
       const i = await optionIndex(".option .label", correct); await key(String(i + 1)); return;
+    }
+    case "sortPredict": {
+      const correct = await p.evaluate(async (s) => { const S = await import("./js/sort.js"); return S.rowsText(S.sortOptions(s).correct); }, step);
+      const i = await p.evaluate((v) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option")].findIndex((b) => b.dataset.v === v), correct);
+      await key(String(i + 1)); return;
     }
     case "keys": await key({ "ctrl+z": "Control+z", "ctrl+y": "Control+y", delete: "Delete", enter: "Enter", "ctrl+`": "Control+Backquote" }[step.combo]); return;
     case "formula": await p.keyboard.type(step.accept[0].toLowerCase()); return;

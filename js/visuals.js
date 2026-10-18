@@ -11,6 +11,8 @@
 //   steps     ["Select the cells", "Choose a tool"]
 //   fillDemo  { start, end } the fill handle, animated (with a replay button)
 //   moveDemo  { from, to, value } moving a cell, animated
+//   dataMenu  { open, sub, highlight } the menu bar; open: the Data menu; sub: its Sort range menu
+//   sortWindow { range, header, by, col, dir, then: { by, col, dir }, highlight } the sort window (simplified)
 // renderVisual() returns { el, play?(), grid?, hits? } (hits: clickable parts for hotspot questions).
 import { esc, el } from "./ui.js";
 import { icon } from "./icons.js";
@@ -19,6 +21,23 @@ import { screens } from "../content/screens.js";
 
 export const TAB_MENU = ["Delete", "Duplicate", "Copy to", "Rename", "Change colour", "Protect sheet", "Hide sheet", "View comments", "Move right", "Move left"];
 const SUBMENU = new Set(["Copy to", "Change colour"]);
+
+// Data → Sort range → Advanced range sorting options (a few of the Data menu's items).
+export const MENU_BAR = ["File", "Edit", "View", "Insert", "Format", "Data", "Tools", "Extensions", "Help"];
+export const DATA_MENU = ["Sort sheet", "Sort range", "Create a filter", "Named ranges", "Data validation"];
+export const DATA_SUB = ["Sort range by column A (A to Z)", "Sort range by column A (Z to A)", "Advanced range sorting options"];
+/** What you can tap in a dataMenu picture. */
+export const dataMenuHits = (spec = {}) => (spec.open ? [...DATA_MENU, ...(spec.sub ? DATA_SUB : [])] : MENU_BAR);
+export const SORT_WINDOW_LABEL = {
+  "Data has header row": "the Data has header row box",
+  "Sort by": "the Sort by list",
+  "A → Z": "A → Z",
+  "Z → A": "Z → A",
+  "Add another sort column": "Add another sort column",
+  Cancel: "the Cancel button",
+  Sort: "the Sort button",
+};
+export const sortWindowHits = () => Object.keys(SORT_WINDOW_LABEL);
 
 /** Worked out like Google Sheets: one cell copies; two numbers continue the step. */
 export function fillValues(start, count) {
@@ -80,6 +99,8 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
     wrap.appendChild(g.el);
     wrap.appendChild(replayButton(run));
   }
+  if (spec.dataMenu) wrap.appendChild(dataMenu(spec.dataMenu));
+  if (spec.sortWindow) wrap.appendChild(sortWindow(spec.sortWindow));
   out.hits = [...wrap.querySelectorAll("[data-hit]")];
   if (!interactiveHits) out.hits.forEach((h) => h.setAttribute("tabindex", "-1"));
   out.play = () => plays.forEach((p) => p());
@@ -137,4 +158,53 @@ export function headStrip(kind, { n = 4, highlight } = {}) {
     }
   });
   return el(`<div class="head-strip head-strip--${kind}" role="group" aria-label="${kind === "col" ? "Column letters" : "Row numbers"}">${parts.join("")}</div>`);
+}
+
+/** The menu bar, with the Data menu (and its Sort range menu) open. */
+export function dataMenu({ open = false, sub = false, highlight } = {}) {
+  const ring = (x) => (x === highlight ? "is-ring" : "");
+  const bar = MENU_BAR.map((m) => open
+    ? `<span class="menu-bar__item ${m === "Data" ? "is-open" : ""}">${esc(m)}</span>`
+    : `<button type="button" class="menu-bar__item ${ring(m)}" data-hit="${esc(m)}">${esc(m)}</button>`).join("");
+  const item = (m, more) => `<button type="button" role="menuitem" class="tab-menu__item ${ring(m)} ${sub && m === "Sort range" ? "is-open" : ""}" data-hit="${esc(m)}"><span>${esc(m)}</span>${more ? icon("chevron-right", 16, 2.5) : ""}</button>`;
+  return el(`
+    <div class="data-menu-scene">
+      <div class="menu-bar" role="group" aria-label="Menu bar">${bar}</div>
+      ${open ? `<div class="data-menus">
+        <div class="tab-menu data-menu" role="menu" aria-label="Data menu">${DATA_MENU.map((m) => item(m, m.startsWith("Sort"))).join("")}</div>
+        ${sub ? `<div class="tab-menu data-menu data-menu--sub" role="menu" aria-label="Sort range menu">${DATA_SUB.map((m) => item(m)).join("")}</div>` : ""}
+      </div>` : ""}
+    </div>`);
+}
+
+/** The sort window (simplified, like the slide): header tick, Sort by, A → Z / Z → A, Sort. */
+export function sortWindow({ range = "A1 to B7", header = true, by = "Hours", col = "B", dir = "az", then, highlight } = {}) {
+  const ring = (x) => (x === highlight ? "is-ring" : "");
+  const radios = (d, hits) => ["az", "za"].map((x) => {
+    const label = x === "az" ? "A → Z" : "Z → A";
+    const dot = `<span class="sortwin__dot ${x === d ? "is-on" : ""}" aria-hidden="true"></span>`;
+    return hits ? `<button type="button" class="sortwin__radio ${ring(label)}" data-hit="${label}" aria-label="${label}${x === d ? ", chosen" : ""}">${dot}${label}</button>`
+      : `<span class="sortwin__radio">${dot}${label}</span>`;
+  }).join("");
+  return el(`
+    <div class="sortwin" role="group" aria-label="Sort range window">
+      <p class="sortwin__title">Sort range from ${esc(range)}</p>
+      <button type="button" class="sortwin__tick ${ring("Data has header row")}" data-hit="Data has header row" aria-label="Data has header row, ${header ? "ticked" : "not ticked"}">
+        <span class="sortwin__box ${header ? "is-on" : ""}" aria-hidden="true">${header ? icon("check", 14, 3.5) : ""}</span>Data has header row</button>
+      <div class="sortwin__row">
+        <span class="sortwin__label">Sort by</span>
+        <button type="button" class="sortwin__select ${ring("Sort by")}" data-hit="Sort by">${esc(header ? by : `Column ${col}`)}${icon("chevron-down", 14, 2.5)}</button>
+        <span class="sortwin__dirs">${radios(dir, true)}</span>
+      </div>
+      ${then ? `<div class="sortwin__row">
+        <span class="sortwin__label">then by</span>
+        <span class="sortwin__select">${esc(header ? then.by : `Column ${then.col}`)}${icon("chevron-down", 14, 2.5)}</span>
+        <span class="sortwin__dirs">${radios(then.dir, false)}</span>
+      </div>` : ""}
+      <button type="button" class="sortwin__add ${ring("Add another sort column")}" data-hit="Add another sort column">${icon("plus", 16, 2.75)} Add another sort column</button>
+      <div class="sortwin__foot">
+        <button type="button" class="sortwin__btn ${ring("Cancel")}" data-hit="Cancel">Cancel</button>
+        <button type="button" class="sortwin__btn sortwin__btn--sort ${ring("Sort")}" data-hit="Sort">Sort</button>
+      </div>
+    </div>`);
 }

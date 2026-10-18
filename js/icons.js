@@ -53,6 +53,8 @@ const P = {
   "chevron-down": "<path d=\"m6 9 6 6 6-6\" />",
   "info": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M12 16v-4\" /> <path d=\"M12 8h.01\" />",
   "calendar": "<path d=\"M8 2v4\" /> <path d=\"M16 2v4\" /> <rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\" /> <path d=\"M3 10h18\" />",
+  "arrow-down-up": "<path d=\"m3 16 4 4 4-4\" /> <path d=\"M7 20V4\" /> <path d=\"m21 8-4-4-4 4\" /> <path d=\"M17 4v16\" />",
+  "arrow-down-a-z": "<path d=\"m3 16 4 4 4-4\" /> <path d=\"M7 20V4\" /> <path d=\"M20 8h-5\" /> <path d=\"M15 10V6.5a2.5 2.5 0 0 1 5 0V10\" /> <path d=\"M15 14h5l-5 6h5\" />",
   "text-wrap": "<path d=\"m16 16-3 3 3 3\" /> <path d=\"M3 12h14.5a1 1 0 0 1 0 7H13\" /> <path d=\"M3 19h6\" /> <path d=\"M3 5h18\" />",
 };
 

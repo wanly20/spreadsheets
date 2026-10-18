@@ -71,7 +71,18 @@ export const course = {
       ],
       review: { id: "5-r", title: "Mixed review" },
     },
+    {
+      n: 6,
+      title: "Lesson 6",
+      subtitle: "Sorting: A → Z, Z → A, the sort window, two columns",
+      theme: "yellow",
+      levels: [
+        { id: "6-1", title: "Put the rows in order", icon: "arrow-down-up", terms: ["sort", "select the whole table first"] },
+        { id: "6-2", title: "The sort window", icon: "arrow-down-a-z", terms: ["sort range", "data has header row", "sort by two columns"] },
+      ],
+      review: { id: "6-r", title: "Mixed review" },
+    },
   ],
   // The big review at the end of the path, across every lesson that is ready.
-  finalReview: { id: "all-r", title: "Lessons 1–5 review", needs: [1, 2, 3, 4, 5] },
+  finalReview: { id: "all-r", title: "Lessons 1–6 review", needs: [1, 2, 3, 4, 5, 6] },
 };

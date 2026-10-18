@@ -278,6 +278,7 @@
   .lesson .match-card > .face { min-height: 64px; }
   .fill-layout { grid-template-columns: minmax(0, 280px) minmax(0, 1fr); align-items: center; gap: var(--sp-6); }
   .options--seq { display: flex !important; }
+  .sortp-layout { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--sp-6); }
   .order-slots, .order-bank { gap: var(--sp-2); }
   .key-zone { min-height: 170px; }
 

@@ -55,20 +55,21 @@ nearest level. The checker tells you so you can tidy up the level list.
 |---|---|
 | `content/knowledge_lessonN.js` | Copies of the Knowledge Bank (generated: don't edit) |
 | `content/course.js` | The path: lessons, their levels (lists of terms), "coming soon" |
-| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $, predicting a formula after a fill down or across…) |
+| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $, predicting a formula after a fill down or across, predicting a sort…) |
 | `content/screens.js` | Real Google Sheets screenshots and their tappable areas |
 | `js/brand.js` | **App name and mascot, in one place** |
 | `js/course.js` | Builds levels and reviews from the content |
-| `js/exercises.js` · `js/grid.js` · `js/visuals.js` | Exercise types, the mini spreadsheet, pictures |
+| `js/exercises.js` · `js/grid.js` · `js/visuals.js` | Exercise types, the mini spreadsheet, pictures (incl. a drawn Data menu and sort window) |
+| `js/sort.js` | Sorting a small table like Google Sheets, and the likely mistakes (for *Predict the sort*) |
 | `js/lesson.js` · `js/app.js` · `js/store.js` | Lesson runner, screens and settings, saved progress |
 | `css/tokens.css` | Colours, type and spacing (`python3 tools/contrast.py` checks WCAG AA) |
 
-## Adding a lesson (Lessons 1–5 are in; Lesson 6 next)
+## Adding a lesson (Lessons 1–6 are in; Lesson 7 next)
 
-1. In `content/course.js`, add the lesson after Lesson 5 (`n: 6`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
-   Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson6.js`, in slide order.
-   Add `review: { id: "6-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
-2. Run `tools/sync_content.sh`: it copies `knowledge_lesson6.js` and checks everything.
+1. In `content/course.js`, add the lesson after Lesson 6 (`n: 7`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
+   Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson7.js`, in slide order.
+   Add `review: { id: "7-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
+2. Run `tools/sync_content.sh`: it copies `knowledge_lesson7.js` and checks everything.
 3. Optional but worthwhile: in `content/practice.js`, add a learn-card picture and a few hands-on
    exercises for each new term. The comments at the top of that file list the exercise types.
    Without them, every term still gets term ↔ definition questions.

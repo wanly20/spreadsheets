@@ -17,7 +17,8 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
-const { TAB_MENU, fillValues } = await import(path.join(ROOT, "js/visuals.js"));
+const { TAB_MENU, fillValues, dataMenuHits, sortWindowHits } = await import(path.join(ROOT, "js/visuals.js"));
+const { sortOptions, sortTies } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
 // js/exercises.js needs a browser to load, so the fill-formula helpers are read straight from it.
 const exSrc = readFileSync(path.join(ROOT, "js/exercises.js"), "utf8");
@@ -59,7 +60,7 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
 
 // ------------------------------------------------------------ extra practice
 const GRID_TYPES = new Set(["gridClick", "gridName", "gridRange", "rangeName", "gridMove"]);
-const TYPES = new Set(["choice", "fill", "fillFormula", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
+const TYPES = new Set(["choice", "fill", "fillFormula", "sortPredict", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
 const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter", "ctrl+`"]);
 const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
@@ -100,7 +101,8 @@ for (const it of model.items) {
       } else if (e.ui) {
         const heads = (n, col) => Array.from({ length: n }, (_, i) => (col ? String.fromCharCode(65 + i) : String(i + 1)));
         const lines = (h) => [...h, ...h.slice(1).map((x, i) => `${h[i]}|${x}`)];
-        const ok = e.ui.tabmenu ? TAB_MENU.includes(e.target) : e.ui.tabs ? ["+", "All sheets", ...e.ui.tabs.tabs].includes(e.target)
+        const ok = e.ui.dataMenu ? dataMenuHits(e.ui.dataMenu).includes(e.target) : e.ui.sortWindow ? sortWindowHits(e.ui.sortWindow).includes(e.target)
+          : e.ui.tabmenu ? TAB_MENU.includes(e.target) : e.ui.tabs ? ["+", "All sheets", ...e.ui.tabs.tabs].includes(e.target)
           : e.ui.colheads ? lines(heads(e.ui.colheads.n || 4, true)).includes(e.target) : e.ui.rowheads ? lines(heads(e.ui.rowheads.n || 4, false)).includes(e.target) : false;
         if (!ok) err(`${where}: ${e.target} isn't something you can tap in that picture`);
       } else err(`${where}: needs screen or ui`);
@@ -130,6 +132,25 @@ for (const it of model.items) {
         const cols = e.grid?.cols || 0, rows = e.grid?.rows || 0, last = parseSel(e.to);
         if (!e.grid || last.c1 >= cols || last.r1 > rows) err(`${where}: the grid must include ${e.to}`);
         if (e.grid?.cells?.[e.from] != null) err(`${where}: leave ${e.from} out of the grid cells (the formula goes there)`);
+      }
+    }
+    if (e.type === "sortPredict") {
+      const n = e.head?.length || 0;
+      const dirOk = (d) => d === "az" || d === "za";
+      if (!Array.isArray(e.head) || n < 2 || n > 3 || new Set(e.head).size !== n) err(`${where}: head must be 2–3 different headings`);
+      else if (!Array.isArray(e.rows) || e.rows.length < 3 || e.rows.length > 5 || e.rows.some((r) => !Array.isArray(r) || r.length !== n)) err(`${where}: rows must be 3–5 rows of ${n} values`);
+      else if (!e.head.includes(e.by) || !dirOk(e.dir)) err(`${where}: by must be a heading and dir "az" or "za"`);
+      else if (e.then && (!e.head.includes(e.then.by) || e.then.by === e.by || !dirOk(e.then.dir))) err(`${where}: then must name another heading and a dir`);
+      else {
+        for (const c of [e.by, e.then?.by].filter(Boolean)) {
+          const kinds = new Set(e.rows.map((r) => typeof r[e.head.indexOf(c)]));
+          if (kinds.size > 1) err(`${where}: column ${c} mixes numbers and text`);
+        }
+        const ties = sortTies(e);
+        if (ties.length) err(`${where}: rows tie on the sort ${e.then ? "columns" : "column"} (${ties.join("; ")}), so the order isn't certain`);
+        if (!e.then && new Set(e.rows.map((r) => String(r[e.head.indexOf(e.by)]).toLowerCase())).size !== e.rows.length) err(`${where}: values in ${e.by} must all differ`);
+        const o = sortOptions(e);
+        if (o.wrong.length < 3) err(`${where}: only ${o.wrong.length} wrong options can be worked out`);
       }
     }
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
