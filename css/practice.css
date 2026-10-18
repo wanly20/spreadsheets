@@ -481,3 +481,4 @@ button.menu-bar__item { cursor: pointer; }
 .ctrl-latch__text { font-weight: 700; }
 .ctrl-row__tip { color: var(--c-text-soft); font-size: var(--fs-sm); }
 .data-menus--insert { margin-left: min(110px, 9%); }
+.ex-choice .ex-visual .shot { width: min(100%, var(--w), 340px); }

@@ -756,7 +756,8 @@ export const practice = {
     learn: { visual: { image: "sort-window", highlight: "Data has header row" },
       note: "Ticked: the headings in row 3 stay on top, and Sort by shows Stall, not Column A." },
     exercises: [
-      { type: "hotspot", fact: "A tick box in the sort window", screen: "sort-window", target: "Data has header row", prompt: "Your selection A3:E9 includes the headings in row 3. Tap the box that keeps them on top." },
+      { type: "choice", fact: "shows their names instead of \"Column A\"", prompt: "In this sort window, why does Sort by say Stall, not Column A?", visual: { image: "sort-window" },
+        correct: "Data has header row is ticked", wrong: ["The table is already sorted A to Z", "You added a sort column", "Then by is set to Morning"] },
       { type: "choice", fact: "Tick it when your selection includes the row of headings", prompt: "You selected A1:B6, and row 1 holds the headings. What do you do in the sort window?", correct: "Tick Data has header row", wrong: ["Leave Data has header row unticked", "Delete the headings first", "Add another sort column"] },
       { type: "choice", fact: "shows their names instead of \"Column A\"", prompt: "Data has header row isn't ticked. The hours are in column B, under the heading Hours. What does the Sort by list show?", correct: "Column B", wrong: ["Hours", "Helper", "Column A"] },
       { type: "choice", fact: "they stay on top", prompt: "You tick Data has header row and sort. Where are the headings now?", correct: "Still on top, in row 1", wrong: ["Sorted in with the data", "At the bottom", "Gone: they were deleted"] },
@@ -830,7 +831,7 @@ export const practice = {
       note: "Customise → Chart and axis titles → Chart title, then type it in Title text. Sheets starts with a name like “Total”: change it so it says what the chart shows." },
     exercises: [
       { type: "hotspot", fact: "The heading above a chart", ui: { chart: pieTotals }, target: "title", prompt: "Tap the chart title." },
-      { type: "hotspot", fact: "then type it", screen: "titles", target: "Chart and axis titles", prompt: "Tap the section of the Customise tab that holds the chart's title." },
+      { type: "hotspot", fact: "then type it", screen: "customise-pie", target: "Chart and axis titles", prompt: "Tap the section of the Customise tab that holds the chart's title." },
       { type: "hotspot", fact: "then type it", screen: "titles", target: "Title text", prompt: "Chart title is picked. Tap where you type the title." },
       { type: "choice", fact: "The heading above a chart", prompt: "What's missing from this chart?", visual: { chart: { ...pieTotals, title: "" } }, correct: "A chart title", wrong: ["A legend", "Percentages", "Slices"] },
       { type: "choice", fact: "The heading above a chart", prompt: "Which is the best title for this chart?", visual: { chart: { ...pieTotals, title: "" } }, correct: "Fair Takings by Stall", wrong: ["Total", "Chart 1", "Numbers"] },
@@ -852,9 +853,9 @@ export const practice = {
     learn: { visual: { image: "pie-slice", highlight: "Pie slice" },
       note: "For one slice: Customise → Pie slice → pick the slice → Colour. For a set of columns: Customise → Series → pick the series → Fill colour." },
     exercises: [
-      { type: "hotspot", fact: "choose a colour", screen: "pie-slice", target: "Pie slice", prompt: "You want Cake stall's slice to be green. Tap the section you open." },
+      { type: "hotspot", fact: "choose a colour", screen: "customise-pie", target: "Pie slice", prompt: "You want Cake stall's slice to be green. Tap the section you open." },
       { type: "hotspot", fact: "choose a colour", screen: "pie-slice", target: "slice list", prompt: "Pie slice is open. Tap where you pick which slice." },
-      { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "Series", prompt: "You want the Lunch columns in a new colour. Tap the section you open." },
+      { type: "choice", fact: "pick the set of columns", prompt: "You want the Lunch columns in a new colour. Which section of the Customise tab do you open?", correct: "Series", wrong: ["Legend", "Chart style", "Chart and axis titles"] },
       { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "series list", prompt: "Series is open. Tap where you pick which set of columns." },
       { type: "choice", fact: "Or click it on the chart", prompt: "What's a quick way to get to one slice's colour?", correct: "Click the slice on the chart", wrong: ["Sort the table", "Delete the chart", "Click the Name Box"] },
       { type: "choice", fact: "pick the set of columns", prompt: "In a column chart, what is a series?", correct: "One set of columns, like all the Lunch columns", wrong: ["One stall's name", "The chart's title", "A tick box on the Setup tab"] },

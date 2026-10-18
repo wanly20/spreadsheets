@@ -89,8 +89,10 @@ export const screens = {
 
   // ================================================================ Lessons 6 and 7: menus, the sort window, charts
   // Cropped from ../spreadsheets/screenshots/google_sheets/menus/ by tools/crop_screens.py (Oct 2026,
-  // UK/AU locale: "Customise", "Fill colour"). The Insert menu's Chart row and the ⋮ menu's Edit the
-  // chart row had a hover highlight (and the cursor) that gave the answer away: cleaned before cropping.
+  // UK/AU locale: "Customise", "Fill colour"). Anything that would give an answer away is cleaned
+  // first: the hover on Insert → Chart and on ⋮ → Edit the chart, and the blue "chosen" border on the
+  // column chart in the Chart type list. A question that asks which section to open uses
+  // customise-pie, where every section is still closed.
   "menu-bar": {
     src: "assets/screens/menu-bar.webp", w: 420, h: 28,
     alt: "The Google Sheets menu bar: File, Edit, View, Insert, Format, Data, Tools, Extensions, Help",
@@ -237,6 +239,18 @@ export const screens = {
       "Legend": { r: [16, 572, 250, 30], label: "the Legend section" },
     },
   },
+  "customise-pie": {
+    src: "assets/screens/customise-pie.webp", w: 293, h: 258,
+    alt: "The chart editor's Customise tab for a pie chart, every section closed: Chart style, Pie chart, Pie slice, Chart and axis titles",
+    regions: {
+      "Setup": { r: [30, 7, 76, 30], label: "the Setup tab" },
+      "Customise": { r: [164, 7, 92, 30], label: "the Customise tab" },
+      "Chart style": { r: [16, 50, 250, 30], label: "the Chart style section" },
+      "Pie chart": { r: [16, 103, 250, 30], label: "the Pie chart section" },
+      "Pie slice": { r: [16, 156, 250, 30], label: "the Pie slice section" },
+      "Chart and axis titles": { r: [16, 210, 250, 30], label: "the Chart and axis titles section" },
+    },
+  },
   "pie-slice": {
     src: "assets/screens/pie-slice.webp", w: 293, h: 322,
     alt: "The chart editor's Customise tab with Pie slice open: the Cake stall slice is picked, with its Colour button",
@@ -304,8 +318,6 @@ export const screens = {
     alt: "A selected pie chart with small square handles at its corners and edges, and ⋮ at the top right",
     regions: {
       "⋮": { r: [533, 12, 24, 26], label: "the ⋮ button (the chart's menu)" },
-      "chart title": { r: [26, 21, 180, 28], label: "the chart title" },
-      "legend": { r: [454, 50, 98, 120], label: "the legend" },
       "chart": { r: [68, 58, 360, 260], label: "the chart itself (grab it to move it)" },
       "corner": { r: [548, 335, 20, 20], label: "the bottom-right corner handle" },
       "top-left corner": { r: [6, 0, 20, 18], label: "the top-left corner handle" },
@@ -314,7 +326,6 @@ export const screens = {
       "bottom edge": { r: [277, 335, 20, 20], label: "the handle in the middle of the bottom edge" },
     },
   },
-
 
   // ================================================================ drawn stand-ins
   // Not photographed yet (docs/SCREENSHOTS_WANTED.md). Shown in learn cards and questions only,

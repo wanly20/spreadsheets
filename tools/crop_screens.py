@@ -38,6 +38,13 @@ def source(name):
         d.text((198, 270), "Chart", font=ImageFont.truetype("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", 13), fill=(60, 64, 67))
     if name == "10_chart_menu_move_to_own_sheet":  # Edit the chart is hovered
         unhover(im, (769, 352, 946, 380))
+    if name == "05_setup_chart_type_list":  # the column chart (the current type) has a blue "chosen" border
+        px = im.load()
+        x0, y0, x1, y1 = 1046, 264, 1169, 348  # copy the pie thumbnail's grey border, 125px to the right
+        for x in range(x0, x1):
+            for y in range(y0, y1):
+                if min(x - x0, x1 - 1 - x, y - y0, y1 - 1 - y) <= 5:
+                    px[x, y] = px[x + 125, y]
     return im
 
 TABS = {"Setup": (1062, 117, 76, 30, "the Setup tab"), "Customise": (1196, 117, 92, 30, "the Customise tab")}
@@ -89,6 +96,9 @@ S = {
    "Title font": (1046, 539, 131, 40, "the Title font list"), "Title font size": (1184, 539, 122, 40, "the Title font size list"),
    "Title format": (1046, 616, 94, 40, "the Title format buttons (bold, italic)"), "Title text colour": (1184, 616, 95, 40, "the Title text colour list"), "Legend": sec(682, "Legend")},
    "The chart editor's Customise tab with Chart and axis titles open: Chart title, Title text, font, size, format and colour"),
+ "customise-pie": ("09_customise_legend", (1032, 110, 1325, 368), {**TABS,
+   "Chart style": sec(160, "Chart style"), "Pie chart": sec(213, "Pie chart"), "Pie slice": sec(266, "Pie slice"), "Chart and axis titles": sec(320, "Chart and axis titles")},
+   "The chart editor's Customise tab for a pie chart, every section closed: Chart style, Pie chart, Pie slice, Chart and axis titles"),
  "pie-slice": ("08a_customise_pie_slice_colour", (1032, 110, 1325, 432), {**TABS,
    "Chart style": sec(160, "Chart style"), "Pie chart": sec(213, "Pie chart"), "Pie slice": sec(266, "Pie slice"),
    "slice list": (1046, 313, 260, 40, "the list where you pick the slice"), "Colour": (1046, 393, 60, 34, "the Colour button")},

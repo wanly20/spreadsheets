@@ -7,6 +7,7 @@ drawn by the app as **stand-ins**, so each one can be swapped for a real screens
 
 1. Take the screenshot in the School Fair sample (Takings in A3:E9), on a Chromebook-sized
    window, with nothing hovered (move the pointer away: a grey hover row gives the answer away).
+   For "which section/item do you open?" questions the answer must still be closed in the shot.
 2. Either crop it yourself and save it as `assets/screens/<filename>.webp`, or put the full
    screenshot in `../spreadsheets/screenshots/google_sheets/menus/` and add a row to
    `tools/crop_screens.py` (crop box + regions), then run `python3 tools/crop_screens.py`.
@@ -24,14 +25,15 @@ regions, so they're a small edit to `content/practice.js` too.
 | `menu-bar` | 11 (menu bar only) | Which menu sorts (Data)? Which menu makes a chart (Insert)? |
 | `data-menu` | 01 | Data → Sort range (not Sort sheet) |
 | `data-menu-sort-range` | 02 | Advanced range sorting options (learn card + tap) |
-| `sort-window` | 03 | Data has header row, Sort by, Z to A, then by, Add another sort column, Sort |
+| `sort-window` | 03 | Sort by, Z to A, then by, Add another sort column, Sort; "why does Sort by say Stall?" (Data has header row is already ticked here, so it's a choice, not a tap) |
 | `insert-menu` | 04 (Chart row's hover removed) | Insert → Chart |
-| `chart-type` | 05 | Tap the pie / column / bar chart in the Chart type list |
+| `chart-type` | 05 (the column chart's blue "chosen" border repainted grey) | Tap the pie / column / bar chart in the Chart type list |
 | `setup-column` | 06a | Chart editor learn card; Customise tab, Chart type, Data range, Switch rows/columns |
 | `setup-switched` | 06b | Where are the stalls after Switch rows/columns? (the legend) |
-| `titles` | 07 | Chart and axis titles, Title text, the list for picking which title |
-| `pie-slice` | 08a (cropped above the colour list) | Customise → Pie slice, pick the slice |
-| `series-colour` | 08b (cropped above the colour list) | Customise → Series, pick the series |
+| `customise-pie` | 09 (top part: every section closed) | Which section do you open? Pie slice; Chart and axis titles |
+| `titles` | 07 | Title text, the list for picking which title (the section is already open) |
+| `pie-slice` | 08a (cropped above the colour list) | Learn card; pick the slice (Pie slice is already open) |
+| `series-colour` | 08b (cropped above the colour list) | Pick the series (Series is already open) |
 | `legend` | 09 | The legend on the chart; Legend → Position, Legend font size |
 | `chart-menu` | 10 (Edit the chart's hover removed) | ⋮ → Edit the chart, ⋮ → Move to own sheet |
 | `chart-selected` | 11 | ⋮, the corner handle (resize), the chart itself (move) |
@@ -52,6 +54,7 @@ Most useful first. "Stand-in" means the app draws it now and swaps it in with on
 | 8 | `sort-window-no-header.webp` | 6 | Select A3:E9 → Data → Sort range → Advanced range sorting options, and **untick** Data has header row. | Sort by showing **Column A** (not Stall). | would let *data has header row* show what goes wrong without the tick |
 | 9 | `chart-type-bar.webp` | 7 | Setup → Chart type list, scrolled down to the **Bar** section (and Pie above it if it fits). | The Bar chart pictures with their section heading. | optional: `chart-type` already shows a bar chart under Suggested |
 | 10 | `stacking.webp` | 7 | Select A3:D9 → Insert → Chart, before changing anything. | The default **stacked** column chart and Setup → Stacking: Standard. | only if Stacking → None is added to the Knowledge Bank (the slides' column chart needs it: Sheets stacks by default) |
+| 11 | `customise-column.webp` | 7 | Column chart from A3:D9 → Customise, with **every section closed**. | Chart style, Chart and axis titles, Series, Legend, Horizontal axis, Vertical axis, all with › chevrons. | would make "which section do you open for a series colour?" a tap (it's a choice now, because 08b has Series open) |
 
 Not needed: the Customise sections themselves (Chart style, Pie chart, Pie slice, Chart and axis
 titles, Legend, Series) are all in the shots above, and every chart in the questions (pie,
