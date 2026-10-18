@@ -8,5 +8,5 @@ const lesson4Knowledge = [
     { at: 4, kind: 'action', term: 'percentage in a cell', def: 'Type 10% into a cell — it holds 0.1. Multiply by that cell to get 10% of a number: =200*B1 gives 20.' },
     { at: 5, kind: 'identify', term: 'absolute reference', def: 'A reference locked with a $ before the letter AND the number — like $B$13. It stays the same when you fill. $ is Shift + 4.' },
     { at: 6, kind: 'identify', term: 'when to lock a reference', def: 'When every row uses the same one cell — a rate, a price, a budget. Lock it with $, fill down, and changing that one cell updates every answer.' },
-    { at: 7, kind: 'action', term: 'delete a row or column', def: 'Right-click (two-finger tap) the row number or column letter → [[Delete row]] / [[Delete column]]. Everything below moves up, or everything to the right moves left. The [[Delete]] key alone only empties the cells — the blank row stays.' },
+    { at: 7, kind: 'action', term: 'delete a row or column', def: 'Right-click (two-finger tap) the row number or column letter → [[Delete row]] / Delete column. Everything below moves up, or everything to the right moves left. The [[Delete]] key alone only empties the cells — the blank row stays.' },
 ];

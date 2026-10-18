@@ -30,7 +30,7 @@ export const course = {
       subtitle: "Formatting: width, wrap, merge, dates and money",
       theme: "blue",
       levels: [
-        { id: "2-1", title: "Fit the cells", icon: "text-wrap", terms: ["column width", "row height", "vertical alignment", "text wrap"] },
+        { id: "2-1", title: "Fit the cells", icon: "text-wrap", terms: ["column width", "row height", "default", "vertical alignment", "text wrap"] },
         { id: "2-2", title: "Merge, align and locale", icon: "grid", terms: ["merge cells", "horizontal alignment", "locale", "format vs value"] },
         { id: "2-3", title: "Dates, money and growing sheets", icon: "calendar", terms: ["date format", "currency format", "insert row/column", "freeze panes", "conditional formatting"] },
       ],

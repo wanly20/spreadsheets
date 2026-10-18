@@ -266,6 +266,15 @@ export const practice = {
         correct: "Drag the line under its row number down", wrong: ["Drag the line between two column letters", "Press Enter in the row", "Merge the row's cells"] },
     ],
   },
+  default: {
+    learn: { visual: { grid: { cols: 3, rows: 1, heights: { 1: 72 }, cells: { A1: "Raffle", B1: 42 } } }, note: "Nobody changed anything: the text sits at the bottom, on the left. That's the default." },
+    exercises: [
+      { type: "choice", fact: "by itself, before you change anything", prompt: "What does “the default” mean in a spreadsheet?",
+        correct: "What it does by itself, before you change anything", wrong: ["The setting you chose last", "A mistake in a cell", "The first cell, A1"] },
+      { type: "choice", fact: "bottom of a cell and starting on the left", prompt: "You type the word “Stall” into a tall, empty cell and change nothing. Where does it sit by default?",
+        visual: { grid: { cols: 3, rows: 1, heights: { 1: 72 }, cells: { A1: "Stall" }, sel: "A1", handle: false } }, correct: "At the bottom, on the left", wrong: ["At the top, on the left", "In the middle, in the centre", "At the bottom, on the right"] },
+    ],
+  },
   "vertical alignment": {
     learn: { visual: { grid: { cols: 3, rows: 1, heights: { 1: 72 }, cells: { A1: "Top", B1: "Middle", C1: "Bottom" }, style: { A1: { valign: "top" }, B1: { valign: "middle" } } } }, note: "Bottom is the default. You only notice it when a row is taller than its text." },
     exercises: [
