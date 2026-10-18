@@ -69,7 +69,7 @@ nearest level. The checker tells you so you can tidy up the level list.
 
 ## Adding a lesson (Lessons 1–7 are in)
 
-1. In `content/course.js`, add the lesson after the last one (`n: 8`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
+1. In `content/course.js`, add the lesson after the last one (`n: 8`, a title, a subtitle and a theme: the next unused lesson colour, e.g. brown or olive; never yellow, which means "done"), with its levels.
    Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson8.js`, in slide order.
    Add `review: { id: "8-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
 2. Run `tools/sync_content.sh`: it copies `knowledge_lesson8.js` and checks everything.

@@ -222,15 +222,16 @@ async function runViewport(vp) {
     await wait(900);
     ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–7 review/.test(t)), "the big review is called “Lessons 1–7 review”");
     ok(await page.locator('.node[data-node="all-r"]').count() === 1, "the big review keeps its id (all-r), so saved progress still counts");
-    ok(await page.locator(".unit--blue").filter({ hasText: "Lesson 5" }).count() === 1, "Lesson 5 is on the path (blue)");
-    ok(await page.locator(".unit--yellow").filter({ hasText: "Lesson 6" }).count() === 1, "Lesson 6 is on the path (yellow)");
+    ok(await page.evaluate(async () => { const { course } = await import("./content/course.js"); const t = course.lessons.map((l) => l.theme); return !t.includes("yellow") && new Set(t).size === t.length; }), "every lesson has its own colour, and none is yellow (yellow means done)");
+    ok(await page.locator(".unit--teal").filter({ hasText: "Lesson 5" }).count() === 1, "Lesson 5 is on the path (teal)");
+    ok(await page.locator(".unit--magenta").filter({ hasText: "Lesson 6" }).count() === 1, "Lesson 6 is on the path (magenta)");
     const l6 = await page.evaluate(async () => {
       const { course } = await import("./content/course.js");
       return { final: course.finalReview.needs, nodes: [...document.querySelectorAll(".node[data-node^='6-']")].map((n) => n.dataset.node) };
     });
     ok(l6.final.includes(6), "Lesson 6 is in the big review");
     ok(["6-1", "6-2", "6-r"].every((id) => l6.nodes.includes(id)), `Lesson 6 has its levels and mixed review (${l6.nodes.join(", ")})`);
-    ok(await page.locator(".unit--green").filter({ hasText: "Lesson 7" }).count() === 1, "Lesson 7 is on the path (green)");
+    ok(await page.locator(".unit--navy").filter({ hasText: "Lesson 7" }).count() === 1, "Lesson 7 is on the path (navy)");
     const l7 = await page.evaluate(async () => {
       const { course } = await import("./content/course.js");
       return { final: course.finalReview.needs, nodes: [...document.querySelectorAll(".node[data-node^='7-']")].map((n) => n.dataset.node) };
@@ -290,7 +291,9 @@ async function runViewport(vp) {
       });
       await shot(`ex-${typeKey}`);
       // Answer wrong once per exercise type (per viewport), never on a retry.
-      const goWrong = !step.retry && step.type !== "learn" && step.type !== "match" && !wrongDone.has("*") && !wrongDone.has(typeKey);
+      // A hotspot with only one region (e.g. "Tap the legend") has nothing wrong to tap: answer it right.
+      const oneRegion = step.type === "hotspot" && await page.evaluate((t) => ![...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].some((b) => b.dataset.region !== t), step.target);
+      const goWrong = !step.retry && step.type !== "learn" && step.type !== "match" && !oneRegion && !wrongDone.has("*") && !wrongDone.has(typeKey);
       if (goWrong) { wrongDone.add(typeKey); res.wrong++; }
       await answer(step, !goWrong, typeKey);
       // feedback
@@ -525,7 +528,7 @@ async function runViewport(vp) {
       }
       case "hotspot": {
         const other = await page.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].map((b) => b.dataset.region).find((r) => r !== t), step.target);
-        await tap(EX + `[data-region="${right ? step.target : other}"]`);
+        await tap(EX + `[data-region="${right || !other ? step.target : other}"]`); // no other region: answer right
         return check();
       }
       case "order": {

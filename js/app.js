@@ -81,7 +81,7 @@ function showPath(view = "path") {
       <div class="node-wrap ${isCur ? "is-current" : ""}" style="--x:${x}px">
         ${isCur ? `<div class="start-bubble" aria-hidden="true">${st ? "Again" : "Start"}</div>` : ""}
         <button class="${cls}" data-node="${n.id}" aria-label="${esc(label)}" ${soon ? 'data-soon="1"' : ""}>
-          <span class="face">${icon(soon ? "lock" : st && n.kind === "level" ? "check" : n.icon, 34, 3)}</span>
+          <span class="face">${icon(soon ? "lock" : st ? "check" : n.icon, 34, 3)}</span>
         </button>
         <span class="node-label">${n.kind === "level" && !soon ? `<b>${n.index}</b> ` : ""}${esc(n.title)}</span>
         ${st ? stars(st.stars, "node-stars") : ""}

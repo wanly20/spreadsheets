@@ -21,6 +21,32 @@
   --blue-600: #1659c7;
   --blue-700: #0f428f;
 
+  /* Lesson colours: one hue per lesson (L1 green, L2 blue, then these), all
+     kept away from yellow/gold, which means "done" and nothing else. Each
+     -600 carries white text (banners, pop-ups); -500 is the level button. */
+  --purple-500: #8f45dc;
+  --purple-600: #7236b8;
+  --purple-700: #4f2386;
+  --orange-500: #d4580f;
+  --orange-600: #ad4508;
+  --orange-700: #7a3005;
+  --teal-500: #0d8a9b;
+  --teal-600: #0a6c7a;
+  --teal-700: #074c56;
+  --magenta-500: #c42a78;
+  --magenta-600: #a31f62;
+  --magenta-700: #721444;
+  --navy-500: #2f5a8a;
+  --navy-600: #24486f;
+  --navy-700: #18324e;
+  /* spare hues for future lessons */
+  --brown-500: #9b6b30;
+  --brown-600: #7d5525;
+  --brown-700: #573b18;
+  --olive-500: #6f7f1a;
+  --olive-600: #5a6814;
+  --olive-700: #3f490d;
+
   /* Highlighter yellow (reward: XP, stars, done) ----------------------- */
   --yellow-50: #fff6d9;
   --yellow-300: #ffd860;

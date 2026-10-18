@@ -61,6 +61,15 @@ PAIRS = [
     ("yellow-ink", "yellow-50", "tip text on yellow", 4.5),
     ("ink-faint", "white", "disabled label (exempt, shown for info)", 0),
 ]
+# Lesson colours (path banners, pop-ups, level buttons, My knowledge titles).
+for h in ("green", "blue", "purple", "orange", "teal", "magenta", "navy", "brown", "olive"):
+    PAIRS += [
+        ("white", f"{h}-600", f"text on the {h} lesson banner / pop-up", 4.5),
+        ("white", f"{h}-500", f"icon on a {h} level button (graphics)", 3.0),
+        (f"{h}-600", "white", f"{h} level number on its white label", 4.5),
+        (f"{h}-600", "line-200", f"{h} progress bar on its track (graphics)", 3.0),
+    ]
+PAIRS += [("yellow-ink", "yellow-400", "tick on a done (gold) button", 4.5)]
 
 if __name__ == "__main__":
     c = load()

@@ -40,7 +40,7 @@ export const course = {
       n: 3,
       title: "Lesson 3",
       subtitle: "Formulas, cell references and SUM",
-      theme: "yellow",
+      theme: "purple",
       levels: [
         { id: "3-1", title: "Formulas", icon: "zap", terms: ["formula", "operators", "why use a cell reference"] },
         { id: "3-2", title: "Click, fill and check", icon: "pointer", terms: ["click to add a reference", "fill a formula", "show formulas"] },
@@ -52,7 +52,7 @@ export const course = {
       n: 4,
       title: "Lesson 4",
       subtitle: "Relative and absolute references, percentages, deleting rows",
-      theme: "green",
+      theme: "orange",
       levels: [
         { id: "4-1", title: "References that move, and $", icon: "lock", terms: ["relative reference", "percentage in a cell", "absolute reference"] },
         { id: "4-2", title: "When to lock, and deleting rows", icon: "layers", terms: ["when to lock a reference", "delete a row or column"] },
@@ -63,7 +63,7 @@ export const course = {
       n: 5,
       title: "Lesson 5",
       subtitle: "MAX, MIN and AVERAGE, decimals and %, order of operations",
-      theme: "blue",
+      theme: "teal",
       levels: [
         { id: "5-1", title: "MAX, MIN and AVERAGE", icon: "zap", terms: ["MAX", "MIN", "AVERAGE"] },
         { id: "5-2", title: "Fill across, decimals and %", icon: "arrow-right", terms: ["fill across", "decimal places buttons", "percentage format"] },
@@ -75,7 +75,7 @@ export const course = {
       n: 6,
       title: "Lesson 6",
       subtitle: "Sorting: A to Z, Z to A, the sort window, two columns",
-      theme: "yellow",
+      theme: "magenta",
       levels: [
         { id: "6-1", title: "Put the rows in order", icon: "arrow-down-up", terms: ["sort", "select the whole table first"] },
         { id: "6-2", title: "The sort window", icon: "arrow-down-a-z", terms: ["sort range", "data has header row", "sort by two columns"] },
@@ -86,7 +86,7 @@ export const course = {
       n: 7,
       title: "Lesson 7",
       subtitle: "Charts: pie, column and bar, titles, legend, axis titles",
-      theme: "green",
+      theme: "navy",
       levels: [
         { id: "7-1", title: "Make a chart", icon: "chart-pie", terms: ["chart", "chart editor", "pie chart", "select two separate ranges"] },
         { id: "7-2", title: "Title, legend and colours", icon: "palette", terms: ["chart title", "legend", "change a slice or series colour", "move to own sheet"] },

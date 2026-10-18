@@ -135,8 +135,7 @@
 .lesson-prog__row span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: var(--yellow-ink); }
 .lesson-prog__row .icon { color: var(--yellow-500); fill: var(--yellow-400); }
 .mini-bar { height: 12px; border-radius: var(--r-pill); background: var(--line-200); overflow: hidden; }
-.mini-bar span { display: block; height: 100%; width: calc(var(--p) * 100%); min-width: 0; border-radius: inherit; background: var(--green-500); }
-.lesson-prog--blue .mini-bar span { background: var(--blue-500); }
+.mini-bar span { display: block; height: 100%; width: calc(var(--p) * 100%); min-width: 0; border-radius: inherit; background: var(--u, var(--green-600)); }
 .panel-review .btn { margin-top: var(--sp-3); }
 
 

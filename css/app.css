@@ -74,9 +74,17 @@
 .path-intro__mascot { width: 64px; flex: none; }
 
 .unit { margin-bottom: var(--sp-8); }
-.unit--green { --u: var(--green-600); --u-edge: var(--green-700); --u-node: var(--green-500); --u-node-edge: var(--green-700); --u-text: var(--white); }
-.unit--blue { --u: var(--blue-600); --u-edge: var(--blue-700); --u-node: var(--blue-500); --u-node-edge: var(--blue-700); --u-text: var(--white); }
-.unit--yellow { --u: var(--yellow-400); --u-edge: var(--yellow-600); --u-node: var(--yellow-400); --u-node-edge: var(--yellow-600); --u-text: var(--yellow-ink); }
+/* One theme per lesson (content/course.js `theme`). Yellow is never a lesson
+   colour: it is reserved for "done" (gold button + tick + stars). */
+.unit--green, .node-pop--green, .kb-lesson--green, .lesson-prog--green { --u: var(--green-600); --u-edge: var(--green-700); --u-node: var(--green-500); --u-node-edge: var(--green-700); --u-text: var(--white); }
+.unit--blue, .node-pop--blue, .kb-lesson--blue, .lesson-prog--blue { --u: var(--blue-600); --u-edge: var(--blue-700); --u-node: var(--blue-500); --u-node-edge: var(--blue-700); --u-text: var(--white); }
+.unit--purple, .node-pop--purple, .kb-lesson--purple, .lesson-prog--purple { --u: var(--purple-600); --u-edge: var(--purple-700); --u-node: var(--purple-500); --u-node-edge: var(--purple-700); --u-text: var(--white); }
+.unit--orange, .node-pop--orange, .kb-lesson--orange, .lesson-prog--orange { --u: var(--orange-600); --u-edge: var(--orange-700); --u-node: var(--orange-500); --u-node-edge: var(--orange-700); --u-text: var(--white); }
+.unit--teal, .node-pop--teal, .kb-lesson--teal, .lesson-prog--teal { --u: var(--teal-600); --u-edge: var(--teal-700); --u-node: var(--teal-500); --u-node-edge: var(--teal-700); --u-text: var(--white); }
+.unit--magenta, .node-pop--magenta, .kb-lesson--magenta, .lesson-prog--magenta { --u: var(--magenta-600); --u-edge: var(--magenta-700); --u-node: var(--magenta-500); --u-node-edge: var(--magenta-700); --u-text: var(--white); }
+.unit--navy, .node-pop--navy, .kb-lesson--navy, .lesson-prog--navy { --u: var(--navy-600); --u-edge: var(--navy-700); --u-node: var(--navy-500); --u-node-edge: var(--navy-700); --u-text: var(--white); }
+.unit--brown, .node-pop--brown, .kb-lesson--brown, .lesson-prog--brown { --u: var(--brown-600); --u-edge: var(--brown-700); --u-node: var(--brown-500); --u-node-edge: var(--brown-700); --u-text: var(--white); }
+.unit--olive, .node-pop--olive, .kb-lesson--olive, .lesson-prog--olive { --u: var(--olive-600); --u-edge: var(--olive-700); --u-node: var(--olive-500); --u-node-edge: var(--olive-700); --u-text: var(--white); }
 .unit.is-soon { --u: var(--line-200); --u-edge: var(--line-300); --u-text: var(--ink-soft); }
 
 .unit-banner {
@@ -101,7 +109,7 @@
   border: 2px solid rgb(255 255 255 / 0.35);
   background: rgb(255 255 255 / 0.12);
 }
-.unit--yellow .unit-icon, .unit.is-soon .unit-icon { border-color: rgb(24 39 30 / 0.15); background: rgb(255 255 255 / 0.35); }
+.unit.is-soon .unit-icon { border-color: rgb(24 39 30 / 0.15); background: rgb(255 255 255 / 0.35); }
 
 .unit-nodes { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .node-wrap { position: relative; transform: translateX(var(--x)); display: flex; flex-direction: column; align-items: center; }
@@ -121,7 +129,6 @@
   transition: transform var(--dur-fast) var(--ease-out);
 }
 .node:active::after { transform: translateY(var(--e)); }
-.unit--yellow .node { color: var(--yellow-ink); }
 .node--review { width: 84px; min-height: calc(76px + var(--e)); }
 .node.is-done { --face: var(--yellow-400); --face-border: var(--yellow-400); --edge-c: var(--yellow-600); color: var(--yellow-ink); }
 .node.is-soon { --face: var(--line-200); --face-border: var(--line-200); --edge-c: var(--line-300); color: var(--ink-faint); }
@@ -135,8 +142,7 @@
   text-align: center; color: var(--ink);
 }
 .node-label:empty { display: none; }
-.node-label b { color: var(--green-700); }
-.unit--blue .node-label b { color: var(--blue-600); }
+.node-label b { color: var(--u, var(--green-700)); }
 .node-stars { margin-top: 2px; }
 .unit-nodes > .node-wrap + .node-wrap { margin-top: 10px; }
 
@@ -198,11 +204,8 @@
   color: var(--white);
 }
 .node-pop.is-open { opacity: 1; transform: translateX(var(--shift)) translateY(0) scale(1); }
-.node-pop--green { background: var(--green-600); }
-.node-pop--blue { background: var(--blue-600); }
-.node-pop--yellow { background: var(--yellow-400); color: var(--yellow-ink); }
-.node-pop--blue .btn--on-color { color: var(--blue-700); }
-.node-pop--yellow .btn--on-color { color: var(--yellow-ink); }
+.node-pop { background: var(--u, var(--green-600)); }
+.node-pop .btn--on-color { color: var(--u-edge, var(--green-700)); }
 .node-pop__arrow {
   position: absolute; top: -8px; left: 50%;
   width: 18px; height: 18px; margin-left: -9px;
@@ -493,8 +496,7 @@
 .kb-count { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: var(--r-pill); font-weight: 700; font-size: var(--fs-sm); }
 .kb-empty { margin: 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--yellow-50); color: var(--yellow-ink); }
 .kb-lesson { margin-bottom: var(--sp-8); }
-.kb-lesson__title { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--green-600); color: var(--white); font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-lg); }
-.kb-lesson--blue .kb-lesson__title { background: var(--blue-600); }
+.kb-lesson__title { margin: 0 0 var(--sp-3); padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md); background: var(--u, var(--green-600)); color: var(--white); font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-lg); }
 .kb-group { margin-bottom: var(--sp-4); }
 .kb-group__title { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-2); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-soft); }
 .kb-group__title span { padding: 2px 10px; border-radius: var(--r-pill); background: var(--ink); color: var(--white); font-family: var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--fs-xs); }
@@ -527,10 +529,9 @@
 @media (max-width: 419.98px) { .path-top .brand__name { display: none; } }
 .lesson[data-step="learn"] .combo { opacity: 0; }
 /* The big review at the end of the path, and Lesson 3's yellow */
-.unit--ink { --u: #24352b; --u-edge: #101a14; --u-node: var(--yellow-400); --u-node-edge: var(--yellow-600); --u-text: var(--white); }
-.unit--ink .node { color: var(--yellow-ink); }
+/* the final review's button is dark with a gold crown, so only "done" is gold */
+.unit--ink { --u: #24352b; --u-edge: #101a14; --u-node: #2f4538; --u-node-edge: #101a14; --u-text: var(--white); }
+.unit--ink .node { color: var(--yellow-300); }
+.unit--ink .node.is-done { color: var(--yellow-ink); }
 .node-pop--ink { background: #24352b; }
 .node-pop--ink .btn--on-color { color: #24352b; }
-.unit--yellow .node-label b { color: var(--yellow-600); }
-.kb-lesson--yellow .kb-lesson__title { background: var(--yellow-400); color: var(--yellow-ink); }
-.lesson-prog--yellow .mini-bar span { background: var(--yellow-500); }
