@@ -855,7 +855,7 @@ export const practice = {
     exercises: [
       { type: "hotspot", fact: "choose a colour", screen: "customise-pie", target: "Pie slice", prompt: "You want Cake stall's slice to be green. Tap the section you open." },
       { type: "hotspot", fact: "choose a colour", screen: "pie-slice", target: "slice list", prompt: "Pie slice is open. Tap where you pick which slice." },
-      { type: "choice", fact: "pick the set of columns", prompt: "You want the Lunch columns in a new colour. Which section of the Customise tab do you open?", correct: "Series", wrong: ["Legend", "Chart style", "Chart and axis titles"] },
+      { type: "hotspot", fact: "pick the set of columns", screen: "customise-column", target: "Series", prompt: "You want the Lunch columns in a new colour. Tap the section you open." },
       { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "series list", prompt: "Series is open. Tap where you pick which set of columns." },
       { type: "choice", fact: "Or click it on the chart", prompt: "What's a quick way to get to one slice's colour?", correct: "Click the slice on the chart", wrong: ["Sort the table", "Delete the chart", "Click the Name Box"] },
       { type: "choice", fact: "pick the set of columns", prompt: "In a column chart, what is a series?", correct: "One set of columns, like all the Lunch columns", wrong: ["One stall's name", "The chart's title", "A tick box on the Setup tab"] },

@@ -31,6 +31,7 @@ regions, so they're a small edit to `content/practice.js` too.
 | `setup-column` | 06a | Chart editor learn card; Customise tab, Chart type, Data range, Switch rows/columns |
 | `setup-switched` | 06b | Where are the stalls after Switch rows/columns? (the legend) |
 | `customise-pie` | 09 (top part: every section closed) | Which section do you open? Pie slice; Chart and axis titles |
+| `customise-column` | 12 (column chart, every section closed) | Which section do you open? Series (for the Lunch columns' colour) |
 | `titles` | 07 | Title text, the list for picking which title (the section is already open) |
 | `pie-slice` | 08a (cropped above the colour list) | Learn card; pick the slice (Pie slice is already open) |
 | `series-colour` | 08b (cropped above the colour list) | Pick the series (Series is already open) |
@@ -54,7 +55,7 @@ Most useful first. "Stand-in" means the app draws it now and swaps it in with on
 | 8 | `sort-window-no-header.webp` | 6 | Select A3:E9 → Data → Sort range → Advanced range sorting options, and **untick** Data has header row. | Sort by showing **Column A** (not Stall). | would let *data has header row* show what goes wrong without the tick |
 | 9 | `chart-type-bar.webp` | 7 | Setup → Chart type list, scrolled down to the **Bar** section (and Pie above it if it fits). | The Bar chart pictures with their section heading. | optional: `chart-type` already shows a bar chart under Suggested |
 | 10 | `stacking.webp` | 7 | Select A3:D9 → Insert → Chart, before changing anything. | The default **stacked** column chart and Setup → Stacking: Standard. | only if Stacking → None is added to the Knowledge Bank (the slides' column chart needs it: Sheets stacks by default) |
-| 11 | `customise-column.webp` | 7 | Column chart from A3:D9 → Customise, with **every section closed**. | Chart style, Chart and axis titles, Series, Legend, Horizontal axis, Vertical axis, all with › chevrons. | would make "which section do you open for a series colour?" a tap (it's a choice now, because 08b has Series open) |
+| 11 | ~~`customise-column.webp`~~ ✓ | 7 | Done: shot 12, cropped by `tools/crop_screens.py`. | | "which section do you open for the Lunch columns' colour?" is a tap on Series again |
 
 Not needed: the Customise sections themselves (Chart style, Pie chart, Pie slice, Chart and axis
 titles, Legend, Series) are all in the shots above, and every chart in the questions (pie,

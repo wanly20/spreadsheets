@@ -5,7 +5,7 @@
     python3 tools/crop_screens.py legend     # just one (by name)
     python3 tools/crop_screens.py --preview DIR   # also save PNGs with every region drawn on, to check them
 
-Reads ../spreadsheets/screenshots/google_sheets/menus/*.jpg (1335×896, Oct 2026). First removes the
+Reads ../spreadsheets/screenshots/google_sheets/menus/*.jpg (1335×896, Oct 2026; 12 is 1372×876). First removes the
 hover highlights (and the cursor) that would give an answer away, then crops, saves WebP, and prints
 the regions (in the crop's own pixels) as JSON for content/screens.js. Needs Pillow (system python3).
 Regions are written below in the ORIGINAL screenshot's pixels: x, y, width, height, label.
@@ -99,6 +99,11 @@ S = {
  "customise-pie": ("09_customise_legend", (1032, 110, 1325, 368), {**TABS,
    "Chart style": sec(160, "Chart style"), "Pie chart": sec(213, "Pie chart"), "Pie slice": sec(266, "Pie slice"), "Chart and axis titles": sec(320, "Chart and axis titles")},
    "The chart editor's Customise tab for a pie chart, every section closed: Chart style, Pie chart, Pie slice, Chart and axis titles"),
+ "customise-column": ("12_customise_column_chart_all_closed", (1082, 106, 1360, 502), {
+   "Setup": (1112, 111, 76, 30, "the Setup tab"), "Customise": (1240, 111, 92, 30, "the Customise tab"),
+   **{n: (1098, y - 15, 250, 30, f"the {n} section") for n, y in [("Chart style", 167), ("Chart and axis titles", 217), ("Series", 269), ("Legend", 320),
+      ("Horizontal axis", 372), ("Vertical axis", 422), ("Gridlines and ticks", 474)]}},
+   "The chart editor's Customise tab for a column chart, every section closed: Chart style, Chart and axis titles, Series, Legend, Horizontal axis, Vertical axis, Gridlines and ticks"),
  "pie-slice": ("08a_customise_pie_slice_colour", (1032, 110, 1325, 432), {**TABS,
    "Chart style": sec(160, "Chart style"), "Pie chart": sec(213, "Pie chart"), "Pie slice": sec(266, "Pie slice"),
    "slice list": (1046, 313, 260, 40, "the list where you pick the slice"), "Colour": (1046, 393, 60, 34, "the Colour button")},

@@ -92,7 +92,7 @@ export const screens = {
   // UK/AU locale: "Customise", "Fill colour"). Anything that would give an answer away is cleaned
   // first: the hover on Insert → Chart and on ⋮ → Edit the chart, and the blue "chosen" border on the
   // column chart in the Chart type list. A question that asks which section to open uses
-  // customise-pie, where every section is still closed.
+  // customise-pie or customise-column, where every section is still closed.
   "menu-bar": {
     src: "assets/screens/menu-bar.webp", w: 420, h: 28,
     alt: "The Google Sheets menu bar: File, Edit, View, Insert, Format, Data, Tools, Extensions, Help",
@@ -249,6 +249,21 @@ export const screens = {
       "Pie chart": { r: [16, 103, 250, 30], label: "the Pie chart section" },
       "Pie slice": { r: [16, 156, 250, 30], label: "the Pie slice section" },
       "Chart and axis titles": { r: [16, 210, 250, 30], label: "the Chart and axis titles section" },
+    },
+  },
+  "customise-column": {
+    src: "assets/screens/customise-column.webp", w: 278, h: 396,
+    alt: "The chart editor's Customise tab for a column chart, every section closed: Chart style, Chart and axis titles, Series, Legend, Horizontal axis, Vertical axis, Gridlines and ticks",
+    regions: {
+      "Setup": { r: [30, 5, 76, 30], label: "the Setup tab" },
+      "Customise": { r: [158, 5, 92, 30], label: "the Customise tab" },
+      "Chart style": { r: [16, 46, 250, 30], label: "the Chart style section" },
+      "Chart and axis titles": { r: [16, 96, 250, 30], label: "the Chart and axis titles section" },
+      "Series": { r: [16, 148, 250, 30], label: "the Series section" },
+      "Legend": { r: [16, 199, 250, 30], label: "the Legend section" },
+      "Horizontal axis": { r: [16, 251, 250, 30], label: "the Horizontal axis section" },
+      "Vertical axis": { r: [16, 301, 250, 30], label: "the Vertical axis section" },
+      "Gridlines and ticks": { r: [16, 353, 250, 30], label: "the Gridlines and ticks section" },
     },
   },
   "pie-slice": {
