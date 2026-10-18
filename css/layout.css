@@ -279,6 +279,7 @@
   .fill-layout { grid-template-columns: minmax(0, 280px) minmax(0, 1fr); align-items: center; gap: var(--sp-6); }
   .options--seq { display: flex !important; }
   .sortp-layout { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--sp-6); }
+  .options--charts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .order-slots, .order-bank { gap: var(--sp-2); }
   .key-zone { min-height: 170px; }
 
@@ -385,4 +386,12 @@
 @media (max-height: 820px) {
   .tab-menu__item { min-height: 28px; }
   .tab-menu { padding: 4px 0; }
+}
+
+/* Wide screens: chart options and real screenshots may use some of the space beside the stage,
+   so drawn charts and Google Sheets' own (small) text stay readable. */
+@media (min-width: 1024px) {
+  .options--charts, .hot-stage { width: min(100vw - 2 * var(--gutter), var(--stage) + 240px); margin-inline: calc((100% - min(100vw - 2 * var(--gutter), var(--stage) + 240px)) / 2); }
+  /* A tall screenshot fits the screen's height, so nothing to tap hides below the fold. */
+  .shot--hot { width: min(100%, var(--w), calc((100dvh - 270px) * var(--ar))); }
 }

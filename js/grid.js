@@ -6,8 +6,10 @@
 //   spec: { cols, rows, cells: { A1: "Item", B2: 5 }, style: { A1: { b, bg, color } },
 //           sel: "C5" | "C2:C7" | "C:C" | "3:3", nameBox: true | "text", formula: "=B2*C2",
 //           handle: true }
+//   spec.also: ["E3:E9"] more selected ranges (shown with Ctrl, as two separate ranges)
 //   mode: "static" | "click" (cells, headers, fill handle) | "range" (drag to select)
-//         | "move" (drag a cell to a new place)
+//         | "multi" (drag a range; hold Ctrl, or ctrlHeld(), to add another) | "move" (drag a cell to a new place)
+//   In multi mode, keyboard: Shift + arrows select; hold Ctrl and use the arrows (with Shift) for the next range.
 //   Keyboard: arrows move, Shift+arrows extend (range), Space picks up / drops (move).
 //   In click mode: Up from row 1 = the column letter, Left from column A = the row
 //   number, Space = grab the fill handle of the selection.
@@ -53,12 +55,13 @@ export function selText(box) {
 const sameBox = (a, b) => a && b && a.c1 === b.c1 && a.c2 === b.c2 && a.r1 === b.r1 && a.r2 === b.r2;
 export { sameBox };
 
-export function createGrid(spec, { mode = "static", onChange, label = "Spreadsheet" } = {}) {
+export function createGrid(spec, { mode = "static", onChange, label = "Spreadsheet", ctrlHeld = () => false } = {}) {
   const cols = spec.cols || 5, rows = spec.rows || 6;
   const S = { cols, rows };
   let cells = { ...(spec.cells || {}) };
   const style = { ...(spec.style || {}) };
   let sel = parseSel(spec.sel, S);
+  let also = (spec.also || []).map((x) => parseSel(x, S)); // the other selected ranges (Ctrl)
   const showBar = spec.nameBox != null && spec.nameBox !== false || spec.formula != null;
 
   // Column widths (relative) and row heights (px), as in Google Sheets.
@@ -121,6 +124,14 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
 
   function paintSel() {
     grid.querySelectorAll(".sh-col, .sh-row").forEach((h) => h.classList.remove("is-sel", "is-full"));
+    grid.querySelectorAll(".sh-sel--also").forEach((x) => x.remove());
+    for (const b of also) {
+      const d = el(`<div class="sh-sel sh-sel--also is-multi"></div>`);
+      place(d, b);
+      grid.insertBefore(d, selEl);
+      for (let c = b.c1; c <= b.c2; c++) grid.querySelector(`.sh-col[data-col="${c}"]`)?.classList.add("is-sel");
+      for (let r = b.r1; r <= b.r2; r++) grid.querySelector(`.sh-row[data-row="${r}"]`)?.classList.add("is-sel");
+    }
     if (!sel) { selEl.hidden = true; }
     else {
       selEl.hidden = false;
@@ -179,14 +190,22 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
     });
   }
 
-  let anchor = null, dragging = false;
-  if (mode === "range") {
+  let anchor = null, dragging = false, adding = false;
+  const allSel = () => [...also, sel].filter(Boolean).map(selText);
+  const report = () => (mode === "multi" ? onChange?.({ kind: "multi", boxes: allSel() }) : onChange?.({ kind: "range", sel: selText(sel) }));
+  if (mode === "range" || mode === "multi") {
     grid.addEventListener("pointerdown", (e) => {
       if (locked || e.button > 0) return;
       const cell = e.target.closest(".sh-cell");
       if (!cell) return;
       e.preventDefault();
       grid.focus({ preventScroll: true });
+      if (mode === "multi") {
+        // Ctrl held: keep what's selected and start another range. Otherwise start again.
+        if ((e.ctrlKey || e.metaKey || ctrlHeld()) && sel) { if (!also.some((b) => sameBox(b, sel))) also = [...also, sel]; }
+        else also = [];
+        adding = false;
+      }
       anchor = parseRef(cell.dataset.ref);
       dragging = true;
       setSel(refBox(cell.dataset.ref), { announce: false });
@@ -201,7 +220,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       box.kind = box.c1 === box.c2 && box.r1 === box.r2 ? "cell" : "range";
       if (!sameBox(box, sel)) setSel(box, { announce: false });
     });
-    const end = () => { if (!dragging) return; dragging = false; live.textContent = `Selected ${selText(sel)}`; onChange?.({ kind: "range", sel: selText(sel) }); };
+    const end = () => { if (!dragging) return; dragging = false; live.textContent = `Selected ${allSel().join(" and ")}`; report(); };
     grid.addEventListener("pointerup", end);
     grid.addEventListener("pointercancel", end);
   }
@@ -307,14 +326,19 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
         return;
       }
       const cur = sel && sel.kind !== "col" && sel.kind !== "row" ? sel : { c1: 0, c2: 0, r1: 1, r2: 1 };
-      if (mode === "range" && e.shiftKey) {
+      if (mode === "multi") {
+        const ctrl = e.ctrlKey || e.metaKey || ctrlHeld();
+        if (ctrl && !adding && sel) { if (!also.some((b) => sameBox(b, sel))) also = [...also, sel]; adding = true; if (!e.shiftKey) { anchor = null; } }
+        else if (!ctrl && !e.shiftKey) { also = []; adding = false; }
+      }
+      if ((mode === "range" || mode === "multi") && e.shiftKey) {
         if (!anchor) anchor = { c: cur.c1, r: cur.r1 };
         const head = { c: anchor.c === cur.c1 ? cur.c2 : cur.c1, r: anchor.r === cur.r1 ? cur.r2 : cur.r1 };
         const p = { c: Math.min(cols - 1, Math.max(0, head.c + d[0])), r: Math.min(rows, Math.max(1, head.r + d[1])) };
         const box = { c1: Math.min(anchor.c, p.c), c2: Math.max(anchor.c, p.c), r1: Math.min(anchor.r, p.r), r2: Math.max(anchor.r, p.r) };
         box.kind = box.c1 === box.c2 && box.r1 === box.r2 ? "cell" : "range";
         setSel(box);
-        onChange?.({ kind: "range", sel: selText(box) });
+        report();
         return;
       }
       const p = { c: Math.min(cols - 1, Math.max(0, cur.c1 + d[0])), r: Math.min(rows, Math.max(1, cur.r1 + d[1])) };
@@ -322,7 +346,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       const ref = `${colLetter(p.c)}${p.r}`;
       setSel(refBox(ref));
       if (mode === "click") onChange?.({ kind: "cell", ref });
-      if (mode === "range") onChange?.({ kind: "range", sel: ref });
+      if (mode === "range" || mode === "multi") report();
     });
   }
 
@@ -381,6 +405,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
     el: root,
     grid,
     get sel() { return sel; },
+    get boxes() { return allSel(); },
     get cells() { return cells; },
     setSel: (s) => setSel(typeof s === "string" ? parseSel(s, S) : s),
     setCells(patch) { cells = { ...cells, ...patch }; paintCells(); paintSel(); },

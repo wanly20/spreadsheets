@@ -17,7 +17,8 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
-const { TAB_MENU, fillValues, dataMenuHits, sortWindowHits } = await import(path.join(ROOT, "js/visuals.js"));
+const { TAB_MENU, fillValues, dataMenuHits, sortWindowHits, drawnHits } = await import(path.join(ROOT, "js/visuals.js"));
+const { chartHits } = await import(path.join(ROOT, "js/charts.js"));
 const { sortOptions, sortTies, rowsText } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
 // js/exercises.js needs a browser to load, so the fill-formula helpers are read straight from it.
@@ -60,20 +61,51 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
 
 // ------------------------------------------------------------ extra practice
 const GRID_TYPES = new Set(["gridClick", "gridName", "gridRange", "rangeName", "gridMove"]);
-const TYPES = new Set(["choice", "fill", "fillFormula", "sortPredict", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
+const TYPES = new Set(["choice", "chartChoice", "gridMulti", "fill", "fillFormula", "sortPredict", "keys", "hotspot", "order", "formula", "lockRef", ...GRID_TYPES]);
+/** A drawn chart must be drawable and say what it shows. */
+function checkChart(c, where) {
+  if (!["pie", "column", "bar"].includes(c.type)) return err(`${where}: chart type must be pie, column or bar`);
+  if (!Array.isArray(c.labels) || !Array.isArray(c.series) || !c.series.length) return err(`${where}: a chart needs labels and series`);
+  if (c.type === "pie" && c.series.length !== 1) err(`${where}: a pie chart shows one set of numbers`);
+  for (const sr of c.series) if (!Array.isArray(sr.values) || sr.values.length !== c.labels.length || sr.values.some((v) => typeof v !== "number" || v < 0)) err(`${where}: series ${sr.name} needs one number per label`);
+  if (c.labels.length > 6 || c.series.length > 6) err(`${where}: 6 labels and 6 series at most (6 colours and patterns)`);
+}
 const COMBOS = new Set(["ctrl+z", "ctrl+y", "delete", "enter", "ctrl+`"]);
 const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
   const ex = it.extra;
   if (!ex) continue;
-  if (ex.learn?.visual?.image && !screens[ex.learn.visual.image]) err(`"${it.term}" learn card: unknown screenshot ${ex.learn.visual.image}`);
-  if (ex.learn?.visual?.highlight && !screens[ex.learn.visual.image]?.regions[ex.learn.visual.highlight]) err(`"${it.term}" learn card: unknown highlight ${ex.learn.visual.highlight}`);
+  const lv = ex.learn?.visual;
+  if (lv?.image && !screens[lv.image]) err(`"${it.term}" learn card: unknown screenshot ${lv.image}`);
+  else if (lv?.highlight && !(screens[lv.image]?.drawn ? drawnHits(screens[lv.image].drawn).includes(lv.highlight) : screens[lv.image]?.regions[lv.highlight])) err(`"${it.term}" learn card: unknown highlight ${lv.highlight}`);
+  for (const c of [lv?.chart, ...(lv?.charts || [])].filter(Boolean)) checkChart(c, `"${it.term}" learn card`);
   (ex.exercises || []).forEach((e, i) => {
     const where = `"${it.term}" exercise ${i + 1} (${e.type})`;
     if (!TYPES.has(e.type)) return err(`${where}: unknown type`);
     if (!e.fact) err(`${where}: needs a fact from the definition`);
     else if (!C.factIn(e.fact, it.def)) err(`${where}: fact “${e.fact}” is not in the definition “${it.defPlain}”`);
     const targets = [].concat(e.target ?? []);
+    for (const c of [e.visual?.chart, ...(e.visual?.charts || []), e.ui?.chart].filter(Boolean)) checkChart(c, where);
+    if (e.visual?.image && !screens[e.visual.image]) err(`${where}: unknown picture ${e.visual.image}`);
+    if (e.type === "chartChoice") {
+      const all = [e.correct, ...(e.wrong || [])];
+      if (!e.prompt || !e.correct || !Array.isArray(e.wrong) || e.wrong.length < 2) err(`${where}: needs prompt, a correct chart and 2+ wrong charts`);
+      all.forEach((c, k) => { if (c) { checkChart(c, `${where} option ${k + 1}`); if (!c.desc) err(`${where}: option ${k + 1} needs a desc`); } });
+      if (new Set(all.map((c) => c?.desc)).size !== all.length) err(`${where}: every option needs a different desc`);
+      if (new Set(all.map((c) => JSON.stringify({ ...c, desc: 0, caption: 0 }))).size !== all.length) err(`${where}: two options draw the same chart`);
+    }
+    if (e.type === "gridMulti") {
+      const t = e.target || [];
+      const boxes = t.map((r) => parseSel(r));
+      if (t.length !== 2 || boxes.some((b) => !b || b.kind !== "range")) err(`${where}: target must be two ranges`);
+      else {
+        const [a, b] = boxes;
+        const touch = a.c1 <= b.c2 + 1 && b.c1 <= a.c2 + 1 && a.r1 <= b.r2 + 1 && b.r1 <= a.r2 + 1;
+        if (touch) err(`${where}: the two ranges touch, so one drag would do: no Ctrl needed`);
+        if (!e.grid || boxes.some((x) => x.c2 >= (e.grid.cols || 0) || x.r2 > (e.grid.rows || 0))) err(`${where}: the grid must include both ranges`);
+      }
+      if (!e.prompt) err(`${where}: needs a prompt`);
+    }
     if (e.type === "choice") {
       if (!e.prompt || !e.correct || !Array.isArray(e.wrong) || e.wrong.length < 2) err(`${where}: needs prompt, correct and 2+ wrong answers`);
       if (e.wrong?.includes(e.correct)) err(`${where}: the right answer is also listed as wrong`);
@@ -93,7 +125,9 @@ for (const it of model.items) {
       if (!e.label || !Array.isArray(e.wrong) || e.wrong.length < 2 || e.wrong.includes(e.label)) err(`${where}: needs a label and 2+ different wrong answers (for touch screens)`);
     }
     if (e.type === "hotspot") {
-      if (e.screen) {
+      if (e.screen && screens[e.screen]?.drawn) {
+        if (!drawnHits(screens[e.screen].drawn).includes(e.target)) err(`${where}: ${e.target} isn't something you can tap in the drawn ${e.screen}`);
+      } else if (e.screen) {
         const s = screens[e.screen];
         if (!s) err(`${where}: unknown screen ${e.screen}`);
         else if (!s.regions[e.target]) err(`${where}: ${e.screen} has no region ${e.target}`);
@@ -101,7 +135,7 @@ for (const it of model.items) {
       } else if (e.ui) {
         const heads = (n, col) => Array.from({ length: n }, (_, i) => (col ? String.fromCharCode(65 + i) : String(i + 1)));
         const lines = (h) => [...h, ...h.slice(1).map((x, i) => `${h[i]}|${x}`)];
-        const ok = e.ui.dataMenu ? dataMenuHits(e.ui.dataMenu).includes(e.target) : e.ui.sortWindow ? sortWindowHits(e.ui.sortWindow).includes(e.target)
+        const ok = e.ui.chart ? chartHits(e.ui.chart).includes(e.target) : e.ui.dataMenu ? dataMenuHits(e.ui.dataMenu).includes(e.target) : e.ui.sortWindow ? sortWindowHits(e.ui.sortWindow).includes(e.target)
           : e.ui.tabmenu ? TAB_MENU.includes(e.target) : e.ui.tabs ? ["+", "All sheets", ...e.ui.tabs.tabs].includes(e.target)
           : e.ui.colheads ? lines(heads(e.ui.colheads.n || 4, true)).includes(e.target) : e.ui.rowheads ? lines(heads(e.ui.rowheads.n || 4, false)).includes(e.target) : false;
         if (!ok) err(`${where}: ${e.target} isn't something you can tap in that picture`);
@@ -161,6 +195,13 @@ for (const it of model.items) {
   });
 }
 for (const [id, s] of Object.entries(screens)) {
+  if (s.drawn) {
+    // Drawn stand-ins that are tapped (hotspots) need 3+ parts; ones only shown need none.
+    const tapped = model.items.some((it) => (it.extra?.exercises || []).some((e) => e.type === "hotspot" && e.screen === id));
+    if (tapped && drawnHits(s.drawn).length < 3) err(`screen ${id}: the drawn picture needs 3+ parts to tap`);
+    if (!s.alt) err(`screen ${id}: needs alt text`);
+    continue;
+  }
   for (const [rid, r] of Object.entries(s.regions)) {
     const [x, y, w, h] = r.r;
     if (x < 0 || y < 0 || x + w > s.w || y + h > s.h) err(`screen ${id}: region ${rid} is outside the picture`);

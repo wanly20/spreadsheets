@@ -55,6 +55,15 @@
   --sheet-head-sel-text: #0b57d0;
   --sheet-sel: #1a73e8;
 
+  /* Chart series (Lesson 7): Google Sheets' order, darkened to 3:1 on white and
+     checked for colour-blind separation. Every series also gets a pattern. */
+  --chart-1: #1a73e8;
+  --chart-2: #b3261e;
+  --chart-3: #d97706;
+  --chart-4: #9334e6;
+  --chart-5: #188038;
+  --chart-6: #0b7f9e;
+
   /* Semantic roles -------------------------------------------------------- */
   --c-bg: var(--paper);
   --c-surface: var(--white);

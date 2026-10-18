@@ -4,7 +4,7 @@
 // keys only: number keys for options / areas / steps / pairs, arrows (+ Shift,
 // Space) on the mini spreadsheet, typing references, the real shortcut keys,
 // Enter for CHECK and CONTINUE, Esc for the quit dialog. Plays the whole
-// sampler (one of every exercise type), Lesson 1's first level and Lesson 6's two levels.
+// sampler (one of every exercise type), Lesson 1's first level, and every level of Lessons 6 and 7.
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 const require = createRequire(import.meta.url);
@@ -48,8 +48,8 @@ await p.goto(BASE + "#/play/sampler");
 await wait(1200);
 await playAll("sampler");
 
-// Lesson 6 (sorting): both levels, keyboard only.
-for (const id of ["6-1", "6-2"]) {
+// Lesson 6 (sorting) and Lesson 7 (charts): every level, keyboard only.
+for (const id of ["6-1", "6-2", "7-1", "7-2", "7-3"]) {
   await p.goto(BASE + "#/play/" + id);
   await wait(1200);
   await playAll(id);
@@ -89,7 +89,7 @@ async function optionIndex(sel, text, compact = false) {
     .findIndex((e) => (compact ? e.textContent.replace(/\s/g, "") : e.textContent.trim()) === text), [sel, text, compact]);
 }
 
-async function arrowsTo(ref, { shift = false, from = null } = {}) {
+async function arrowsTo(ref, { shift = false, ctrl = false, from = null } = {}) {
   // From the current selection (or A1, the first arrow press starts there).
   const cur = from || await p.evaluate(() => { const t = document.querySelector(".lesson-body .ex:not(.step-leave) .sheet-live")?.textContent || ""; return (/Selected ([A-Z]\d+)/.exec(t) || [])[1] || null; });
   const c0 = cur ? cur.charCodeAt(0) - 65 : 0, r0 = cur ? +cur.slice(1) : 1;
@@ -99,7 +99,7 @@ async function arrowsTo(ref, { shift = false, from = null } = {}) {
   for (let i = 0; i < Math.abs(r1 - r0); i++) presses.push(r1 > r0 ? "ArrowDown" : "ArrowUp");
   if (!cur && !presses.length) presses.push("ArrowRight", "ArrowLeft");
   else if (!cur) { /* the first press starts from A1 */ }
-  for (const k of presses) await key(shift ? `Shift+${k}` : k);
+  for (const k of presses) await key(`${ctrl ? "Control+" : ""}${shift ? "Shift+" : ""}${k}`);
 }
 
 async function answer(step) {
@@ -149,6 +149,19 @@ async function answer(step) {
     }
     case "gridName": case "rangeName": await p.keyboard.type(t.toLowerCase()); return;
     case "gridRange": { const [a, c] = t.split(":"); await arrowsTo(a); await arrowsTo(c, { shift: true, from: a }); return; }
+    case "gridMulti": {
+      // The first range with Shift + arrows; then hold Ctrl and use the arrows (with Shift) for the second.
+      const [[a1, a2], [b1, b2]] = step.target.map((r) => r.split(":"));
+      await arrowsTo(a1); await arrowsTo(a2, { shift: true, from: a1 });
+      await arrowsTo(b1, { ctrl: true, from: a1 }); await arrowsTo(b2, { ctrl: true, shift: true, from: b1 });
+      const kept = await p.evaluate(() => document.querySelectorAll(".lesson-body .ex:not(.step-leave) .sh-sel--also").length);
+      ok(kept === 1, `gridMulti: holding Ctrl with the arrows keeps the first range (${step.target.join(" + ")})`);
+      return;
+    }
+    case "chartChoice": {
+      const i = await p.evaluate((v) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option")].findIndex((b) => b.dataset.v === v), step.correct.desc);
+      await key(String(i + 1)); return;
+    }
     case "gridMove": { await arrowsTo(step.from, { from: step.from }); await key("Space"); await arrowsTo(step.to, { from: step.from }); await key("Space"); return; }
     case "hotspot": {
       const i = await p.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].findIndex((b) => b.dataset.region === t), t);

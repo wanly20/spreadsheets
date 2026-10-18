@@ -338,6 +338,12 @@ function play(id) {
   if (id === "sampler") {
     // Not linked anywhere: one of every exercise type, for previews and screenshots (#/play/sampler).
     session = { id: null, kind: "review", title: "Every exercise type", xpBase: 0, steps: samplerSteps() };
+  } else if (/^gallery-\d+$/.test(id)) {
+    // Not linked anywhere: every learn card and hand-made exercise of one lesson, in order (#/play/gallery-7).
+    const n = +id.slice(8);
+    const steps = model.items.filter((it) => it.lesson === n).flatMap((it) => [{ type: "learn", item: it.id }, ...authoredExercises(it, Math.random)]);
+    if (!steps.length) { location.replace("#/"); return; }
+    session = { id: null, kind: "review", title: `Lesson ${n}: every exercise`, xpBase: 0, steps };
   } else if (id === "review") {
     const items = seenItems();
     if (!items.length) { location.replace("#/"); return; }
@@ -362,7 +368,7 @@ function play(id) {
 
 function samplerSteps() {
   const out = [];
-  const want = ["learn", "choice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "rangeName", "fill", "fillFormula", "sortPredict", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "lockRef", "match"];
+  const want = ["learn", "choice", "chartChoice", "gaps", "defToTerm", "termToDef", "gridClick", "gridName", "gridRange", "gridMulti", "rangeName", "fill", "fillFormula", "sortPredict", "gridMove", "keys", "hotspot", "hotspot-ui", "order", "formula", "lockRef", "match"];
   const items = model.items;
   for (const kind of want) {
     let step = null;
@@ -380,9 +386,9 @@ function samplerSteps() {
   }
   // Every shortcut that isn't Ctrl+Z too (e.g. Ctrl + ` to show formulas).
   for (const it of items) for (const e of authoredExercises(it, Math.random)) if (e.type === "keys" && e.combo === "ctrl+`") out.push(e);
-  // The drawn Data menu and sort window (Lesson 6).
-  for (const ui of ["dataMenu", "sortWindow"]) {
-    for (const it of items) { const e = authoredExercises(it, Math.random).find((x) => x.type === "hotspot" && x.ui?.[ui]); if (e) { out.push(e); break; } }
+  // The real Sheets menus, the sort window and the chart editor (Lessons 6 and 7), and a drawn chart to tap.
+  for (const want of ["data-menu", "sort-window", "setup-column", "chart-menu", "chart"]) {
+    for (const it of items) { const e = authoredExercises(it, Math.random).find((x) => x.type === "hotspot" && (want === "chart" ? x.ui?.chart : x.screen === want)); if (e) { out.push(e); break; } }
   }
   // And a formula with $ (an absolute reference).
   for (const it of items) { const e = authoredExercises(it, Math.random).find((x) => x.type === "formula" && x.accept[0].includes("$")); if (e) { out.push(e); break; } }

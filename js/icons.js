@@ -55,6 +55,9 @@ const P = {
   "calendar": "<path d=\"M8 2v4\" /> <path d=\"M16 2v4\" /> <rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\" /> <path d=\"M3 10h18\" />",
   "arrow-down-up": "<path d=\"m3 16 4 4 4-4\" /> <path d=\"M7 20V4\" /> <path d=\"m21 8-4-4-4 4\" /> <path d=\"M17 4v16\" />",
   "arrow-down-a-z": "<path d=\"m3 16 4 4 4-4\" /> <path d=\"M7 20V4\" /> <path d=\"M20 8h-5\" /> <path d=\"M15 10V6.5a2.5 2.5 0 0 1 5 0V10\" /> <path d=\"M15 14h5l-5 6h5\" />",
+  "chart-pie": "<path d=\"M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z\" /> <path d=\"M21.21 15.89A10 10 0 1 1 8 2.83\" />",
+  "chart-column": "<path d=\"M3 3v16a2 2 0 0 0 2 2h16\" /> <path d=\"M18 17V9\" /> <path d=\"M13 17V5\" /> <path d=\"M8 17v-3\" />",
+  "palette": "<circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\" /> <path d=\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z\" />",
   "text-wrap": "<path d=\"m16 16-3 3 3 3\" /> <path d=\"M3 12h14.5a1 1 0 0 1 0 7H13\" /> <path d=\"M3 19h6\" /> <path d=\"M3 5h18\" />",
 };
 

@@ -22,8 +22,11 @@
 //              mistakes, such as the wrong way round or one column sorted alone; then the rows move)
 //   gridMove   drag a cell to a new place
 //   keys       press the real shortcut (multiple choice on touch screens)
-//   hotspot    tap something on a real screenshot (`screen`) or a drawn part of Sheets (`ui`:
-//              tabs, tabmenu, colheads, rowheads, dataMenu, sortWindow; see js/visuals.js)
+//   hotspot    tap something on a screenshot (`screen`, from content/screens.js) or a drawn part of
+//              Sheets (`ui`: tabs, tabmenu, colheads, rowheads, chart; see js/visuals.js)
+//   gridMulti  select two separate ranges: the first, then Ctrl + the second (target: ["A3:A9", "E3:E9"], grid, prompt)
+//   chartChoice the options are drawn charts (prompt, visual?, correct: chart, wrong: [charts]; each chart needs a
+//              unique `desc`, and `caption` shows under it), see js/charts.js
 //   order      put the steps in order
 //   formula    type a formula (accept: [...], hint?: a line under the prompt); $ is fine to type
 //   lockRef    tap the references in a formula to lock them with $ (formula: "=A2*D1", lock: ["D1"])
@@ -44,6 +47,29 @@ const helperCells = { A1: "Helper", B1: "Hours", A2: "Sam", B2: 4, A3: "Priya", 
 const headStyle = { A1: { b: 1 }, B1: { b: 1 }, A7: { b: 1 } };
 const games = { A1: "Game", B1: "Players", A2: "Ring toss", B2: 18, A3: "Darts", B3: 9, A4: "Hook-a-duck", B4: 25, A5: "Coconut shy", B5: 12, A6: "Lucky dip", B6: 30 };
 const houses = { A1: "House", B1: "Last name", A2: "Red", B2: "Nguyen", A3: "Blue", B3: "Patel", A4: "Red", B4: "Adams", A5: "Blue", B5: "Kim" };
+
+// Lesson 7: the School Fair takings, as in the slides (headings in row 3, stalls in rows 4–9).
+const STALLS = ["Book swap", "Cake stall", "Face painting", "Lemonade", "Plant stall", "Raffle"];
+const TOTAL = [65, 245, 120, 210, 50, 165], MORNING = [25, 85, 40, 70, 20, 60], LUNCH = [10, 40, 25, 45, 10, 30], AFTERNOON = [30, 120, 55, 95, 20, 75];
+const fair = { A1: "School Fair Takings", A3: "Stall", B3: "Morning", C3: "Lunch", D3: "Afternoon", E3: "Total" };
+STALLS.forEach((st, i) => Object.assign(fair, { [`A${i + 4}`]: st, [`B${i + 4}`]: MORNING[i], [`C${i + 4}`]: LUNCH[i], [`D${i + 4}`]: AFTERNOON[i], [`E${i + 4}`]: TOTAL[i] }));
+const fairStyle = { A1: { b: 1 }, A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 }, D3: { b: 1 }, E3: { b: 1 } };
+const fairGrid = { cols: 5, rows: 9, widths: { A: 1.5, D: 1.2 }, cells: fair, style: fairStyle };
+const gameGrid = { cols: 4, rows: 6, widths: { A: 1.5, B: 1.1, C: 1.1 }, cells: { A1: "Game", B1: "Prize", C1: "Helper", D1: "Players", A2: "Ring toss", B2: "Pen", C2: "Sam", D2: 18, A3: "Darts", B3: "Ball", C3: "Mia", D3: 9, A4: "Hook-a-duck", B4: "Duck", C4: "Leo", D4: 25, A5: "Coconut shy", B5: "Coconut", C5: "Ava", D5: 12, A6: "Lucky dip", B6: "Toy", C6: "Zoe", D6: 30 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } } };
+// Drawn charts (js/charts.js). Patterns as well as colours, so no one relies on colour alone.
+const pieTotals = { type: "pie", title: "Fair Takings by Stall", labels: STALLS, series: [{ name: "Total", values: TOTAL }] };
+const pieGames = { type: "pie", title: "Players at each game", labels: ["Ring toss", "Darts", "Hook-a-duck", "Coconut shy", "Lucky dip"], series: [{ name: "Players", values: [18, 9, 25, 12, 30] }] };
+const sessions = [{ name: "Morning", values: MORNING }, { name: "Lunch", values: LUNCH }, { name: "Afternoon", values: AFTERNOON }];
+const colSessions = { type: "column", title: "Takings by Session", labels: STALLS, series: sessions };
+const colMorning = { type: "column", title: "Morning Takings", labels: STALLS, series: [{ name: "Morning", values: MORNING }], legend: false };
+const barMorning = { ...colMorning, type: "bar" };
+const colAfternoon = { type: "column", title: "Afternoon Takings", labels: STALLS, series: [{ name: "Afternoon", values: AFTERNOON }], xTitle: "Stall", yTitle: "Takings ($)" };
+// Three stalls, as on the "switch rows / columns" slide.
+const three = ["Cake stall", "Lemonade", "Raffle"], pick3 = (a) => [a[1], a[3], a[5]];
+const colThree = { type: "column", labels: three, series: [{ name: "Morning", values: pick3(MORNING) }, { name: "Lunch", values: pick3(LUNCH) }, { name: "Afternoon", values: pick3(AFTERNOON) }] };
+const colMorning3 = { type: "column", title: "Morning Takings", labels: three, series: [{ name: "Morning", values: pick3(MORNING) }], legend: false };
+const pieThree = { type: "pie", labels: three, series: [{ name: "Total", values: pick3(TOTAL) }] };
+const colThreeSwitched = { type: "column", labels: ["Morning", "Lunch", "Afternoon"], series: three.map((st, i) => ({ name: st, values: [pick3(MORNING)[i], pick3(LUNCH)[i], pick3(AFTERNOON)[i]] })) };
 
 export const practice = {
   // ======================================================= Lesson 1
@@ -683,19 +709,19 @@ export const practice = {
   // ======================================================= Lesson 6
   sort: {
     learn: { visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: { A1: "Helper", B1: "Hours", A2: "Priya", B2: 7, A3: "Lily", B3: 5, A4: "Sam", B4: 4, A5: "Tom", B5: 2 }, style: headStyle } },
-      note: "Sorted by Hours, Z → A: the most hours on top. Google Sheets says A → Z and Z → A for numbers too." },
+      note: "Sorted by Hours, Z to A: the most hours on top. Google Sheets says A to Z and Z to A for numbers too." },
     exercises: [
-      { type: "choice", fact: "Z → A (descending)", prompt: "Which sort puts the most hours at the top?",
-        visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: helperCells, style: headStyle } }, correct: "Hours, Z → A", wrong: ["Hours, A → Z", "Helper, A → Z", "Helper, Z → A"] },
-      { type: "choice", fact: "earliest letter or smallest number first", prompt: "You want the last names in alphabetical order, Adams first. Which sort do you use?", correct: "Last name, A → Z", wrong: ["Last name, Z → A", "First name, Z → A", "Hours, A → Z"] },
-      { type: "choice", fact: "smallest number first", prompt: "You sort 9, 2 and 5, A → Z. What order do you get?", correct: "2, 5, 9", wrong: ["9, 5, 2", "9, 2, 5", "5, 2, 9"] },
-      { type: "choice", fact: "A → Z (ascending)", prompt: "Which one is ascending?", correct: "A → Z: smallest number first", wrong: ["Z → A: largest number first", "A → Z: largest number first", "Z → A: smallest number first"] },
-      { type: "choice", fact: "latest letter or largest number first", prompt: "You sort Chen, Adams and Brooks, Z → A. Which name comes first?", correct: "Chen", wrong: ["Adams", "Brooks"] },
-      { type: "choice", fact: "smallest number first", prompt: "You sort the table by Players, A → Z. Which game is in the top row?",
+      { type: "choice", fact: "Z to A (descending)", prompt: "Which sort puts the most hours at the top?",
+        visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: helperCells, style: headStyle } }, correct: "Hours, Z to A", wrong: ["Hours, A to Z", "Helper, A to Z", "Helper, Z to A"] },
+      { type: "choice", fact: "earliest letter or smallest number first", prompt: "You want the last names in alphabetical order, Adams first. Which sort do you use?", correct: "Last name, A to Z", wrong: ["Last name, Z to A", "First name, Z to A", "Hours, A to Z"] },
+      { type: "choice", fact: "smallest number first", prompt: "You sort 9, 2 and 5, A to Z. What order do you get?", correct: "2, 5, 9", wrong: ["9, 5, 2", "9, 2, 5", "5, 2, 9"] },
+      { type: "choice", fact: "A to Z (ascending)", prompt: "Which one is ascending?", correct: "A to Z: smallest number first", wrong: ["Z to A: largest number first", "A to Z: largest number first", "Z to A: smallest number first"] },
+      { type: "choice", fact: "latest letter or largest number first", prompt: "You sort Chen, Adams and Brooks, Z to A. Which name comes first?", correct: "Chen", wrong: ["Adams", "Brooks"] },
+      { type: "choice", fact: "smallest number first", prompt: "You sort the table by Players, A to Z. Which game is in the top row?",
         visual: { grid: { cols: 2, rows: 6, widths: { A: 1.5 }, cells: games, style: headStyle } }, correct: "Darts", wrong: ["Lucky dip", "Ring toss", "Coconut shy"] },
       { type: "sortPredict", fact: "largest number first", ...helpers, by: "Hours", dir: "za", widths: { A: 1.2 } },
       { type: "sortPredict", fact: "earliest letter", head: ["Game", "Players"], rows: [["Darts", 9], ["Ring toss", 18], ["Coconut shy", 12], ["Hook-a-duck", 25]], by: "Game", dir: "az", widths: { A: 1.5 } },
-      { type: "sortPredict", fact: "Z → A (descending)", head: ["Stall", "Total"], rows: [["Lemonade", 210], ["Book swap", 65], ["Cake stall", 245], ["Raffle", 165]], by: "Total", dir: "za", widths: { A: 1.4 } },
+      { type: "sortPredict", fact: "Z to A (descending)", head: ["Stall", "Total"], rows: [["Lemonade", 210], ["Book swap", 65], ["Cake stall", 245], ["Raffle", 165]], by: "Total", dir: "za", widths: { A: 1.4 } },
     ],
   },
   "select the whole table first": {
@@ -704,9 +730,9 @@ export const practice = {
     exercises: [
       { type: "choice", fact: "Leave out any total row underneath", prompt: "You want to sort the helpers by Hours. Which range do you select?",
         visual: { grid: { cols: 2, rows: 7, widths: { A: 1.2 }, cells: { ...helperCells, A7: "Total", B7: 18 }, style: headStyle } }, correct: "A1:B5", wrong: ["B1:B5", "A1:B7", "A1:A5"] },
-      { type: "choice", fact: "names no longer match their numbers", prompt: "Mia selected only column B and sorted it Z → A. Now Sam has 7 hours, but he did 4. What went wrong?",
+      { type: "choice", fact: "names no longer match their numbers", prompt: "Mia selected only column B and sorted it Z to A. Now Sam has 7 hours, but he did 4. What went wrong?",
         visual: { grid: { cols: 2, rows: 5, widths: { A: 1.2 }, cells: { A1: "Helper", B1: "Hours", A2: "Sam", B2: 7, A3: "Priya", B3: 5, A4: "Tom", B4: 4, A5: "Lily", B5: 2 }, style: headStyle } },
-        correct: "The hours moved, but the names didn't", wrong: ["The names moved, but the hours didn't", "She sorted A → Z", "Nothing: it's right"] },
+        correct: "The hours moved, but the names didn't", wrong: ["The names moved, but the hours didn't", "She sorted A to Z", "Nothing: it's right"] },
       { type: "keys", fact: "the rows get scrambled", prompt: "Oops! You sorted only column B, and the rows got scrambled. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Delete", "Enter"] },
       { type: "choice", fact: "Leave out any total row underneath", prompt: "A total row sits under the data. Do you select it too, before you sort?", correct: "No: only the data rows", wrong: ["Yes: select everything", "Only the total row", "Yes, then delete it"] },
       { type: "choice", fact: "so each row moves together", prompt: "Why do you select every column before you sort?", correct: "So each row moves together", wrong: ["So only one column moves", "So the headings disappear", "So the total gets sorted too"] },
@@ -714,23 +740,23 @@ export const practice = {
     ],
   },
   "sort range": {
-    learn: { visual: { dataMenu: { open: true, sub: true, highlight: "Advanced range sorting options" } },
+    learn: { visual: { image: "data-menu-sort-range", highlight: "Advanced range sorting options" },
       note: "Select the table first. Then Data → Sort range → Advanced range sorting options opens the sort window." },
     exercises: [
-      { type: "hotspot", fact: "Data → Sort range", ui: { dataMenu: {} }, target: "Data", prompt: "Which menu has the sorting tools? Tap it." },
-      { type: "hotspot", fact: "Data → Sort range", ui: { dataMenu: { open: true } }, target: "Sort range", prompt: "You've selected your table, and the Data menu is open. Tap the item that sorts the range you selected." },
-      { type: "hotspot", fact: "Advanced range sorting options", ui: { dataMenu: { open: true, sub: true } }, target: "Advanced range sorting options", prompt: "Tap the option that opens the sort window." },
+      { type: "hotspot", fact: "Data → Sort range", screen: "menu-bar", target: "Data", prompt: "Which menu has the sorting tools? Tap it." },
+      { type: "hotspot", fact: "Data → Sort range", screen: "data-menu", target: "Sort range", prompt: "You've selected your table, and the Data menu is open. Tap the item that sorts the range you selected." },
+      { type: "hotspot", fact: "Advanced range sorting options", screen: "data-menu-sort-range", target: "Advanced range sorting options", prompt: "Tap the option that opens the sort window." },
       { type: "order", fact: "Advanced range sorting options", prompt: "Sort a table by one column.", steps: ["Select the whole table", "Data → Sort range", "Advanced range sorting options", "Pick the column and the order, then click Sort"] },
-      { type: "hotspot", fact: "then click Sort", ui: { sortWindow: { range: "A1 to B5", by: "Hours", dir: "za" } }, target: "Sort", prompt: "Everything is set. Tap the button that does the sort." },
-      { type: "hotspot", fact: "A → Z or Z → A", ui: { sortWindow: { range: "A1 to B5", by: "Hours", dir: "az" } }, target: "Z → A", prompt: "You want the most hours at the top. Tap the order you need." },
-      { type: "hotspot", fact: "Pick the column to sort by", ui: { sortWindow: { range: "A1 to B5", by: "Helper", dir: "az" } }, target: "Sort by", prompt: "Tap where you pick the column to sort by." },
+      { type: "hotspot", fact: "then click Sort", screen: "sort-window", target: "Sort", prompt: "Everything is set. Tap the button that does the sort." },
+      { type: "hotspot", fact: "A to Z or Z to A", screen: "sort-window", target: "Z to A", prompt: "You want the stalls the other way round: Raffle first, Book swap last. On the Sort by row, tap the order you need." },
+      { type: "hotspot", fact: "Pick the column to sort by", screen: "sort-window", target: "Sort by", prompt: "Tap where you pick the first column to sort by." },
     ],
   },
   "data has header row": {
-    learn: { visual: { sortWindow: { range: "A1 to B5", header: true, by: "Hours", dir: "za", highlight: "Data has header row" } },
-      note: "Ticked: the headings stay on top, and Sort by shows Hours, not Column B." },
+    learn: { visual: { image: "sort-window", highlight: "Data has header row" },
+      note: "Ticked: the headings in row 3 stay on top, and Sort by shows Stall, not Column A." },
     exercises: [
-      { type: "hotspot", fact: "A tick box in the sort window", ui: { sortWindow: { range: "A1 to B5", header: false, col: "B", dir: "za" } }, target: "Data has header row", prompt: "Your selection includes the headings in row 1. Tap what you need to tick." },
+      { type: "hotspot", fact: "A tick box in the sort window", screen: "sort-window", target: "Data has header row", prompt: "Your selection A3:E9 includes the headings in row 3. Tap the box that keeps them on top." },
       { type: "choice", fact: "Tick it when your selection includes the row of headings", prompt: "You selected A1:B6, and row 1 holds the headings. What do you do in the sort window?", correct: "Tick Data has header row", wrong: ["Leave Data has header row unticked", "Delete the headings first", "Add another sort column"] },
       { type: "choice", fact: "shows their names instead of \"Column A\"", prompt: "Data has header row isn't ticked. The hours are in column B, under the heading Hours. What does the Sort by list show?", correct: "Column B", wrong: ["Hours", "Helper", "Column A"] },
       { type: "choice", fact: "they stay on top", prompt: "You tick Data has header row and sort. Where are the headings now?", correct: "Still on top, in row 1", wrong: ["Sorted in with the data", "At the bottom", "Gone: they were deleted"] },
@@ -739,15 +765,174 @@ export const practice = {
   },
   "sort by two columns": {
     learn: { visual: { grid: { cols: 2, rows: 7, widths: { B: 1.3 }, cells: { A1: "Year", B1: "Last name", A2: 7, B2: "Ash", A3: 7, B3: "Diaz", A4: 7, B4: "Hart", A5: 8, B5: "Bell", A6: 8, B6: "Fox", A7: 9, B7: "Ellis" }, style: headStyle } },
-      note: "The Year 7s stay together. Inside Year 7, the names go A → Z." },
+      note: "The Year 7s stay together. Inside Year 7, the names go A to Z." },
     exercises: [
-      { type: "hotspot", fact: "Add another sort column", ui: { sortWindow: { range: "A1 to B7", by: "Year", col: "A", dir: "az" } }, target: "Add another sort column", prompt: "You want a second column to sort by. Tap what adds it." },
+      { type: "hotspot", fact: "Add another sort column", screen: "sort-window", target: "Add another sort column", prompt: "Tap what adds one more column to sort by." },
+      { type: "hotspot", fact: "the second only orders rows that tie on the first", screen: "sort-window", target: "then by", prompt: "Rows that tie on Stall are put in order by a second column. Tap where you pick that second column." },
       { type: "sortPredict", fact: "like year level, then last name inside each year", head: ["Year", "Last name"], rows: [[8, "Grant"], [7, "Moss"], [9, "Lane"], [7, "King"], [8, "Owen"]], by: "Year", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
       { type: "sortPredict", fact: "the second only orders rows that tie on the first", head: ["House", "Last name"], rows: [["Red", "Nguyen"], ["Blue", "Patel"], ["Blue", "Kim"], ["Red", "Adams"]], by: "House", dir: "az", then: { by: "Last name", dir: "az" }, widths: { B: 1.3 } },
       { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "You sort by Year, then by Last name. Grant and Owen are both in Year 8. What decides which one comes first?", correct: "The second column: Last name", wrong: ["The first column: Year", "Whoever was typed first", "Nothing: it's random"] },
       { type: "choice", fact: "the second only orders rows that tie on the first", prompt: "When does the second sort column change anything?", correct: "Only when rows tie on the first column", wrong: ["Always: it sorts every row again", "Never: only the first column counts", "Only when the first column holds numbers"] },
-      { type: "choice", fact: "the first column orders everything", prompt: "You sort by House, A → Z, then by Last name, A → Z. Which row goes on top?",
+      { type: "choice", fact: "the first column orders everything", prompt: "You sort by House, A to Z, then by Last name, A to Z. Which row goes on top?",
         visual: { grid: { cols: 2, rows: 5, widths: { B: 1.3 }, cells: houses, style: headStyle } }, correct: "Blue, Kim", wrong: ["Blue, Patel", "Red, Adams", "Red, Nguyen"] },
+    ],
+  },
+  // ======================================================= Lesson 7
+  chart: {
+    learn: { visual: { chart: pieTotals }, note: "The same numbers as the table, as a picture. The biggest slice, Cake stall, jumps out." },
+    exercises: [
+      { type: "hotspot", fact: "Insert → Chart", screen: "menu-bar", target: "Insert", prompt: "Which menu makes a chart? Tap it." },
+      { type: "hotspot", fact: "Insert → Chart", screen: "insert-menu", target: "Chart", prompt: "You've selected the data, and the Insert menu is open. Tap what makes a chart." },
+      { type: "hotspot", fact: "A picture of your data", screen: "sheets-ribbon", target: "chart", prompt: "A toolbar button makes a chart too. Tap Insert chart." },
+      { type: "choice", fact: "Select the data with its headings", prompt: "You want a chart of the stalls and their totals. What do you select first?",
+        visual: { grid: fairGrid }, correct: "The data, with its headings", wrong: ["Only the numbers", "Only the headings", "One empty cell"] },
+      { type: "order", fact: "then Insert → Chart", prompt: "Make a chart.", steps: ["Select the data with its headings", "Insert → Chart", "Pick the chart type in the chart editor"] },
+    ],
+  },
+  "chart editor": {
+    learn: { visual: { image: "setup-column" },
+      note: "Setup: the chart type and which cells. Customise: titles, colours, the legend. Closed it by mistake? ⋮ on the chart → Edit the chart." },
+    exercises: [
+      { type: "hotspot", fact: "titles, colours, legend", screen: "setup-column", target: "Customise", prompt: "You want to change how the chart looks: its titles and colours. Tap the tab you need." },
+      { type: "hotspot", fact: "chart type", screen: "setup-column", target: "Chart type", prompt: "You want a different kind of chart. Tap where you change it." },
+      { type: "hotspot", fact: "which cells", screen: "setup-column", target: "Data range", prompt: "Tap where the chart editor shows which cells the chart uses." },
+      { type: "hotspot", fact: "⋮ on the chart", screen: "chart-selected", target: "⋮", prompt: "The chart editor has gone. First, tap what opens the chart's menu." },
+      { type: "hotspot", fact: "⋮ on the chart", screen: "chart-menu", target: "Edit the chart", prompt: "You closed the chart editor by mistake. The chart's ⋮ menu is open. Tap what brings the editor back." },
+      { type: "choice", fact: "opens on the right", prompt: "You make a chart. Where does the chart editor open?", correct: "On the right of the screen", wrong: ["On a new sheet tab", "Under the chart", "In the Name Box"] },
+    ],
+  },
+  "pie chart": {
+    learn: { visual: { chart: pieGames }, note: "The whole circle is all 94 players. Each slice is one game's share, and the slices add up to 100%." },
+    exercises: [
+      { type: "choice", fact: "each slice is one part's share", prompt: "Which game had the most players?", visual: { chart: pieGames }, correct: "Lucky dip", wrong: ["Hook-a-duck", "Darts", "Ring toss"] },
+      { type: "choice", fact: "each slice is one part's share", prompt: "Which game had the fewest players?", visual: { chart: pieGames }, correct: "Darts", wrong: ["Lucky dip", "Coconut shy", "Ring toss"] },
+      { type: "choice", fact: "share of a whole", prompt: "What share of the players went to Hook-a-duck?", visual: { chart: pieGames }, correct: "26.6%", wrong: ["31.9%", "19.1%", "12.8%"] },
+      { type: "choice", fact: "share of a whole", prompt: "All the slices of a pie chart add up to…", correct: "100%: the whole", wrong: ["50%", "The biggest slice", "It depends on the colours"] },
+      { type: "hotspot", fact: "A circle cut into slices", screen: "chart-type", target: "pie", prompt: "The Chart type list is open. Tap the pie chart." },
+      { type: "choice", fact: "one set of numbers that adds up to a total", prompt: "Which numbers suit a pie chart?", correct: "One set of numbers that adds up to a total", wrong: ["Three sets of numbers, side by side", "Names, with no numbers", "Dates, with no numbers"] },
+    ],
+  },
+  "select two separate ranges": {
+    learn: { visual: { image: "two-ranges" },
+      note: "Same on Windows and on a Chromebook: select the first range, hold Ctrl, then click or drag the second. Let go of Ctrl too early and the first range disappears." },
+    exercises: [
+      { type: "gridMulti", fact: "hold Ctrl, then select the second", target: ["A3:A9", "E3:E9"], grid: fairGrid, prompt: "For a pie of the totals, select the stalls (<b>A3:A9</b>) and the totals (<b>E3:E9</b>). Leave out B, C and D." },
+      { type: "gridMulti", fact: "The columns in between are left out", target: ["A3:A9", "C3:C9"], grid: fairGrid, prompt: "For a pie of the lunch takings, select the stalls (<b>A3:A9</b>) and Lunch (<b>C3:C9</b>)." },
+      { type: "gridMulti", fact: "hold Ctrl, then select the second", target: ["A1:A6", "D1:D6"], grid: gameGrid, prompt: "Select the games (<b>A1:A6</b>) and the players (<b>D1:D6</b>), with their headings." },
+      { type: "choice", fact: "hold Ctrl", prompt: "The names are in A3:A9 and the totals in E3:E9. How do you select both?", correct: "A3:A9, hold Ctrl, E3:E9", wrong: ["A3:E9", "A3:A9, hold Shift, E3:E9", "E3:E9 only"] },
+      { type: "choice", fact: "The columns in between are left out", prompt: "The games are in A1:A6 and the players in B1:B6, side by side. Do you need Ctrl?", correct: "No: drag A1:B6 in one go", wrong: ["Yes: always hold Ctrl for a chart", "Yes: hold Ctrl and select B1:B6 only", "No: select B1:B6 only"] },
+      { type: "choice", fact: "hold Ctrl, then select the second", prompt: "Mia selected A3:A9, then dragged E3:E9. Now only E3:E9 is selected. What went wrong?",
+        visual: { grid: { ...fairGrid, sel: "E3:E9" } }, correct: "She didn't hold Ctrl for the second range", wrong: ["She held Ctrl", "She forgot the headings", "She should have held Shift"] },
+    ],
+  },
+  "chart title": {
+    learn: { visual: { image: "titles", highlight: "Title text" },
+      note: "Customise → Chart and axis titles → Chart title, then type it in Title text. Sheets starts with a name like “Total”: change it so it says what the chart shows." },
+    exercises: [
+      { type: "hotspot", fact: "The heading above a chart", ui: { chart: pieTotals }, target: "title", prompt: "Tap the chart title." },
+      { type: "hotspot", fact: "then type it", screen: "titles", target: "Chart and axis titles", prompt: "Tap the section of the Customise tab that holds the chart's title." },
+      { type: "hotspot", fact: "then type it", screen: "titles", target: "Title text", prompt: "Chart title is picked. Tap where you type the title." },
+      { type: "choice", fact: "The heading above a chart", prompt: "What's missing from this chart?", visual: { chart: { ...pieTotals, title: "" } }, correct: "A chart title", wrong: ["A legend", "Percentages", "Slices"] },
+      { type: "choice", fact: "The heading above a chart", prompt: "Which is the best title for this chart?", visual: { chart: { ...pieTotals, title: "" } }, correct: "Fair Takings by Stall", wrong: ["Total", "Chart 1", "Numbers"] },
+      { type: "order", fact: "then type it", prompt: "Give a chart its title.", steps: ["Click the Customise tab", "Open Chart and axis titles", "Pick Chart title", "Type the title"] },
+    ],
+  },
+  legend: {
+    learn: { visual: { image: "legend", highlight: "chart legend" }, note: "Each stall has its own colour, and the legend says which is which. Customise → Legend changes its size and where it sits." },
+    exercises: [
+      { type: "hotspot", fact: "The key", screen: "legend", target: "chart legend", prompt: "Tap the legend." },
+      { type: "hotspot", fact: "The key", ui: { chart: colSessions }, target: "legend", prompt: "Tap the legend." },
+      { type: "choice", fact: "which colour stands for which thing", prompt: "What tells you which slice is Darts?", visual: { chart: pieGames }, correct: "The legend", wrong: ["The chart title", "The biggest slice", "The Name Box"] },
+      { type: "hotspot", fact: "changes its size", screen: "legend", target: "Legend font size", prompt: "The Legend section is open. Tap what makes the legend's words bigger." },
+      { type: "hotspot", fact: "where it sits", screen: "legend", target: "Position", prompt: "You want the legend under the chart. Tap what you change." },
+      { type: "choice", fact: "where it sits", prompt: "Customise → Legend → Position. Which one puts the legend under the chart?", correct: "Bottom", wrong: ["Top", "Right", "None"] },
+    ],
+  },
+  "change a slice or series colour": {
+    learn: { visual: { image: "pie-slice", highlight: "Pie slice" },
+      note: "For one slice: Customise → Pie slice → pick the slice → Colour. For a set of columns: Customise → Series → pick the series → Fill colour." },
+    exercises: [
+      { type: "hotspot", fact: "choose a colour", screen: "pie-slice", target: "Pie slice", prompt: "You want Cake stall's slice to be green. Tap the section you open." },
+      { type: "hotspot", fact: "choose a colour", screen: "pie-slice", target: "slice list", prompt: "Pie slice is open. Tap where you pick which slice." },
+      { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "Series", prompt: "You want the Lunch columns in a new colour. Tap the section you open." },
+      { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "series list", prompt: "Series is open. Tap where you pick which set of columns." },
+      { type: "choice", fact: "Or click it on the chart", prompt: "What's a quick way to get to one slice's colour?", correct: "Click the slice on the chart", wrong: ["Sort the table", "Delete the chart", "Click the Name Box"] },
+      { type: "choice", fact: "pick the set of columns", prompt: "In a column chart, what is a series?", correct: "One set of columns, like all the Lunch columns", wrong: ["One stall's name", "The chart's title", "A tick box on the Setup tab"] },
+    ],
+  },
+  "move to own sheet": {
+    learn: { visual: { image: "chart-menu", highlight: "Move to own sheet" }, note: "A new tab appears, just for the chart. Double-click the tab to rename it, like in Lesson 1." },
+    exercises: [
+      { type: "hotspot", fact: "the chart gets a tab of its own", screen: "chart-menu", target: "Move to own sheet", prompt: "Tap what gives the chart a tab of its own." },
+      { type: "choice", fact: "the chart gets a tab of its own", prompt: "You clicked Move to own sheet. What is the new tab?", visual: { image: "own-sheet-tab" },
+        correct: "The chart, on a sheet of its own", wrong: ["A copy of the table", "The chart editor", "A blank sheet"] },
+      { type: "choice", fact: "Then rename that tab", prompt: "The chart is on its own tab, called Chart1. What should you do next?", correct: "Rename the tab, like Takings Pie", wrong: ["Delete the Takings tab", "Sort the chart", "Make another chart"] },
+      { type: "order", fact: "Then rename that tab", prompt: "Give the chart its own named tab.", steps: ["Click ⋮ on the chart", "Move to own sheet", "Double-click the new tab", "Type the name, then press Enter"] },
+    ],
+  },
+  "column chart vs bar chart": {
+    learn: { visual: { charts: [{ ...colMorning3, caption: "Column chart: the bars go up" }, { ...colMorning3, type: "bar", caption: "Bar chart: the bars go across" }] }, note: "The same morning takings, turned on their side." },
+    exercises: [
+      { type: "choice", fact: "in a bar chart they go across", prompt: "What kind of chart is this?", visual: { chart: barMorning }, correct: "A bar chart", wrong: ["A column chart", "A pie chart"] },
+      { type: "choice", fact: "the bars go up", prompt: "What kind of chart is this?", visual: { chart: colMorning }, correct: "A column chart", wrong: ["A bar chart", "A pie chart"] },
+      { type: "hotspot", fact: "they go across", screen: "chart-type", target: "bar", prompt: "The Chart type list is open. Tap the bar chart." },
+      { type: "hotspot", fact: "the bars go up", screen: "chart-type", target: "column", prompt: "The Chart type list is open. Tap the column chart." },
+      { type: "hotspot", fact: "Setup → Chart type", screen: "setup-column", target: "Chart type", prompt: "You want to turn this column chart into a bar chart. Tap where you change it." },
+      { type: "choice", fact: "Both compare amounts", prompt: "What do column charts and bar charts both do?", correct: "Compare amounts", wrong: ["Show parts of one whole", "Sort the data", "Add up a column"] },
+    ],
+  },
+  "choosing a chart": {
+    learn: { visual: { charts: [{ ...pieThree, caption: "Parts of one whole → pie" }, { ...colThree, caption: "Comparing amounts → column" }] },
+      note: "Ask: is it one whole, cut into parts? Pie. Am I comparing amounts, or several sets side by side? Column (or bar)." },
+    exercises: [
+      { type: "choice", fact: "Parts of one whole → a pie chart", prompt: "“What share of all the money came from the raffle?” Which chart answers it?", correct: "A pie chart", wrong: ["A column chart", "A bar chart"] },
+      { type: "chartChoice", fact: "several sets side by side", prompt: "“Compare morning and afternoon takings for every stall.” Which chart answers it?",
+        correct: { type: "column", labels: three, series: [{ name: "Morning", values: pick3(MORNING) }, { name: "Afternoon", values: pick3(AFTERNOON) }], desc: "Column chart: Morning and Afternoon", caption: "Column chart: Morning and Afternoon" },
+        wrong: [{ type: "pie", labels: three, series: [{ name: "Morning", values: pick3(MORNING) }], desc: "Pie chart: Morning", caption: "Pie chart: Morning only" },
+          { type: "pie", labels: three, series: [{ name: "Afternoon", values: pick3(AFTERNOON) }], desc: "Pie chart: Afternoon", caption: "Pie chart: Afternoon only" }],
+        why: "Two sets side by side for every stall: that's a column chart. A pie shows only one set." },
+      { type: "chartChoice", fact: "Parts of one whole", prompt: "“What share of the total did each stall take?” Which chart answers it?",
+        correct: { type: "pie", labels: three, series: [{ name: "Total", values: pick3(TOTAL) }], desc: "Pie chart: Total", caption: "Pie chart: Total" },
+        wrong: [{ type: "column", labels: three, series: [{ name: "Total", values: pick3(TOTAL) }], legend: false, desc: "Column chart: Total", caption: "Column chart: Total" },
+          { ...colThree, desc: "Column chart: Morning, Lunch, Afternoon", caption: "Column chart: each session" }],
+        why: "A share of one whole: that's a pie chart. Each slice is one stall's share of the total." },
+      { type: "choice", fact: "Parts of one whole", prompt: "Which question needs a pie chart?", correct: "What share of the players went to each game?", wrong: ["Which stall took the most in each session?", "How did morning and afternoon compare?", "Did Darts or Ring toss have more players?"] },
+      { type: "choice", fact: "Comparing amounts", prompt: "Which question needs a column chart?", correct: "Which stall took the most in each session?", wrong: ["What share of the money came from each stall?", "What share of the players went to Darts?", "What part of the whole was the raffle?"] },
+    ],
+  },
+  "switch rows / columns": {
+    learn: { visual: { charts: [{ ...colThree, caption: "Not ticked: stalls along the bottom" }, { ...colThreeSwitched, caption: "Ticked: sessions along the bottom" }] },
+      note: "On screen it's called Switch rows/columns, a tick box on the Setup tab. The stalls move into the legend." },
+    exercises: [
+      { type: "hotspot", fact: "A tick box at the bottom of the Setup tab", screen: "setup-column", target: "Switch rows/columns", prompt: "Tap what swaps the bottom of the chart with the legend." },
+      { type: "chartChoice", fact: "swaps what runs along the bottom", prompt: "You tick Switch rows/columns. Which chart do you get?", visual: { chart: { ...colThree, compact: true } },
+        correct: { ...colThreeSwitched, desc: "Sessions along the bottom, stalls in the legend" },
+        wrong: [{ ...colThree, type: "bar", desc: "The same chart as a bar chart" }, { ...colThree, legend: false, desc: "The same chart with no legend" }],
+        why: "It swaps what runs along the bottom with what's in the legend: now Morning, Lunch and Afternoon are along the bottom." },
+      { type: "choice", fact: "with what is in the legend", prompt: "The stalls run along the bottom. You tick Switch rows/columns. Where do the stalls go?", correct: "Into the legend", wrong: ["Into the chart title", "Onto a new sheet", "They disappear"] },
+      { type: "choice", fact: "the Setup tab", prompt: "Where is the Switch rows/columns tick box?", correct: "On the Setup tab", wrong: ["On the Customise tab", "In the Data menu", "In the chart's ⋮ menu"] },
+      { type: "hotspot", fact: "with what is in the legend", screen: "setup-switched", target: "legend", prompt: "Switch rows/columns is ticked. Tap where the stalls are now." },
+    ],
+  },
+  "axis titles": {
+    learn: { visual: { chart: colAfternoon }, note: "Up the side: the vertical axis title, Takings ($). Along the bottom: the horizontal axis title, Stall." },
+    exercises: [
+      { type: "hotspot", fact: "up the side (y)", ui: { chart: colAfternoon }, target: "yTitle", prompt: "Tap the vertical axis title." },
+      { type: "hotspot", fact: "along the bottom (x)", ui: { chart: colAfternoon }, target: "xTitle", prompt: "Tap the horizontal axis title." },
+      { type: "choice", fact: "Labels for the axes", prompt: "What's missing from this chart?", visual: { chart: { ...colAfternoon, xTitle: "", yTitle: "" } }, correct: "Axis titles", wrong: ["A chart title", "A legend", "Columns"] },
+      { type: "hotspot", fact: "Labels for the axes", screen: "titles", target: "title list", prompt: "You want to add the vertical axis title. Chart and axis titles is open. Tap where you pick which title." },
+      { type: "choice", fact: "up the side (y)", prompt: "The numbers up the side are dollars. Which vertical axis title fits?", visual: { chart: { ...colAfternoon, yTitle: "" } }, correct: "Takings ($)", wrong: ["Stall", "Afternoon Takings", "Morning"] },
+      { type: "choice", fact: "Labels for the axes", prompt: "Where do you add the axis titles?", correct: "Customise → Chart and axis titles", wrong: ["Setup → Chart type", "Customise → Legend", "Insert → Chart"] },
+    ],
+  },
+  "move and resize a chart": {
+    learn: { visual: { image: "chart-beside-data" }, note: "Beside the table, so every number stays easy to see. Drag a corner to make it bigger or smaller." },
+    exercises: [
+      { type: "hotspot", fact: "Drag a corner", screen: "chart-selected", target: "corner", prompt: "You want the chart bigger by dragging down and to the right. Tap the handle you'd grab." },
+      { type: "hotspot", fact: "Drag the chart", screen: "chart-selected", target: "chart", prompt: "You want to move the chart. Tap where you grab it." },
+      { type: "choice", fact: "not over it", prompt: "This chart is covering the table. What do you do?", visual: { image: "chart-over-data" },
+        correct: "Drag it beside the table", wrong: ["Delete the table", "Make it bigger", "Sort the table"] },
+      { type: "choice", fact: "bigger or smaller", prompt: "You drag a corner of the chart outwards, away from the middle. What happens?", correct: "The chart gets bigger", wrong: ["The chart moves", "The chart gets smaller", "The chart is deleted"] },
     ],
   },
 };

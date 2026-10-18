@@ -5,17 +5,20 @@ import { icon } from "./icons.js";
 import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
 import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
-import { renderVisual, fillValues, keycaps, SORT_WINDOW_LABEL, MENU_BAR } from "./visuals.js";
+import { renderVisual, fillValues, keycaps, SORT_WINDOW_LABEL, MENU_BAR, drawnLabel } from "./visuals.js";
+import { chartEl, chartDesc, chartPartLabel } from "./charts.js";
 import { screens } from "../content/screens.js";
 import { sortOptions, rowsText, dirLabel } from "./sort.js";
 
-export const EXERCISES = { learn, choice, gridClick, gridName, gridRange, rangeName, fill, fillFormula, sortPredict, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
+export const EXERCISES = { learn, choice, chartChoice, gridClick, gridName, gridRange, gridMulti, rangeName, fill, fillFormula, sortPredict, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
 
 const KICKER = {
   choice: ["check", "Choose the answer"],
   gridClick: ["pointer", "Click it"],
   gridName: ["type", "Name the cell"],
   gridRange: ["pointer", "Select the range"],
+  gridMulti: ["pointer", "Select two ranges"],
+  chartChoice: ["chart-column", "Choose the chart"],
   rangeName: ["type", "Name the range"],
   fill: ["arrow-down", "Predict the fill"],
   fillFormula: ["arrow-right", "Predict the fill"],
@@ -241,6 +244,97 @@ function gridRange(step, api) {
       if (!ok) g.mark(step.target, "ok");
       return { ok, answer: ok ? "" : step.target,
         body: ok ? "" : `<span class="feedback__tip">${picked ? `You selected <b>${esc(picked)}</b>. ` : ""}The range ${step.target} starts at ${first} and ends at ${last}.</span>` };
+    },
+  };
+}
+
+// ================================================================ grid: two separate ranges (hold Ctrl)
+// The same on Windows and on a Chromebook: drag the first range, hold Ctrl, drag the second.
+// Touch screens have no Ctrl key, so an on-screen Ctrl key can be tapped to hold it.
+/** "a3:a9" → "A3:A9" (a single cell stays "B2"). */
+const normRange = (r) => selText(parseSel(r));
+export function multiTip(picked, target) {
+  const want = target.map(normRange), got = (picked || []).map(normRange);
+  const [a, b] = want;
+  if (got.length === 1) {
+    const box = parseSel(got[0]), A = parseSel(a), B = parseSel(b);
+    const covers = box && [A, B].every((x) => x.c1 >= box.c1 && x.c2 <= box.c2 && x.r1 >= box.r1 && x.r2 <= box.r2);
+    if (covers) return `You selected <b>${esc(got[0])}</b>: that takes in the columns in between too. Select ${a}, hold <b>Ctrl</b>, then select ${b}.`;
+    if (want.includes(got[0])) return `Only <b>${esc(got[0])}</b> is selected. Hold <b>Ctrl</b> the whole time you select the second range, or the first one disappears.`;
+  }
+  return `Select ${a}, hold <b>Ctrl</b>, then select ${b}.`;
+}
+function gridMulti(step, api) {
+  const touch = isTouchOnly();
+  let latched = false, physical = false;
+  let picked = [];
+  const g = createGrid(step.grid, { mode: "multi", ctrlHeld: () => latched, label: "Spreadsheet: drag to select a range. Hold Ctrl to add a second range. Keyboard: Shift and arrows select; hold Ctrl with the arrows for the next range.",
+    onChange(p) { picked = p.boxes; api.enableCheck(picked.length > 0); } });
+  const node = el(`
+    <div class="ex ex-grid ex-multi">
+      ${head(step, step.prompt, `${touch ? "Drag" : "Click and drag"} the first range. Then hold <b>Ctrl</b> and ${touch ? "drag" : "click and drag"} the second.`)}
+      <div class="ex-sheet"></div>
+      <div class="ctrl-row">
+        <button type="button" class="press ctrl-latch" aria-pressed="false" aria-label="Ctrl key: ${touch ? "tap to hold it down" : "hold it on your keyboard, or tap here"}">
+          <span class="face"><kbd class="keycap keycap--wide">Ctrl</kbd><span class="ctrl-latch__text">${touch ? "Tap to hold Ctrl" : "Hold Ctrl on your keyboard"}</span></span>
+        </button>
+        <span class="ctrl-row__tip">Same on Windows and on a Chromebook: <b>Ctrl</b> + click.</span>
+      </div>
+    </div>`);
+  $(".ex-sheet", node).appendChild(g.el);
+  const btn = $(".ctrl-latch", node);
+  const show = () => { const on = latched || physical; btn.classList.toggle("is-on", on); btn.setAttribute("aria-pressed", String(latched)); $(".ctrl-latch__text", node).textContent = latched ? "Ctrl is held (tap to let go)" : physical ? "Holding Ctrl" : touch ? "Tap to hold Ctrl" : "Hold Ctrl on your keyboard"; };
+  btn.addEventListener("click", () => { if (node.classList.contains("is-locked")) return; latched = !latched; sfx.tap(); show(); });
+  const down = (e) => { if (e.key === "Control" || e.key === "Meta") { physical = true; show(); } };
+  const up = (e) => { if (e.key === "Control" || e.key === "Meta") { physical = false; show(); } };
+  window.addEventListener("keydown", down, true);
+  window.addEventListener("keyup", up, true);
+  const off = () => { window.removeEventListener("keydown", down, true); window.removeEventListener("keyup", up, true); };
+  const want = step.target.map(normRange);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    mount() { setTimeout(() => g.focus(), 300); },
+    destroy: off,
+    check({ skipped } = {}) {
+      g.lock(); node.classList.add("is-locked"); btn.disabled = true; off();
+      const got = picked.map(normRange);
+      const ok = !skipped && got.length === want.length && want.every((w) => got.includes(w));
+      if (!ok) want.forEach((w) => g.mark(w, "ok"));
+      return { ok, answer: ok ? "" : `${want[0]}, hold Ctrl, ${want[1]}`,
+        body: `<span class="feedback__tip">${ok ? `Two separate ranges: ${esc(want.join(" and "))}. The chart's data range is ${esc(want.join(","))}: the columns in between are left out.` : skipped ? "" : multiTip(picked, step.target)}</span>` };
+    },
+  };
+}
+
+// ================================================================ choose the chart (the options are pictures)
+function chartChoice(step, api) {
+  const all = [step.correct, ...step.wrong];
+  const order = shuffle(all.map((_, i) => i));
+  const vis = step.visual ? renderVisual(step.visual) : null;
+  const node = el(`
+    <div class="ex ex-chartc">
+      ${head(step, esc(step.prompt))}
+      <div class="ex-visual"></div>
+      <div class="options options--charts" role="group" aria-label="Answers">${order.map((i, k) => `
+        <button class="press option" data-oi="${k}" data-v="${esc(all[i].desc)}" aria-pressed="false" aria-label="Option ${k + 1}: ${esc(all[i].caption || chartDesc(all[i]))}">
+          <span class="face"><span class="key" aria-hidden="true">${k + 1}</span><span class="label"><span class="chart-slot"></span>${all[i].caption ? `<span class="chart-cap">${esc(all[i].caption)}</span>` : ""}</span></span>
+        </button>`).join("")}</div>
+    </div>`);
+  if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
+  $$(".chart-slot", node).forEach((slot, k) => slot.appendChild(chartEl({ compact: true, ...all[order[k]] })));
+  const values = order.map((i) => all[i].desc);
+  const o = wireOptions(node, api, values);
+  return {
+    el: node,
+    footer: { label: "Check", enabled: false },
+    aside: ["skip"],
+    onKey: (n) => o.onKey(n),
+    check({ skipped } = {}) {
+      o.reveal(step.correct.desc);
+      const ok = !skipped && o.chosen === step.correct.desc;
+      return { ok, answer: ok ? "" : step.correct.desc, body: step.why ? `<span class="feedback__tip">${esc(step.why)}</span>` : "" };
     },
   };
 }
@@ -616,7 +710,13 @@ function hotspot(step, api) {
   const node = el(`<div class="ex ex-hotspot">${head(step, esc(step.prompt))}<div class="hot-stage"></div></div>`);
   const stage = $(".hot-stage", node);
   let regions = [];
-  if (step.screen) {
+  const drawn = step.screen && screens[step.screen].drawn; // not photographed yet: drawn instead
+  const hitsOf = (vis) => vis.hits.forEach((h) => { h.dataset.region = h.dataset.hit; if (!h.classList.contains("hot")) h.classList.add("hot-ui"); h.setAttribute("aria-pressed", "false"); regions.push(h.dataset.hit); });
+  if (drawn) {
+    const vis = renderVisual(drawn, { interactiveHits: true });
+    stage.appendChild(vis.el);
+    hitsOf(vis);
+  } else if (step.screen) {
     const s = screens[step.screen];
     // On narrow screens show a window of the screenshot around the answer, so
     // small things (the fill handle) stay big enough to tap.
@@ -632,18 +732,23 @@ function hotspot(step, api) {
       <img src="${s.src}" alt="${esc(s.alt)}" draggable="false" style="width:${(s.w / cw) * 100}%;margin-left:${(-cx / cw) * 100}%">
     </figure>`);
     let k = 0;
+    // Areas packed close together (menu rows) keep to their own box: a bigger invisible tap
+    // area would reach into the next row on a small screen.
+    const near = (a, b) => a[0] < b[0] + b[2] + 8 && b[0] < a[0] + a[2] + 8 && a[1] < b[1] + b[3] + 8 && b[1] < a[1] + a[3] + 8;
+    const all = Object.values(s.regions).map((x) => x.r);
     for (const [id, reg] of Object.entries(s.regions)) {
       const [x, y, w, h] = reg.r;
       if (x < cx || x + w > cx + cw) continue;
       regions.push(id);
-      fig.appendChild(el(`<button type="button" class="hot" data-region="${id}" aria-label="Area ${++k}" aria-pressed="false"
+      const tight = all.some((o) => o !== reg.r && near(reg.r, o));
+      fig.appendChild(el(`<button type="button" class="hot${tight ? " hot--tight" : ""}" data-region="${id}" aria-label="Area ${++k}" aria-pressed="false"
         style="left:${((x - cx) / cw) * 100}%;top:${(y / s.h) * 100}%;width:${(w / cw) * 100}%;height:${(h / s.h) * 100}%"><span class="hot__ring"></span></button>`));
     }
     stage.appendChild(fig);
   } else {
     const vis = renderVisual(step.ui, { interactiveHits: true });
     stage.appendChild(vis.el);
-    vis.hits.forEach((h) => { h.dataset.region = h.dataset.hit; h.classList.add("hot-ui"); h.setAttribute("aria-pressed", "false"); regions.push(h.dataset.hit); });
+    hitsOf(vis);
   }
   const btns = $$("[data-region]", stage);
   let chosen = null;
@@ -655,7 +760,9 @@ function hotspot(step, api) {
   };
   btns.forEach((b) => b.addEventListener("click", () => { if (!node.classList.contains("is-locked")) choose(b); }));
   const label = (id) => {
+    if (drawn) return drawnLabel(drawn, id);
     if (step.screen) return screens[step.screen].regions[id].label;
+    if (step.ui?.chart) return chartPartLabel(id);
     if (step.ui?.colheads || step.ui?.rowheads) {
       const what = step.ui.colheads ? "column" : "row";
       return id.includes("|") ? `the line between ${what}s ${id.replace("|", " and ")}` : `${what} ${id}`;

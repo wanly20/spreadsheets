@@ -4,9 +4,9 @@
 //
 // A sort question: { head: ["Helper", "Hours"], rows: [["Sam", 4], …], by: "Hours", dir: "za",
 //                    then?: { by: "Last name", dir: "az" } }
-// A → Z (az): earliest letter or smallest number first. Z → A (za): the opposite.
+// A to Z (az): earliest letter or smallest number first. Z to A (za): the opposite.
 
-/** Compare two cell values, A → Z: numbers before text, text ignoring capitals. */
+/** Compare two cell values, A to Z: numbers before text, text ignoring capitals. */
 export function compareCells(a, b) {
   const na = typeof a === "number", nb = typeof b === "number";
   if (na && nb) return a - b;
@@ -29,7 +29,7 @@ export function sortRows(rows, keys) {
 }
 
 const flip = (dir) => (dir === "az" ? "za" : "az");
-export const dirLabel = (dir) => (dir === "az" ? "A → Z" : "Z → A");
+export const dirLabel = (dir) => (dir === "az" ? "A to Z" : "Z to A");
 
 /** The sort keys of a question, as [column index, dir]. */
 export function sortKeys(q) {
@@ -67,7 +67,7 @@ export function sortOptions(q) {
     add(sortRows(q.rows, [[c1, d1], [second[0], flip(second[1])]])); // the second column the wrong way
     add(sortRows(q.rows, [[c1, flip(d1)], second])); // the first column the wrong way
   }
-  add(sortRows(q.rows, keys.map(([c, d], i) => [c, i ? d : flip(d)]))); // A → Z and Z → A mixed up
+  add(sortRows(q.rows, keys.map(([c, d], i) => [c, i ? d : flip(d)]))); // A to Z and Z to A mixed up
   // Only the sort column was selected: it moves, the other columns stay where they were.
   const col = sortRows(q.rows, [[c1, d1]]).map((r) => r[c1]);
   add(q.rows.map((r, i) => r.map((v, c) => (c === c1 ? col[i] : v))));

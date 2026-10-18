@@ -74,7 +74,7 @@ export const course = {
     {
       n: 6,
       title: "Lesson 6",
-      subtitle: "Sorting: A → Z, Z → A, the sort window, two columns",
+      subtitle: "Sorting: A to Z, Z to A, the sort window, two columns",
       theme: "yellow",
       levels: [
         { id: "6-1", title: "Put the rows in order", icon: "arrow-down-up", terms: ["sort", "select the whole table first"] },
@@ -82,7 +82,19 @@ export const course = {
       ],
       review: { id: "6-r", title: "Mixed review" },
     },
+    {
+      n: 7,
+      title: "Lesson 7",
+      subtitle: "Charts: pie, column and bar, titles, legend, axis titles",
+      theme: "green",
+      levels: [
+        { id: "7-1", title: "Make a chart", icon: "chart-pie", terms: ["chart", "chart editor", "pie chart", "select two separate ranges"] },
+        { id: "7-2", title: "Title, legend and colours", icon: "palette", terms: ["chart title", "legend", "change a slice or series colour", "move to own sheet"] },
+        { id: "7-3", title: "Column or bar?", icon: "chart-column", terms: ["column chart vs bar chart", "choosing a chart", "switch rows / columns", "axis titles", "move and resize a chart"] },
+      ],
+      review: { id: "7-r", title: "Mixed review" },
+    },
   ],
   // The big review at the end of the path, across every lesson that is ready.
-  finalReview: { id: "all-r", title: "Lessons 1–6 review", needs: [1, 2, 3, 4, 5, 6] },
+  finalReview: { id: "all-r", title: "Lessons 1–7 review", needs: [1, 2, 3, 4, 5, 6, 7] },
 };

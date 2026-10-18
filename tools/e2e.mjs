@@ -121,6 +121,8 @@ async function runViewport(vp) {
   ok(Object.keys(before.items).length >= 20, `spaced-repetition scores saved for ${Object.keys(before.items).length} items`);
   const l6Saved = Object.keys(before.items).filter((k) => k.startsWith("6:"));
   ok(l6Saved.length === 5, `Lesson 6's 5 terms have review scores, so Review can bring them back (${l6Saved.length})`);
+  const l7Saved = Object.keys(before.items).filter((k) => k.startsWith("7:"));
+  ok(l7Saved.length === 13, `Lesson 7's 13 terms have review scores, so Review can bring them back (${l7Saved.length})`);
 
   // ------------------------------------------------------------ Review button
   await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
@@ -140,6 +142,9 @@ async function runViewport(vp) {
     const kb6 = page.locator(".kb-lesson").filter({ has: page.locator("h2", { hasText: "Lesson 6" }) });
     ok(await kb6.locator(".kb-item").count() === 5 && await kb6.locator(".kb-group--know .kb-item").count() === 1 && await kb6.locator(".kb-group--do .kb-item").count() === 4,
       "My knowledge lists Lesson 6: sort under Know, four skills under Do");
+    const kb7 = page.locator(".kb-lesson").filter({ has: page.locator("h2", { hasText: "Lesson 7" }) });
+    ok(await kb7.locator(".kb-item").count() === 13 && await kb7.locator(".kb-group--know .kb-item").count() === 5 && await kb7.locator(".kb-group--do .kb-item").count() === 8,
+      "My knowledge lists Lesson 7: five words under Know, eight skills under Do");
     ok(await page.locator(".kb-item .kb-strength").count() >= 20, "every met item shows a strength label");
     ok(await page.locator(".kb-group--know").count() >= 1 && await page.locator(".kb-group--do").count() >= 1, "items are split into Know and Do");
     await tap('[data-act="back"]');
@@ -189,7 +194,7 @@ async function runViewport(vp) {
   await wait(1000);
   // Types not yet answered wrong in a level (e.g. a formula with $) get a wrong answer here.
   const sam = await playSession("sampler", wrongDone);
-  ok(sam.done && sam.steps >= 19, `the sampler plays one of every exercise type (${sam.steps} steps)`);
+  ok(sam.done && sam.steps >= 25, `the sampler plays one of every exercise type (${sam.steps} steps)`);
   await page.goto(BASE);
   await wait(1000);
 
@@ -215,7 +220,7 @@ async function runViewport(vp) {
     ok(tips.lock.title === "Lock it!" && /Chromebook/.test(tips.lock.tip), `a missing $ still gets the Chromebook-friendly “Lock it!” tip`);
     await page.goto(BASE);
     await wait(900);
-    ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–6 review/.test(t)), "the big review is called “Lessons 1–6 review”");
+    ok(await page.locator(".unit--ink").innerText().then((t) => /Lessons 1–7 review/.test(t)), "the big review is called “Lessons 1–7 review”");
     ok(await page.locator('.node[data-node="all-r"]').count() === 1, "the big review keeps its id (all-r), so saved progress still counts");
     ok(await page.locator(".unit--blue").filter({ hasText: "Lesson 5" }).count() === 1, "Lesson 5 is on the path (blue)");
     ok(await page.locator(".unit--yellow").filter({ hasText: "Lesson 6" }).count() === 1, "Lesson 6 is on the path (yellow)");
@@ -225,6 +230,26 @@ async function runViewport(vp) {
     });
     ok(l6.final.includes(6), "Lesson 6 is in the big review");
     ok(["6-1", "6-2", "6-r"].every((id) => l6.nodes.includes(id)), `Lesson 6 has its levels and mixed review (${l6.nodes.join(", ")})`);
+    ok(await page.locator(".unit--green").filter({ hasText: "Lesson 7" }).count() === 1, "Lesson 7 is on the path (green)");
+    const l7 = await page.evaluate(async () => {
+      const { course } = await import("./content/course.js");
+      return { final: course.finalReview.needs, nodes: [...document.querySelectorAll(".node[data-node^='7-']")].map((n) => n.dataset.node) };
+    });
+    ok(l7.final.includes(7), "Lesson 7 is in the big review");
+    ok(["7-1", "7-2", "7-3", "7-r"].every((id) => l7.nodes.includes(id)), `Lesson 7 has its levels and mixed review (${l7.nodes.join(", ")})`);
+    // Every real screenshot loads, and every region sits inside it.
+    const shots = await page.evaluate(async () => {
+      const { screens } = await import("./content/screens.js");
+      const out = [];
+      for (const [id, sc] of Object.entries(screens)) {
+        if (sc.drawn) continue;
+        const img = new Image(); img.src = sc.src;
+        await img.decode().catch(() => {});
+        out.push({ id, ok: img.naturalWidth === sc.w && img.naturalHeight === sc.h });
+      }
+      return out;
+    });
+    ok(shots.every((x) => x.ok), `every screenshot loads at its listed size (${shots.filter((x) => !x.ok).map((x) => x.id).join(", ") || shots.length + " pictures"})`);
   }
 
   // ------------------------------------------------------------ quit dialog
@@ -257,11 +282,11 @@ async function runViewport(vp) {
       res.steps++;
       if (step.retry) res.retries++;
       if (step.type !== "learn" && !step.retry) res.questions++;
-      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" && step.ui ? (step.ui.dataMenu ? "hotspot-menu" : step.ui.sortWindow ? "hotspot-sortwin" : "hotspot-ui") : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
+      let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" ? hotspotKey(step) : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
       if (step.type === "learn") typeKey = "learn-" + await page.evaluate(() => {
         const v = document.querySelector(".lesson-body .ex:not(.step-leave) .learn-visual");
         if (!v) return "text";
-        return v.querySelector(".replay") ? "demo" : v.querySelector(".shot") ? "screenshot" : v.querySelector(".tab-menu") ? "menu" : v.querySelector(".tabs-bar") ? "tabs" : v.querySelector(".keycaps") ? "keys" : v.querySelector(".tool-icons") ? "icons" : v.querySelector(".step-chips") ? "steps" : "grid";
+        return v.querySelector(".replay") ? "demo" : v.querySelector(".shot") ? "screenshot" : v.querySelector(".charts-row") ? "charts" : v.querySelector(".chart-sheet") ? "chart-on-sheet" : v.querySelector(".chart") ? "chart" : v.querySelector(".tab-menu") ? "menu" : v.querySelector(".tabs-bar") ? "tabs" : v.querySelector(".keycaps") ? "keys" : v.querySelector(".tool-icons") ? "icons" : v.querySelector(".step-chips") ? "steps" : "grid";
       });
       await shot(`ex-${typeKey}`);
       // Answer wrong once per exercise type (per viewport), never on a retry.
@@ -288,7 +313,13 @@ async function runViewport(vp) {
         const across = step.from[0] !== step.to[0];
         ok((across ? /letters move/ : /numbers move/).test(await page.locator(".feedback__body").innerText()), `fillFormula: the feedback says the ${across ? "letters" : "numbers"} move`);
       }
-      if (goWrong && (typeKey === "hotspot-menu" || typeKey === "hotspot-sortwin")) ok(/You tapped/.test(await page.locator(".feedback__body").innerText()), `${typeKey}: a wrong tap says what was tapped`);
+      if (goWrong && ["hotspot-menu", "hotspot-sortwin", "hotspot-editor", "hotspot-chartmenu", "hotspot-chart"].includes(typeKey)) ok(/You tapped/.test(await page.locator(".feedback__body").innerText()), `${typeKey}: a wrong tap says what was tapped`);
+      if (step.type === "gridMulti") {
+        const fb = await page.locator(".feedback__body").innerText();
+        ok(goWrong ? /Hold Ctrl|hold Ctrl/.test(fb) : new RegExp(`data range is ${step.target.join(",")}`).test(fb), `gridMulti: the feedback ${goWrong ? "says to hold Ctrl" : `gives the data range ${step.target.join(",")}`}`);
+        if (goWrong) ok(await page.locator(EX + ".sh-mark--ok").count() === 2, "gridMulti: both right ranges are marked");
+      }
+      if (step.type === "chartChoice") ok(await page.locator(EX + ".option.is-correct").count() === 1, "chartChoice: the right chart is marked");
       if (step.type === "sortPredict") {
         const want = await page.evaluate(async (s) => (await import("./js/sort.js")).sortOptions(s).correct.map((r) => String(r[0])), step);
         const shown = await page.evaluate((n) => Array.from({ length: n }, (_, i) => document.querySelector(`.lesson-body .ex:not(.step-leave) .sh-cell[data-ref="A${i + 2}"]`)?.textContent), step.rows.length);
@@ -357,6 +388,35 @@ async function runViewport(vp) {
         const vals = await page.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option")].map((b) => b.dataset.v));
         const i = vals.findIndex((v) => (right ? v === o.correct : v !== o.correct));
         if (vp.touch) await page.locator(EX + ".option").nth(i).tap(); else await page.keyboard.press(String(i + 1));
+        return check();
+      }
+      case "chartChoice": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `chartChoice: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `chartChoice: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        const vals = await page.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .option")].map((b) => b.dataset.v));
+        ok(vals.length === 1 + step.wrong.length && vals.filter((v) => v === step.correct.desc).length === 1, `chartChoice: ${vals.length} drawn charts, one of them right`);
+        const i = vals.findIndex((v) => (right ? v === step.correct.desc : v !== step.correct.desc));
+        if (vp.touch) await page.locator(EX + ".option").nth(i).tap(); else await page.keyboard.press(String(i + 1));
+        return check();
+      }
+      case "gridMulti": {
+        const fit = await page.evaluate(() => { const b = document.querySelector(".lesson-body"); return { v: b.scrollHeight - b.clientHeight, h: document.documentElement.scrollWidth - innerWidth }; });
+        ok(fit.h <= 0, `gridMulti: no sideways scrolling (${fit.h}px)`);
+        if (!vp.touch) ok(fit.v <= 1, `gridMulti: fits without scrolling at ${vp.width}×${vp.height} (${fit.v}px over)`);
+        const [r1, r2] = step.target;
+        const dragRange = async (r) => { const [a, b] = r.split(":"); await drag(EX + `.sh-cell[data-ref="${a}"]`, EX + `.sh-cell[data-ref="${b}"]`); };
+        await dragRange(r1);
+        if (right) {
+          // Hold Ctrl for the second range: the real key with a mouse, the on-screen Ctrl key on a touch screen.
+          if (vp.touch) { await page.locator(EX + ".ctrl-latch").tap(); ok(await page.locator(EX + ".ctrl-latch.is-on").count() === 1, "gridMulti: the on-screen Ctrl key stays held"); }
+          else await page.keyboard.down("Control");
+          await dragRange(r2);
+          if (!vp.touch) await page.keyboard.up("Control");
+          let boxes = await page.evaluate(() => document.querySelectorAll(".lesson-body .ex:not(.step-leave) .sh-sel--also").length);
+          if (boxes !== 1 && vp.touch) { dragRetries++; await dragRange(r2); boxes = await page.evaluate(() => document.querySelectorAll(".lesson-body .ex:not(.step-leave) .sh-sel--also").length); }
+          ok(boxes === 1, `gridMulti: with Ctrl, the first range stays selected (${boxes} kept)`);
+        } else await dragRange(r2); // no Ctrl: the first range is lost
         return check();
       }
       case "keys": {
@@ -489,6 +549,17 @@ async function runViewport(vp) {
       }
       default: throw new Error("unknown step " + step.type);
     }
+  }
+
+  function hotspotKey(step) {
+    if (step.ui?.chart) return "hotspot-chart";
+    if (step.ui) return "hotspot-ui";
+    const sc = step.screen;
+    if (["menu-bar", "data-menu", "data-menu-sort-range", "insert-menu"].includes(sc)) return "hotspot-menu";
+    if (sc === "sort-window") return "hotspot-sortwin";
+    if (["chart-type", "setup-column", "setup-switched", "titles", "pie-slice", "series-colour", "legend"].includes(sc)) return "hotspot-editor";
+    if (["chart-menu", "chart-selected"].includes(sc)) return "hotspot-chartmenu";
+    return "hotspot";
   }
 
   async function pickOption(test, compact = false) {

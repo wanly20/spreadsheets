@@ -38,7 +38,7 @@
   grid-template-rows: var(--hh) var(--row-tracks, repeat(var(--rows), var(--rh)));
   touch-action: manipulation;
 }
-.msheet--range .sheet-grid, .msheet--move .sheet-grid { touch-action: none; }
+.msheet--range .sheet-grid, .msheet--multi .sheet-grid, .msheet--move .sheet-grid { touch-action: none; }
 .sheet-grid:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; border-radius: 4px; }
 .sh-corner, .sh-col, .sh-row { background: var(--sheet-head); color: var(--sheet-head-text); border-right: 1px solid var(--sheet-line); border-bottom: 1px solid var(--sheet-line); display: grid; place-items: center; font-size: 12px; }
 .sh-corner { border-right-width: 3px; border-bottom-width: 3px; border-color: #c4c7c5; }
@@ -133,6 +133,7 @@
   cursor: pointer;
 }
 .hot::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 36px); height: max(100%, 36px); transform: translate(-50%, -50%); }
+.hot--tight::before { width: 100%; height: 100%; }
 .hot__ring { position: absolute; inset: -3px; border-radius: 8px; border: 3px solid transparent; transition: border-color var(--dur-fast), background-color var(--dur-fast); }
 .hot:focus-visible { outline: none; }
 .hot:focus-visible .hot__ring { border-color: var(--c-focus); border-style: dashed; }
@@ -439,3 +440,44 @@ button.menu-bar__item { cursor: pointer; }
 .sortwin__btn--sort { border-color: #0b57d0; background: #0b57d0; color: var(--white) !important; font-weight: 700 !important; }
 .sortwin__btn--sort.hot-ui.is-chosen, .sortwin__btn--sort.hot-ui.is-correct, .sortwin__btn--sort.hot-ui.is-wrong { color: #202124 !important; }
 .sortwin .is-ring { border-radius: 6px; }
+
+/* =================================================================== charts (Lesson 7) */
+.chart { position: relative; width: min(100%, var(--cw)); margin: 0; border-radius: 10px; border: 1px solid var(--sheet-line); background: var(--white); overflow: hidden; box-shadow: 0 2px 0 var(--line-200); }
+.chart-svg { display: block; width: 100%; height: auto; font-family: var(--font-sheet); }
+.chart-title { font-weight: 700; fill: #202124; }
+.chart-lbl, .chart-tick { fill: #3c4043; }
+.chart-tick { fill: #5f6368; }
+.chart-axis-title { fill: #202124; font-weight: 700; }
+.chart-num { fill: #202124; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.chart-grid { stroke: #e3e3e3; stroke-width: 1; }
+.chart-axis { stroke: #9aa0a6; }
+.chart .shot-ring { border-radius: 6px; }
+.chart-hot { z-index: 1; }
+.charts-row { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); width: 100%; }
+.charts-row__fig { margin: 0; flex: 1 1 200px; max-width: 300px; display: grid; gap: 6px; justify-items: center; }
+.charts-row__fig figcaption { font-weight: 700; font-size: var(--fs-sm); text-align: center; }
+.options--charts { display: grid; grid-template-columns: 1fr; gap: var(--sp-3); }
+.options--charts .option > .face { position: relative; min-height: 0; padding: var(--sp-2); align-items: flex-start; }
+.options--charts .option .key { position: absolute; top: 6px; left: 6px; z-index: 1; }
+.options--charts .label { display: grid; gap: 4px; justify-items: center; width: 100%; min-width: 0; padding-top: 30px; }
+.options--charts .chart { width: 100%; box-shadow: none; }
+.chart-cap { font-weight: 700; font-size: var(--fs-sm); text-align: center; }
+.ex-chartc .ex-visual .chart { width: min(100%, 230px); }
+
+/* A chart on the sheet: beside the table, or covering it */
+.chart-card { position: relative; display: inline-block; width: min(100%, 300px); }
+.chart-card .chart { width: 100%; }
+.chart-sheet { position: relative; display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--sp-3); justify-content: center; }
+.chart-sheet .chart-card { width: min(100%, 230px); }
+.chart-sheet--over { display: block; width: min(100%, 420px); }
+.chart-sheet--over .chart-card { position: absolute; left: 34%; top: 22%; width: 56%; box-shadow: var(--shadow-md); border-radius: 10px; }
+
+/* Select two ranges: the second selection, and the on-screen Ctrl key */
+.sh-sel--also .sh-handle { display: none; }
+.ctrl-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2) var(--sp-4); }
+.ctrl-latch > .face { display: inline-flex; align-items: center; gap: var(--sp-3); min-height: 48px; padding: 0 var(--sp-4); }
+.ctrl-latch.is-on > .face { background: var(--blue-50); border-color: var(--blue-500); }
+.ctrl-latch.is-on .keycap { background: var(--blue-500); color: var(--white); border-color: var(--blue-700); }
+.ctrl-latch__text { font-weight: 700; }
+.ctrl-row__tip { color: var(--c-text-soft); font-size: var(--fs-sm); }
+.data-menus--insert { margin-left: min(110px, 9%); }

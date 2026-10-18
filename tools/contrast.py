@@ -30,6 +30,12 @@ def ratio(a, b):
 
 # (foreground token, background token, what it is, minimum)
 PAIRS = [
+    ("chart-1", "white", "chart series 1 on white (graphics)", 3.0),
+    ("chart-2", "white", "chart series 2 on white (graphics)", 3.0),
+    ("chart-3", "white", "chart series 3 on white (graphics)", 3.0),
+    ("chart-4", "white", "chart series 4 on white (graphics)", 3.0),
+    ("chart-5", "white", "chart series 5 on white (graphics)", 3.0),
+    ("chart-6", "white", "chart series 6 on white (graphics)", 3.0),
     ("ink", "paper", "body text on page", 4.5),
     ("ink", "white", "body text on cards", 4.5),
     ("ink-soft", "paper", "secondary text on page", 4.5),

@@ -17,7 +17,8 @@ http://127.0.0.1:8765/.
   there / Needs review*.
 - **Settings:** sound on/off, *Download my progress* (a small `.txt` file), *Load my progress*
   (checks the file and asks first), *Reset progress*.
-- A hidden page, **`#/play/sampler`**, shows one of every exercise type.
+- A hidden page, **`#/play/sampler`**, shows one of every exercise type, and **`#/play/gallery-7`**
+  (any lesson number) plays every learn card and hand-made exercise of that lesson, in order.
 
 ## Updating the content (the Knowledge Bank)
 
@@ -55,21 +56,23 @@ nearest level. The checker tells you so you can tidy up the level list.
 |---|---|
 | `content/knowledge_lessonN.js` | Copies of the Knowledge Bank (generated: don't edit) |
 | `content/course.js` | The path: lessons, their levels (lists of terms), "coming soon" |
-| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $, predicting a formula after a fill down or across, predicting a sort…) |
-| `content/screens.js` | Real Google Sheets screenshots and their tappable areas |
+| `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $, predicting a formula after a fill down or across, predicting a sort, two ranges with Ctrl, choosing a chart…) |
+| `content/screens.js` | Real Google Sheets screenshots and their tappable areas, plus drawn stand-ins for the ones not photographed yet (`docs/SCREENSHOTS_WANTED.md`) |
+| `tools/crop_screens.py` | Crops the Lesson 6–7 screenshots (`../spreadsheets/screenshots/google_sheets/menus/`) into `assets/screens/` and prints their regions |
 | `js/brand.js` | **App name and mascot, in one place** |
 | `js/course.js` | Builds levels and reviews from the content |
-| `js/exercises.js` · `js/grid.js` · `js/visuals.js` | Exercise types, the mini spreadsheet, pictures (incl. a drawn Data menu and sort window) |
+| `js/exercises.js` · `js/grid.js` · `js/visuals.js` | Exercise types, the mini spreadsheet (incl. two ranges with Ctrl), pictures |
+| `js/charts.js` | Drawn pie, column and bar charts (inline SVG): each series has a colour **and** a pattern, for colour-blind students |
 | `js/sort.js` | Sorting a small table like Google Sheets, and the likely mistakes (for *Predict the sort*) |
 | `js/lesson.js` · `js/app.js` · `js/store.js` | Lesson runner, screens and settings, saved progress |
 | `css/tokens.css` | Colours, type and spacing (`python3 tools/contrast.py` checks WCAG AA) |
 
-## Adding a lesson (Lessons 1–6 are in; Lesson 7 next)
+## Adding a lesson (Lessons 1–7 are in)
 
-1. In `content/course.js`, add the lesson after Lesson 6 (`n: 7`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
-   Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson7.js`, in slide order.
-   Add `review: { id: "7-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
-2. Run `tools/sync_content.sh`: it copies `knowledge_lesson7.js` and checks everything.
+1. In `content/course.js`, add the lesson after the last one (`n: 8`, a title, a subtitle and a theme: green, blue or yellow), with its levels.
+   Each level is a list of 2–6 terms, copied exactly from `knowledge_lesson8.js`, in slide order.
+   Add `review: { id: "8-r", title: "Mixed review" }`. To show it early as a teaser, use `comingSoon: true` instead of levels.
+2. Run `tools/sync_content.sh`: it copies `knowledge_lesson8.js` and checks everything.
 3. Optional but worthwhile: in `content/practice.js`, add a learn-card picture and a few hands-on
    exercises for each new term. The comments at the top of that file list the exercise types.
    Without them, every term still gets term ↔ definition questions.

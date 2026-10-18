@@ -100,7 +100,7 @@ function resolve(ex, rng) {
   if (ex.type === "gridMove") {
     const k = Math.floor(rng() * [].concat(ex.from).length);
     out.from = [].concat(ex.from)[k]; out.to = [].concat(ex.to)[k % [].concat(ex.to).length]; out.value = [].concat(ex.value)[k % [].concat(ex.value).length];
-  } else if (Array.isArray(ex.target)) out.target = pickR(ex.target, rng);
+  } else if (Array.isArray(ex.target) && ex.type !== "gridMulti") out.target = pickR(ex.target, rng); // gridMulti: both ranges
   return out;
 }
 
