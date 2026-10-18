@@ -760,6 +760,7 @@ export function formulaTip(got, accept) {
     if (got === `=${name}(${a}-${b})` || got === `=${name}(${a};${b})`) return { title: "Almost!", tip: `Put a colon (:) between the first and last cell: ${a}:${b} means ${a} to ${b}.` };
     const other = /^=(SUM|MAX|MIN|AVERAGE)\((.+)\)$/.exec(got);
     if (other && other[1] !== name && other[2] === `${a}:${b}`) return { title: "Another function", tip: "SUM adds up. MAX gives the highest. MIN gives the lowest. AVERAGE gives the mean." };
+    if (name === "AVERAGE" && new RegExp(`^=SUM\\(${a}:${b}\\)/\\d+$`).test(got)) return { title: "Use AVERAGE", tip: "That works, but use the AVERAGE function here." };
   }
   // Order of operations: the same formula without its brackets.
   if (want.includes("(") && !/^=[A-Z]+\(/.test(want) && accept.some((a) => a.replace(/[()]/g, "") === got)) return { title: "Brackets!", tip: "× and ÷ go before + and −. Put brackets round the part that must go first." };

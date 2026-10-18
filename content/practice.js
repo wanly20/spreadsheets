@@ -580,7 +580,7 @@ export const practice = {
       { type: "choice", fact: "every value added up, then divided by how many there are", prompt: "B2:B6 hold 4, 9, 1, 6 and 10. What does =AVERAGE(B2:B6) show?",
         visual: { grid: { cols: 2, rows: 6, cells: { B1: "Points", B2: 4, B3: 9, B4: 1, B5: 6, B6: 10 }, style: { B1: { b: 1 } } } }, correct: "6", wrong: ["30", "10", "5"] },
       { type: "choice", fact: "gives the mean", prompt: "Say it: what's the average of 10 and 20?", correct: "15", wrong: ["30", "10", "2"] },
-      { type: "formula", fact: "gives the mean", prompt: "Write a function that gives the average (the mean) of B2 to B6.", accept: ["=AVERAGE(B2:B6)", "=SUM(B2:B6)/5"] },
+      { type: "formula", fact: "gives the mean", prompt: "Write a function that gives the average (the mean) of B2 to B6.", accept: ["=AVERAGE(B2:B6)"] },
       { type: "choice", fact: "every value added up, then divided by how many there are", prompt: "How does AVERAGE work out 2, 4 and 6?", correct: "2 + 4 + 6 = 12, then 12 ÷ 3 = 4",
         wrong: ["2 + 4 + 6 = 12, then 12 ÷ 2 = 6", "2 × 4 × 6 = 48, then 48 ÷ 3 = 16", "It gives the highest: 6"] },
       { type: "choice", fact: "gives the mean", prompt: "Which formula gives the average of B2:B6?", correct: "=AVERAGE(B2:B6)", wrong: ["=SUM(B2:B6)", "=AVERAGE(B2-B6)", "=AVERAGE B2:B6"] },

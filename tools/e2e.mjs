@@ -196,7 +196,8 @@ async function runViewport(vp) {
       return {
         colon: t("=max(b4-b9)", ["=MAX(B4:B9)"]),
         name: t("=MAX(C2:C9)", ["=MIN(C2:C9)"]),
-        brackets: t("=AVERAGE B2:B6", ["=AVERAGE(B2:B6)", "=SUM(B2:B6)/5"]),
+        brackets: t("=AVERAGE B2:B6", ["=AVERAGE(B2:B6)"]),
+        sumAvg: t("=sum(b2:b6)/5", ["=AVERAGE(B2:B6)"]),
         order: t("=B2+C2/2", ["=(B2+C2)/2", "=(C2+B2)/2"]),
         lock: t("=D4/D9", ["=D4/$D$9"]),
       };
@@ -204,6 +205,7 @@ async function runViewport(vp) {
     ok(/colon/.test(tips.colon.tip), `=MAX(B4-B9) gets the colon tip: “${tips.colon.tip}”`);
     ok(/MIN gives the lowest/.test(tips.name.tip), `=MAX for a MIN question gets the “which function” tip`);
     ok(/in brackets: =AVERAGE\(first:last\)/.test(tips.brackets.tip), `=AVERAGE B2:B6 gets the brackets tip`);
+    ok(/use the AVERAGE function/.test(tips.sumAvg.tip), `=SUM(B2:B6)/5 for an AVERAGE question gets the “use AVERAGE” tip`);
     ok(tips.order.title === "Brackets!" && /× and ÷ go before/.test(tips.order.tip), `=B2+C2/2 gets the order-of-operations tip`);
     ok(tips.lock.title === "Lock it!" && /Chromebook/.test(tips.lock.tip), `a missing $ still gets the Chromebook-friendly “Lock it!” tip`);
     await page.goto(BASE);
