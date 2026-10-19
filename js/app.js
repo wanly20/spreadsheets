@@ -2,7 +2,7 @@
 // session, the "complete" screen and settings.
 // Routes: #/  path · #/play/<nodeId>  a level or review node · #/review  "Review" (spaced repetition)
 import { APP_NAME, APP_SHORT, MASCOT, mascotSrc } from "./brand.js";
-import { course, loadKnowledge, buildModel, levelSession, reviewSession, pathNodes, genericExercises, authoredExercises } from "./course.js";
+import { course, loadKnowledge, buildModel, levelSession, reviewSession, pathNodes, genericExercises, authoredExercises, retryStep, skillOf } from "./course.js";
 import { icon } from "./icons.js";
 import { $, $$, esc, el, button, footBar, toast, openModal, countUp, reducedMotion, restartAnim, mascotImg } from "./ui.js";
 import { store, starsFor, readProgressFile, dayKey } from "./store.js";
@@ -334,6 +334,7 @@ function startReview() {
 function play(id) {
   let session;
   const need = (itemId) => store.need(itemId);
+  const miss = (itemId) => store.get().items[itemId]?.miss || null;
   const seed = undefined;
   if (id === "sampler") {
     // Not linked anywhere: one of every exercise type, for previews and screenshots (#/play/sampler).
@@ -347,19 +348,21 @@ function play(id) {
   } else if (id === "review") {
     const items = seenItems();
     if (!items.length) { location.replace("#/"); return; }
-    session = { id: null, kind: "review", title: "Review", xpBase: 5, steps: reviewSession(model, items, { count: REVIEW_COUNT, need, seed }) };
+    session = { id: null, kind: "review", title: "Review", xpBase: 5, steps: reviewSession(model, items, { count: REVIEW_COUNT, need, miss, seed }) };
   } else {
     const n = allNodes().find((x) => x.id === id);
     if (!n) { location.replace("#/"); return; }
-    if (n.kind === "level") session = { id, kind: "level", title: n.title, xpBase: 10, steps: levelSession(model, n.level, { need, seed }) };
-    else session = { id, kind: n.kind, title: n.title, xpBase: n.kind === "final" ? 20 : 15, steps: reviewSession(model, n.items, { count: n.kind === "final" ? 15 : 12, need, seed }) };
+    if (n.kind === "level") session = { id, kind: "level", title: n.title, xpBase: 10, steps: levelSession(model, n.level, { need, miss, seed }) };
+    else session = { id, kind: n.kind, title: n.title, xpBase: n.kind === "final" ? 20 : 15, steps: reviewSession(model, n.items, { count: n.kind === "final" ? 15 : 12, need, miss, seed }) };
   }
   active = runLesson(app, session, {
     item: (itemId) => model.byId.get(itemId),
     onGraded(step, result) {
-      if (step.items) step.items.forEach((itemId) => store.grade(itemId, !(result.itemsWrong || []).includes(itemId), { firstTry: !step.retry }));
-      else if (step.item) store.grade(step.item, !!result.ok, { firstTry: !step.retry });
+      // skillOf: what the step practised, so a mistake is remembered exactly (Review aims at it).
+      if (step.items) step.items.forEach((itemId) => store.grade(itemId, !(result.itemsWrong || []).includes(itemId), { firstTry: !step.retry, skill: skillOf(step) }));
+      else if (step.item) store.grade(step.item, !!result.ok, { firstTry: !step.retry, skill: skillOf(step) });
     },
+    retry: (step) => retryStep(model, step),
     onExit: () => go("#/"),
     onComplete: (r) => showComplete(session, r),
     openSettings,

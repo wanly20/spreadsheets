@@ -1,5 +1,5 @@
 // Lesson runner: progress bar, CHECK / CONTINUE, the feedback sheet, wrong
-// answers coming back a few steps later, keyboard (1–9, Enter, Backspace, Esc).
+// answers coming back at the end (as a new version), keyboard (1–9, Enter, Backspace, Esc).
 // Exercise types live in js/exercises.js.
 import { icon } from "./icons.js";
 import { $, esc, rich, el, button, footBar, pick, restartAnim, reducedMotion, openModal, mascotImg } from "./ui.js";
@@ -14,7 +14,7 @@ const KIND = ["Mistakes help you learn.", "Every mistake is practice.", "Now you
 
 /**
  * session: { id, title, steps, xpBase }
- * hooks: { item(id), onGraded(step, result), onExit(), onComplete({ xp, accuracy, practised }), openSettings() }
+ * hooks: { item(id), onGraded(step, result), retry?(step) -> step, onExit(), onComplete({ xp, accuracy, practised }), openSettings() }
  */
 export function runLesson(app, session, hooks) {
   const queue = session.steps.map((s) => ({ ...s, tries: 0 }));
@@ -173,8 +173,10 @@ export function runLesson(app, session, hooks) {
       stats.streak = 0;
       sfx.wrong();
       if (step.tries < MAX_RETRIES) {
-        // The same exercise comes back a few steps later.
-        queue.splice(Math.min(queue.length, idx + 3), 0, { ...step, retry: true, tries: step.tries + 1 });
+        // It comes back at the end of the session, as a different version where there is one
+        // (another cell, other numbers, the question the other way round): hooks.retry.
+        const again = hooks.retry?.(step) || step;
+        queue.push({ ...again, retrieval: step.retrieval, retry: true, tries: step.tries + 1 });
       }
     }
     updateCombo();

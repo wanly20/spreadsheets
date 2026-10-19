@@ -4,7 +4,7 @@
 // keys only: number keys for options / areas / steps / pairs, arrows (+ Shift,
 // Space) on the mini spreadsheet, typing references, the real shortcut keys,
 // Enter for CHECK and CONTINUE, Esc for the quit dialog. Plays the whole
-// sampler (one of every exercise type), Lesson 1's first level, and every level of Lessons 6 and 7.
+// sampler (one of every exercise type), Lesson 1's first and fourth levels, Lesson 2's last two, and every level of Lessons 6 and 7.
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 const require = createRequire(import.meta.url);
@@ -48,8 +48,8 @@ await p.goto(BASE + "#/play/sampler");
 await wait(1200);
 await playAll("sampler");
 
-// Lesson 6 (sorting) and Lesson 7 (charts): every level, keyboard only.
-for (const id of ["6-1", "6-2", "7-1", "7-2", "7-3"]) {
+// Lessons 1–2 (menu paths in order, merge, borders), Lesson 6 (sorting) and Lesson 7 (charts), keyboard only.
+for (const id of ["1-4", "2-2", "2-3", "6-1", "6-2", "7-1", "7-2", "7-3"]) {
   await p.goto(BASE + "#/play/" + id);
   await wait(1200);
   await playAll(id);

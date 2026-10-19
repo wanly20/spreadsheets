@@ -353,7 +353,7 @@ function rangeName(step, api) {
   const g = createGrid({ cols: Math.max(5, box.c2 + 1), rows: Math.max(6, box.r2 + 1), sel: step.target });
   const node = el(`
     <div class="ex ex-grid ex-type-ref">
-      ${head(step, "Which range is selected?", "Type it the way a spreadsheet writes it.")}
+      ${head(step, step.prompt ? esc(step.prompt) : "Which range is selected?", "Type it the way a spreadsheet writes it.")}
       <div class="ex-sheet"></div>
       <div class="type-field">
         <input class="type-input type-input--ref" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12"

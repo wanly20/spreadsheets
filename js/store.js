@@ -1,9 +1,13 @@
 // Progress, kept in this browser's localStorage only (no accounts, no
 // personal data, no analytics). Every access is wrapped: storage may be blocked.
+import { sameSkill } from "./course.js";
+
 const KEY = "spreadsheets-practice.v1";
 const DAY = 864e5;
 // Spaced repetition (Leitner boxes): a right answer moves an item up a box and
 // it comes back after this many days; a wrong answer sends it back to box 0.
+// An item moves up at most one box per calendar day, so "Learnt" (box 3+) means
+// right answers on at least three different days, not three in one session.
 const INTERVAL_DAYS = [0, 1, 2, 4, 8, 16];
 
 const defaults = () => ({
@@ -11,7 +15,7 @@ const defaults = () => ({
   streak: 0,
   lastPracticeDay: null, // "YYYY-MM-DD" (local)
   levels: {},            // levelId -> { stars, best, xp, at, plays }
-  items: {},             // itemId -> { box, due, seen, right, wrong }
+  items: {},             // itemId -> { box, due, seen, right, wrong, promoted?: "YYYY-MM-DD", miss?: what was got wrong }
   sfx: true,
   sessions: 0,           // finished sessions (for the occasional "download your progress" tip)
 });
@@ -51,19 +55,24 @@ export const store = {
   set(patch) { state = { ...state, ...patch }; save(); return state; },
   reset() { state = { ...defaults(), sfx: state.sfx }; save(); return state; },
 
-  /** One graded answer for a knowledge item (first try in a lesson counts most). */
-  grade(itemId, ok, { firstTry = true } = {}) {
+  /**
+   * One graded answer for a knowledge item (first try in a lesson counts most). `skill`: what the
+   * step practised (course.js skillOf); a wrong answer remembers it, a right one on the same thing clears it.
+   */
+  grade(itemId, ok, { firstTry = true, skill = null } = {}) {
     const now = Date.now();
-    const it = { box: 0, due: now, seen: now, right: 0, wrong: 0, ...state.items[itemId] };
-    it.seen = now;
+    const today = dayKey(new Date(now));
+    let { box, right, wrong, promoted, miss } = { box: 0, right: 0, wrong: 0, ...state.items[itemId] };
     if (ok) {
-      it.right++;
-      if (firstTry) it.box = Math.min(INTERVAL_DAYS.length - 1, it.box + 1);
+      right++;
+      if (firstTry && promoted !== today) { box = Math.min(INTERVAL_DAYS.length - 1, box + 1); promoted = today; }
+      if (miss && skill && sameSkill(miss, skill)) miss = null;
     } else {
-      it.wrong++;
-      it.box = 0;
+      wrong++;
+      box = 0;
+      if (skill) miss = skill;
     }
-    it.due = now + INTERVAL_DAYS[it.box] * DAY;
+    const it = { box, due: now + INTERVAL_DAYS[box] * DAY, seen: now, right, wrong, ...(promoted ? { promoted } : {}), ...(miss ? { miss } : {}) };
     state = { ...state, items: { ...state.items, [itemId]: it } };
     save();
   },
@@ -143,7 +152,12 @@ export function readProgressFile(text) {
     levels: {}, items: {}, sfx: p.sfx !== false, sessions: Math.max(0, +p.sessions || 0),
   };
   for (const [k, v] of Object.entries(p.levels)) if (isObj(v) && v.stars >= 1 && v.stars <= 3) clean.levels[k] = { stars: v.stars, best: +v.best || 0, xp: +v.xp || 0, plays: +v.plays || 1, at: +v.at || 0 };
-  for (const [k, v] of Object.entries(p.items)) if (isObj(v) && Number.isFinite(v.box)) clean.items[k] = { box: Math.min(5, Math.max(0, v.box)), due: +v.due || 0, seen: +v.seen || 0, right: +v.right || 0, wrong: +v.wrong || 0 };
+  for (const [k, v] of Object.entries(p.items)) if (isObj(v) && Number.isFinite(v.box)) {
+    const m = isObj(v.miss) && typeof v.miss.type === "string" ? v.miss : null;
+    clean.items[k] = { box: Math.min(5, Math.max(0, v.box)), due: +v.due || 0, seen: +v.seen || 0, right: +v.right || 0, wrong: +v.wrong || 0,
+      ...(typeof v.promoted === "string" && /^\d{4}-\d\d-\d\d$/.test(v.promoted) ? { promoted: v.promoted } : {}),
+      ...(m ? { miss: { type: m.type, ...(Number.isInteger(m.ex) ? { ex: m.ex } : {}), ...(typeof m.fact === "string" ? { fact: m.fact } : {}), ...(typeof m.gen === "string" ? { gen: m.gen } : {}) } } : {}) };
+  }
   clean.items = renameItems(clean.items);
   return { progress: clean, saved: data.saved };
 }

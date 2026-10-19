@@ -33,6 +33,8 @@
 // Grid targets can be a list: one is picked at random each time.
 //
 // Optional, on any exercise:
+//   core       true on one exercise per term: its key question (the slides' Predict-It). A level always
+//              serves it; a skill (kind "action") also always gets one hands-on exercise when it has one
 //   why        one short sentence: the reason, shown with the answer when it's wrong
 //   tips       (hotspot) { region: "why that one isn't it" } for likely wrong taps
 // Optional, on a term (next to learn and exercises):
@@ -85,7 +87,7 @@ export const practice = {
   spreadsheet: {
     learn: { visual: { grid: { cols: 4, rows: 4, cells: shop, sel: "D2", nameBox: true, formula: "=B2*C2" } }, note: "D2 holds a formula (see the bar above the grid: =B2*C2). You typed the Price and the Qty; the formula works out the Total." },
     exercises: [
-      { type: "choice", fact: "calculates for you", prompt: "D2 holds a formula that multiplies the Price by the Qty. The Pen costs $2 and you buy 3. You didn't type 6. What does D2 show?",
+      { core: true, type: "choice", fact: "calculates for you", prompt: "D2 holds a formula that multiplies the Price by the Qty. The Pen costs $2 and you buy 3. You didn't type 6. What does D2 show?",
         visual: { grid: { cols: 4, rows: 3, cells: { ...shop, D2: "?", A3: "", B3: "", C3: "", D3: "" }, sel: "D2", nameBox: true, formula: "=B2*C2" } },
         correct: "6: the formula works it out for you", wrong: ["Nothing: you have to type the answer", "23", "5"],
         why: "The formula in D2 multiplies 2 by 3, so D2 shows 6. Change the Price and the Total changes by itself." },
@@ -96,7 +98,7 @@ export const practice = {
     confusable: ["cell reference"],
     contrast: { "cell reference": "A cell is the box. Its cell reference, like C5, is its name." },
     exercises: [
-      { type: "choice", fact: "One box", prompt: "What is one box in the grid called?", visual: { grid: { cols: 5, rows: 5, sel: "B4" } },
+      { core: true, type: "choice", fact: "One box", prompt: "What is one box in the grid called?", visual: { grid: { cols: 5, rows: 5, sel: "B4" } },
         correct: "A cell", wrong: ["A row", "A column", "A spreadsheet"] },
     ],
   },
@@ -105,7 +107,7 @@ export const practice = {
     confusable: ["row"],
     contrast: { row: "A row goes across and has a number. A column goes down and has a letter." },
     exercises: [
-      { type: "choice", fact: "going down", prompt: "What is highlighted?", visual: { grid: { cols: 5, rows: 5, sel: "B:B" } },
+      { core: true, type: "choice", fact: "going down", prompt: "What is highlighted?", visual: { grid: { cols: 5, rows: 5, sel: "B:B" } },
         correct: "A column", wrong: ["A row", "A cell", "A spreadsheet"] },
       { type: "gridClick", fact: "Named with a letter", target: ["col:D", "col:B", "col:E"] },
       { type: "choice", fact: "Named with a letter", prompt: "How are columns named?", correct: "With letters: A, B, C…", wrong: ["With numbers: 1, 2, 3…", "With colours", "With cell references, like C5"] },
@@ -116,7 +118,7 @@ export const practice = {
     confusable: ["column"],
     contrast: { column: "A column goes down and has a letter. A row goes across and has a number." },
     exercises: [
-      { type: "choice", fact: "going across", prompt: "What is highlighted?", visual: { grid: { cols: 5, rows: 5, sel: "4:4" } },
+      { core: true, type: "choice", fact: "going across", prompt: "What is highlighted?", visual: { grid: { cols: 5, rows: 5, sel: "4:4" } },
         correct: "A row", wrong: ["A column", "A cell", "A spreadsheet"] },
       { type: "gridClick", fact: "Named with a number", target: ["row:4", "row:2", "row:5"] },
     ],
@@ -128,7 +130,7 @@ export const practice = {
     exercises: [
       { type: "gridClick", fact: "column letter first", target: ["C5", "B3", "E2", "D6", "A4"] },
       { type: "gridName", fact: "column letter first", target: ["D3", "B5", "E2", "C4", "A6"] },
-      { type: "choice", fact: "Never 5C", prompt: "Column C, row 5. Which is the right way to write it?", correct: "C5", wrong: ["5C", "C-5", "5:C"],
+      { core: true, type: "choice", fact: "Never 5C", prompt: "Column C, row 5. Which is the right way to write it?", correct: "C5", wrong: ["5C", "C-5", "5:C"],
         why: "Column letter first, then the row number: C5. Like a grid reference on a map: across first, then down." },
     ],
   },
@@ -137,7 +139,7 @@ export const practice = {
     learn: { visual: { grid: { cols: 5, rows: 7, sel: "C2:C7", nameBox: true } }, note: "Say it as “C2 to C7”." },
     exercises: [
       { type: "gridRange", fact: "first cell : last cell", target: ["C2:C6", "B2:B5", "B3:E3", "A2:D2"] },
-      { type: "rangeName", fact: "first cell : last cell", target: ["B2:B6", "B4:E4", "C2:C5", "A3:D3"] },
+      { core: true, type: "rangeName", fact: "first cell : last cell", target: ["B2:B6", "B4:E4", "C2:C5", "A3:D3"] },
       { type: "choice", fact: "The colon means \"to\"", prompt: "In C2:C7, what does the colon ( : ) mean?",
         correct: "“to”: C2 to C7, and every cell between", wrong: ["“and”: just C2 and C7", "“times”: C2 × C7", "“minus”: C2 − C7"] },
     ],
@@ -149,7 +151,7 @@ export const practice = {
       { type: "hotspot", fact: "top-left", screen: "sheets-basic", target: "nameBox", prompt: "Tap the Name Box." },
       { type: "order", fact: "press Enter to jump there", prompt: "Put the steps in order to jump to cell E2.",
         steps: ["Click in the Name Box", "Type E2", "Press Enter"] },
-      { type: "keys", fact: "press Enter", prompt: "You typed F10 in the Name Box. Press the key that jumps there!", combo: "enter", label: "Enter", wrong: ["Delete", "Ctrl + Z", "Space"],
+      { core: true, type: "keys", fact: "press Enter", prompt: "You typed F10 in the Name Box. Press the key that jumps there!", combo: "enter", label: "Enter", wrong: ["Delete", "Ctrl + Z", "Space"],
         scene: { grid: { cols: 5, rows: 4, sel: "B2", nameBox: "F10" } } },
       { type: "choice", fact: "It shows the cell you are on", prompt: "You drag from B2 down to B6. What does the Name Box show?",
         visual: { grid: { cols: 4, rows: 7, sel: "B2:B6", nameBox: "?" } }, correct: "B2:B6", wrong: ["B2", "B6", "B2-B6"],
@@ -160,7 +162,7 @@ export const practice = {
     learn: { visual: { image: "fill-handle" }, note: "Hover over the blue circle until the cursor is a thin +, then drag." },
     gapChips: ["box", "tab", "move", "clear"],
     exercises: [
-      { type: "hotspot", fact: "bottom-right corner", screen: "sheets-basic", target: "fillHandle", prompt: "Tap the fill handle." },
+      { core: true, type: "hotspot", fact: "bottom-right corner", screen: "sheets-basic", target: "fillHandle", prompt: "Tap the fill handle." },
       { type: "gridClick", fact: "bottom-right corner", target: "handle", prompt: "Grab the fill handle of the selected cell.", grid: { cols: 5, rows: 5, sel: "B2", cells: { B2: 5 } } },
       { type: "choice", fact: "small blue circle", prompt: "What does the fill handle look like in Google Sheets?",
         correct: "A small blue circle", wrong: ["A small blue triangle", "A plus sign at the top-left", "A paint bucket"] },
@@ -173,7 +175,7 @@ export const practice = {
     contrast: { "fill a pattern": "One cell selected copies it. Two cells selected show a pattern to carry on." },
     gapChips: ["goes up by one", "doubles", "disappears"],
     exercises: [
-      { type: "fill", fact: "the same value repeats", start: [7], end: 5 },
+      { core: true, type: "fill", fact: "the same value repeats", start: [7], end: 5 },
       { type: "fill", fact: "the same value repeats", start: ["Hall"], end: 5 },
       { type: "choice", fact: "Select one cell", prompt: "You want the same value in every cell. How many cells do you select before you drag the fill handle?",
         correct: "One cell", wrong: ["Two cells", "The whole column", "None"] },
@@ -186,7 +188,7 @@ export const practice = {
     gapChips: ["copy the first cell", "repeat the last cell", "add one each time"],
     exercises: [
       { type: "fill", fact: "Select two cells", start: [5, 10], end: 6 },
-      { type: "fill", fact: "Select two cells", start: [10, 20], end: 6 },
+      { core: true, type: "fill", fact: "Select two cells", start: [10, 20], end: 6 },
       { type: "fill", fact: "continue in the same way", start: [1, 2], end: 7 },
       { type: "order", fact: "Select two cells", prompt: "Put the steps in order to fill 5, 10, 15, 20… down column C.",
         steps: ["Type 5 in C1 and 10 in C2", "Select C1 and C2", "Drag the fill handle down"] },
@@ -197,7 +199,7 @@ export const practice = {
     learn: { visual: { moveDemo: { from: "B2", to: "D4", value: "hello" } }, note: "The edge, not the fill handle: the fill handle fills, the edge moves." },
     gapChips: ["drag the fill handle", "press Delete", "double-click it"],
     exercises: [
-      { type: "gridMove", fact: "drag it to a new place", from: ["B2", "B3", "C2"], to: ["D4", "E5", "D2"], value: ["hello", "42", "Pen"] },
+      { core: true, type: "gridMove", fact: "drag it to a new place", from: ["B2", "B3", "C2"], to: ["D4", "E5", "D2"], value: ["hello", "42", "Pen"] },
       { type: "choice", fact: "hover the edge", prompt: "You want to move a cell. Where do you hover first?",
         correct: "Its edge, until the cursor is a hand", wrong: ["Its fill handle", "The Name Box", "The column letter"],
         why: "The edge moves the cell. The fill handle (the blue circle) fills other cells instead." },
@@ -211,7 +213,7 @@ export const practice = {
     exercises: [
       { type: "keys", fact: "press Delete", prompt: "B2 is selected. Clear what's in it!", combo: "delete", label: "Delete", wrong: ["Ctrl + Y", "Enter", "Ctrl + Z"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: 42 } }, after: { cells: { B2: "" } } } },
-      { type: "choice", fact: "not any formatting", prompt: "B2 holds 42 and has a green background. You click it and press Delete. What is left?",
+      { core: true, type: "choice", fact: "not any formatting", prompt: "B2 holds 42 and has a green background. You click it and press Delete. What is left?",
         visual: { grid: { cols: 4, rows: 3, sel: "B2", cells: { B2: 42 }, style: { B2: { bg: "#b7e1c5" } } } },
         correct: "An empty cell that still has its green background", wrong: ["An empty white cell: the green is gone too", "42 is still there", "The cell is deleted and C2 moves into its place"],
         why: "A background colour is formatting. Delete clears the contents only, so the 42 goes and the green stays." },
@@ -223,7 +225,7 @@ export const practice = {
     contrast: { redo: "Ctrl + Z takes your last action back. Ctrl + Y brings back what Ctrl + Z took away." },
     gapChips: ["bring back", "copy", "clear"],
     exercises: [
-      { type: "keys", fact: "Ctrl + Z", prompt: "Oops! You cleared 42 from B2 by mistake. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Ctrl + X", "Ctrl + U"],
+      { core: true, type: "keys", fact: "Ctrl + Z", prompt: "Oops! You cleared 42 from B2 by mistake. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Ctrl + X", "Ctrl + U"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: "" } }, after: { cells: { B2: 42 } } } },
       { type: "choice", fact: "Press it again to go further back", prompt: "You made three mistakes in a row. Ctrl + Z took back the last one. How do you take back the other two?",
         correct: "Press Ctrl + Z two more times", wrong: ["Press Ctrl + Y two more times", "You can't: Ctrl + Z only works once", "Close the spreadsheet and open it again"] },
@@ -234,7 +236,7 @@ export const practice = {
     confusable: ["undo"],
     contrast: { undo: "Ctrl + Y brings back what Ctrl + Z took away. Ctrl + Z takes your last action back." },
     exercises: [
-      { type: "keys", fact: "Ctrl + Y", prompt: "You pressed Ctrl + Z one time too many and 42 disappeared. Bring it back!", combo: "ctrl+y", label: "Ctrl + Y", wrong: ["Ctrl + Z", "Ctrl + B", "Delete"],
+      { core: true, type: "keys", fact: "Ctrl + Y", prompt: "You pressed Ctrl + Z one time too many and 42 disappeared. Bring it back!", combo: "ctrl+y", label: "Ctrl + Y", wrong: ["Ctrl + Z", "Ctrl + B", "Delete"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: "" } }, after: { cells: { B2: 42 } } } },
       { type: "choice", fact: "bring back what Ctrl + Z just took away", prompt: "What does Ctrl + Y do?",
         correct: "Brings back what Ctrl + Z just took away", wrong: ["Takes back your last action", "Clears the selected cell", "Copies the cell"] },
@@ -248,7 +250,7 @@ export const practice = {
     gapChips: ["empty", "Type", "Clear"],
     exercises: [
       { type: "gridRange", fact: "Select the cells first", target: ["A1:D1"], prompt: "You want to make the headings bold. Do the first step: select A1:D1.", grid: { cols: 4, rows: 3, cells: shop } },
-      { type: "choice", fact: "only works on selected cells", prompt: "Mia clicks Bold, but nothing in her table changes. What went wrong?",
+      { core: true, type: "choice", fact: "only works on selected cells", prompt: "Mia clicks Bold, but nothing in her table changes. What went wrong?",
         correct: "She didn't select any cells first", wrong: ["Bold only works on numbers", "She needed to press Delete first", "Bold only works in column A"] },
       { type: "order", fact: "Select the cells first, then choose a tool", prompt: "Put the steps in order to make A1:D1 bold.",
         steps: ["Click A1", "Drag across to D1", "Click Bold"] },
@@ -262,7 +264,7 @@ export const practice = {
       "select, then apply": "Select, then apply is the rule for every tool: select first. Text formatting is the tools that change the writing.",
     },
     exercises: [
-      { type: "choice", fact: "Changing the writing itself", prompt: "Which one is NOT text formatting?",
+      { core: true, type: "choice", fact: "Changing the writing itself", prompt: "Which one is NOT text formatting?",
         correct: "Fill colour", wrong: ["Bold", "Font size", "Font colour"],
         why: "Fill colour changes the cell's background, not the writing. Text formatting changes the writing itself." },
       { type: "hotspot", fact: "bold", screen: "sheets-basic", target: "bold", prompt: "Tap the Bold button." },
@@ -275,7 +277,7 @@ export const practice = {
     contrast: { "text formatting": "Fill colour changes the cell's background. Text formatting changes the writing itself." },
     gapChips: ["Clear", "Border", "Select"],
     exercises: [
-      { type: "hotspot", fact: "paint bucket", screen: "sheets-ribbon", target: "fillColour", prompt: "Tap the fill colour button.",
+      { core: true, type: "hotspot", fact: "paint bucket", screen: "sheets-ribbon", target: "fillColour", prompt: "Tap the fill colour button.",
         tips: { borders: "That's Borders. Fill colour is the paint bucket, just to its left." } },
       { type: "choice", fact: "background colour", prompt: "What does fill colour change?",
         correct: "The background of the selected cells", wrong: ["The colour of the writing", "The lines around the cells", "The colour of the sheet tab"] },
@@ -284,6 +286,8 @@ export const practice = {
   borders: {
     learn: { visual: { icons: [["ic-borders", "Borders button"]], image: "border-menu" }, note: "The Borders button opens this menu. A thick red box: colour → red, thickness → thick, then outer box." },
     exercises: [
+      { core: true, type: "order", fact: "Pick the colour and thickness first, then where", prompt: "Put the steps in order to put a thick red box around B2.",
+        steps: ["Select B2", "Click the Borders button", "Choose red with the pencil", "Choose a thick line", "Click the outer box"] },
       { type: "choice", fact: "where", prompt: "The borders menu lets you set three things. Which three?",
         correct: "Where, colour and thickness", wrong: ["Font, size and bold", "Width, height and wrap", "Where, size and font"] },
       { type: "hotspot", fact: "outer box", screen: "border-menu", target: "outer", prompt: "Tap the button for a box around the outside only." },
@@ -296,7 +300,7 @@ export const practice = {
     learn: { visual: { tabs: { tabs: ["Sheet1", "Sheet2", "Sheet3"], active: 0 } }, note: "Like a ring binder: the whole binder is the spreadsheet (the workbook), and each page is a sheet." },
     gapChips: ["workbook", "range", "cell"],
     exercises: [
-      { type: "choice", fact: "The whole file is the spreadsheet", prompt: "Which pair is right? The whole file is the (1) ____. Each tab is a (2) ____.",
+      { core: true, type: "choice", fact: "The whole file is the spreadsheet", prompt: "Which pair is right? The whole file is the (1) ____. Each tab is a (2) ____.",
         visual: { tabs: { tabs: ["Sheet1", "Sheet2", "Sheet3"], active: 0 } },
         correct: "spreadsheet · sheet", wrong: ["sheet · spreadsheet", "cell · range", "range · column"] },
       { type: "choice", fact: "worksheet", prompt: "What is another name for a sheet?", correct: "A worksheet", wrong: ["A workbook", "A cell", "A range"],
@@ -309,7 +313,7 @@ export const practice = {
     learn: { visual: { tabs: { tabs: ["Sheet1"], active: 0, highlight: "+" } } },
     gapChips: ["rename a sheet", "copy a sheet", "colour a tab"],
     exercises: [
-      { type: "hotspot", fact: "Click the +", ui: { tabs: { tabs: ["Data", "Notes"], active: 0 } }, target: "+", prompt: "Add a new sheet." },
+      { core: true, type: "hotspot", fact: "Click the +", ui: { tabs: { tabs: ["Data", "Notes"], active: 0 } }, target: "+", prompt: "Add a new sheet." },
       { type: "choice", fact: "bottom-left", prompt: "Where is the + that adds a new sheet?", correct: "At the bottom-left", wrong: ["At the top-right", "In the Name Box", "In the Format menu"] },
     ],
   },
@@ -317,7 +321,7 @@ export const practice = {
     learn: { visual: { tabs: { tabs: ["Sheet1", "Data"], active: 1, editing: 1 } }, note: "Double-click Sheet2, type Data, press Enter." },
     gapChips: ["cell reference", "range", "colour"],
     exercises: [
-      { type: "order", fact: "Double-click the tab", prompt: "Put the steps in order to rename Sheet1 to Data.",
+      { core: true, type: "order", fact: "Double-click the tab", prompt: "Put the steps in order to rename Sheet1 to Data.",
         steps: ["Double-click the Sheet1 tab", "Type Data", "Press Enter"] },
       { type: "choice", fact: "Double-click the tab", prompt: "How do you start renaming a sheet?", correct: "Double-click its tab", wrong: ["Click the +", "Select A1 and type", "Press Delete"] },
     ],
@@ -326,7 +330,7 @@ export const practice = {
     learn: { visual: { tabmenu: { tab: "Data", tabs: ["Data", "Notes"], highlight: "Duplicate" } }, note: "Two-finger tap on a Chromebook = right-click on Windows. Duplicate makes the copy in this file." },
     gapChips: ["Copy to", "Rename", "Move right"],
     exercises: [
-      { type: "hotspot", fact: "Duplicate", ui: { tabmenu: { tab: "Term 1", tabs: ["Term 1", "Term 2"] } }, target: "Duplicate", prompt: "Make a copy of the Term 1 sheet.",
+      { core: true, type: "hotspot", fact: "Duplicate", ui: { tabmenu: { tab: "Term 1", tabs: ["Term 1", "Term 2"] } }, target: "Duplicate", prompt: "Make a copy of the Term 1 sheet.",
         tips: { "Copy to": "Copy to puts a copy in a different spreadsheet file. Duplicate makes the copy right here, in this file." } },
       { type: "choice", fact: "Makes a copy", prompt: "What does Duplicate do to a sheet?", correct: "Makes a copy of it", wrong: ["Deletes it", "Moves it to the right", "Renames it"] },
       { type: "choice", fact: "Two-finger tap the tab", prompt: "The menu for the Data tab isn't open yet. How do you open it on a Chromebook?",
@@ -339,7 +343,7 @@ export const practice = {
     learn: { visual: { tabs: { tabs: ["Notes", "Data"], active: 1, dragging: 1 } }, note: "Drag a tab along the row, or use Move right / Move left in the tab menu." },
     gapChips: ["Duplicate", "Rename", "Copy to"],
     exercises: [
-      { type: "hotspot", fact: "Move right", ui: { tabmenu: { tab: "Notes", tabs: ["Notes", "Data"] } }, target: "Move right", prompt: "Move the Notes sheet one place to the right." },
+      { core: true, type: "hotspot", fact: "Move right", ui: { tabmenu: { tab: "Notes", tabs: ["Notes", "Data"] } }, target: "Move right", prompt: "Move the Notes sheet one place to the right." },
       { type: "choice", fact: "Drag the tab", prompt: "Which of these moves a sheet tab to a new place?",
         correct: "Drag the tab along the row", wrong: ["Double-click the tab", "Click the +", "Press Ctrl + Y"] },
     ],
@@ -350,7 +354,7 @@ export const practice = {
     gapShowTerm: true,
     gapChips: ["Fill colour", "Tab colour", "Rename"],
     exercises: [
-      { type: "hotspot", fact: "Change colour", ui: { tabmenu: { tab: "Data", tabs: ["Data", "Notes"] } }, target: "Change colour", prompt: "Make the Data tab green. What do you choose?" },
+      { core: true, type: "hotspot", fact: "Change colour", ui: { tabmenu: { tab: "Data", tabs: ["Data", "Notes"] } }, target: "Change colour", prompt: "Make the Data tab green. What do you choose?" },
     ],
   },
   // ======================================================= Lesson 2
@@ -359,7 +363,7 @@ export const practice = {
       note: "Column A is too narrow: “Face Painting” is cut off. Drag the line between A and B to the right, or double-click it. A line belongs to the column on its left." },
     gapChips: ["numbers", "Right-click", "cells"],
     exercises: [
-      { type: "choice", fact: "Drag the line between two column letters", prompt: "You drag the line between columns B and C to the right. Which column gets wider?",
+      { core: true, type: "choice", fact: "Drag the line between two column letters", prompt: "You drag the line between columns B and C to the right. Which column gets wider?",
         visual: { colheads: { n: 4, highlight: "B|C" } }, correct: "Column B", wrong: ["Column C", "Both B and C", "Neither: row 1 gets taller"],
         why: "A line belongs to the column on its left. The line between B and C is column B's right edge." },
       { type: "hotspot", fact: "Drag the line between two column letters", ui: { colheads: { n: 4 } }, target: "B|C", prompt: "Tap the line you'd drag to make column B wider.",
@@ -373,7 +377,7 @@ export const practice = {
     confusable: ["column width"],
     gapChips: ["letters", "cells", "tabs"],
     exercises: [
-      { type: "hotspot", fact: "Drag the line between two row numbers", ui: { rowheads: { n: 4 } }, target: "2|3", prompt: "Tap the line you'd drag to make row 2 taller.",
+      { core: true, type: "hotspot", fact: "Drag the line between two row numbers", ui: { rowheads: { n: 4 } }, target: "2|3", prompt: "Tap the line you'd drag to make row 2 taller.",
         why: "Row 2's line is the one under its number: the line between 2 and 3." },
       { type: "choice", fact: "Drag the line between two row numbers", prompt: "How do you make a row taller?",
         correct: "Drag the line under its row number down", wrong: ["Drag the line between two column letters", "Press Enter in the row", "Merge the row's cells"] },
@@ -384,7 +388,7 @@ export const practice = {
     exercises: [
       { type: "choice", fact: "by itself, before you change anything", prompt: "What does “the default” mean in a spreadsheet?",
         correct: "What it does by itself, before you change anything", wrong: ["The setting you chose last", "A mistake in a cell", "The first cell, A1"] },
-      { type: "choice", fact: "bottom of a cell and starting on the left", prompt: "You type the word “Stall” into this tall, empty cell and change nothing. Where does it sit?",
+      { core: true, type: "choice", fact: "bottom of a cell and starting on the left", prompt: "You type the word “Stall” into this tall, empty cell and change nothing. Where does it sit?",
         visual: { grid: { cols: 3, rows: 1, heights: { 1: 72 }, cells: {}, sel: "A1", handle: false } }, correct: "At the bottom, on the left", wrong: ["At the top, on the left", "In the middle, in the centre", "At the bottom, on the right"],
         why: "By default, text sits at the bottom of a cell and starts on the left." },
     ],
@@ -392,7 +396,7 @@ export const practice = {
   "vertical alignment": {
     learn: { visual: { icons: [["ic-valign", "Vertical align"]], grid: { cols: 3, rows: 1, heights: { 1: 72 }, cells: { A1: "Top", B1: "Middle", C1: "Bottom" }, style: { A1: { valign: "top" }, B1: { valign: "middle" } } } }, note: "Bottom is the default. You only notice it when a row is taller than its text." },
     exercises: [
-      { type: "choice", fact: "Bottom is the default", prompt: "Row 1 is now three lines tall. Nobody has touched vertical alignment. You type “Raffle” into A1. Where does it sit?",
+      { core: true, type: "choice", fact: "Bottom is the default", prompt: "Row 1 is now three lines tall. Nobody has touched vertical alignment. You type “Raffle” into A1. Where does it sit?",
         visual: { grid: { cols: 3, rows: 2, heights: { 1: 78 }, cells: {}, sel: "A1", handle: false } }, correct: "At the bottom", wrong: ["At the top", "In the middle", "It stretches to fill the cell"],
         why: "Bottom is the default for vertical alignment. You only see it when a row is taller than its text." },
       { type: "choice", fact: "top, middle, or bottom", prompt: "Which cell is set to Middle?",
@@ -408,7 +412,7 @@ export const practice = {
       { type: "choice", fact: "Wrap grows the row to fit it all", prompt: "A cell is set to Wrap and its text is longer than the column. What happens?",
         correct: "The row grows taller to fit all the text", wrong: ["The text spills into the next cell", "The text is cut off at the edge", "The column gets wider"],
         why: "The text wrapping button has three choices: Overflow spills into the next cell, Wrap grows the row, Clip cuts the text off." },
-      { type: "choice", fact: "Clip cuts it off at the edge", prompt: "A1 is set to Clip. What happens to the end of the text?",
+      { core: true, type: "choice", fact: "Clip cuts it off at the edge", prompt: "A1 is set to Clip. What happens to the end of the text?",
         visual: { grid: { cols: 3, rows: 2, widths: { A: 1.1 }, cells: { A1: "Face Painting today" }, style: { A1: { wrap: "clip" } }, sel: "A1", handle: false } },
         correct: "It's cut off at the cell's edge (still there, just hidden)", wrong: ["It's deleted", "It spills into B1", "The row grows to fit it"],
         why: "Clip only hides the end of the text. It's all still in the cell." },
@@ -424,10 +428,11 @@ export const practice = {
       note: "The merge button stays grey until you select two or more cells." },
     gapChips: ["View", "Insert", "borders"],
     exercises: [
-      { type: "choice", fact: "the whole selection becomes one cell", prompt: "You select A1:E1 and choose Merge all. How many cells is A1:E1 now?", correct: "One", wrong: ["Five", "Two", "None: they're deleted"] },
+      { core: true, type: "choice", fact: "the whole selection becomes one cell", prompt: "You select A1:E1 and choose Merge all. How many cells is A1:E1 now?", correct: "One", wrong: ["Five", "Two", "None: they're deleted"] },
       { type: "order", fact: "then centre it", prompt: "Put the steps in order to make a heading across A1:D1.",
         steps: ["Select A1:D1", "Click the merge button", "Choose Merge all", "Centre it"] },
       { type: "hotspot", fact: "merge button", screen: "sheets-ribbon", target: "merge", prompt: "Tap the merge cells button." },
+      { type: "rangeName", fact: "Select two or more cells", target: ["A1:D1", "A1:E1", "B1:E1"], prompt: "These cells will become one heading. Which range is selected?" },
       { type: "gridRange", fact: "Select two or more cells", target: ["A1:D1"], prompt: "Select the cells to merge for a heading across the table: A1:D1.",
         grid: { cols: 4, rows: 3, cells: { A1: "Fair Stalls", A2: "Stall", B2: "Date", C2: "Location", D2: "Notes" } } },
     ],
@@ -435,7 +440,7 @@ export const practice = {
   "horizontal alignment": {
     learn: { visual: { icons: [["ic-halign", "Horizontal align"]], grid: { cols: 3, rows: 2, cells: { A1: "Stall", B1: "Stall", C1: "Stall", A2: "Left", B2: "Centre", C2: 42 }, style: { B1: { align: "center" }, C1: { align: "right" }, B2: { align: "center" } } } }, note: "Text sits on the left, numbers on the right, until you change it." },
     exercises: [
-      { type: "choice", fact: "numbers default to the right", prompt: "You type the number 42 into a cell. Nobody changed the alignment. Where does it sit?", correct: "On the right", wrong: ["On the left", "In the centre", "At the top"],
+      { core: true, type: "choice", fact: "numbers default to the right", prompt: "You type the number 42 into a cell. Nobody changed the alignment. Where does it sit?", correct: "On the right", wrong: ["On the left", "In the centre", "At the top"],
         why: "Text defaults to the left; numbers default to the right." },
       { type: "choice", fact: "Text defaults to the left", prompt: "Nobody changed the alignment. Where does the word “Raffle” sit in its cell?", correct: "On the left", wrong: ["On the right", "In the centre", "It depends on the font"] },
       { type: "hotspot", fact: "left, centre, or right", screen: "sheets-ribbon", target: "hAlign", prompt: "Tap the horizontal align button.",
@@ -445,10 +450,12 @@ export const practice = {
   locale: {
     learn: { visual: { grid: { cols: 2, rows: 2, widths: { A: 1.2 }, cells: { A1: "Locale", B1: "03/04/2026 is…", A2: "Australia", B2: "3 April 2026" }, style: { A1: { b: 1 }, B1: { b: 1 } } } }, note: "In the United States, 03/04/2026 is March 4. Set the locale before you type dates: File → Settings → Locale → Australia." },
     exercises: [
-      { type: "choice", fact: "day-first vs month-first", prompt: "The locale is Australia. You type 03/04/2026. Which date is it?", correct: "3 April 2026", wrong: ["4 March 2026", "3 March 2026", "4 April 2026"],
+      { core: true, type: "choice", fact: "day-first vs month-first", prompt: "The locale is Australia. You type 03/04/2026. Which date is it?", correct: "3 April 2026", wrong: ["4 March 2026", "3 March 2026", "4 April 2026"],
         why: "Australia writes the day first: 03/04 is the 3rd day of the 4th month." },
       { type: "choice", fact: "File → Settings → Locale", prompt: "Where do you change a spreadsheet's locale?", correct: "File → Settings → Locale", wrong: ["Format → Number → Locale", "View → Locale", "Format → Conditional formatting"],
         why: "The locale is a setting for the whole file, so it's in File → Settings." },
+      { type: "order", fact: "File → Settings → Locale", prompt: "Put the steps in order to set the locale to Australia.",
+        steps: ["Open the File menu", "Choose Settings", "Open the Locale list", "Choose Australia", "Click Save settings"] },
       { type: "choice", fact: "controls how dates, currency, and numbers are read and written", prompt: "What does the locale control?",
         correct: "How dates, currency and numbers are read and written", wrong: ["The font and its size", "How wide the columns are", "Which sheets you can see"] },
     ],
@@ -460,7 +467,7 @@ export const practice = {
         visual: { grid: { cols: 3, rows: 2, cells: { A1: "Item", B1: "Cost", A2: "Pen", B2: "$7.50" }, style: { B2: { align: "right" } }, sel: "B2", nameBox: true, formula: "?" } },
         correct: "7.5", wrong: ["$7.50", "7.50 $", "The text “$7.50”"],
         why: "The $ and the 0 are only the look. The formula bar shows what the cell holds: 7.5." },
-      { type: "choice", fact: "never changes what the cell actually holds", prompt: "A cell holds 18. You change its format so it shows $18.00. What does the cell hold now?",
+      { core: true, type: "choice", fact: "never changes what the cell actually holds", prompt: "A cell holds 18. You change its format so it shows $18.00. What does the cell hold now?",
         correct: "Still 18: only the look changed", wrong: ["$18.00", "18.00", "The text “$18.00”"],
         why: "Changing the format changes how 18 looks, never what the cell holds." },
     ],
@@ -469,13 +476,13 @@ export const practice = {
     learn: { visual: { grid: { cols: 2, rows: 2, widths: { B: 1.6 }, cells: { A1: "Typed", B1: "Custom date with the day name", A2: "9/11/2026", B2: "Mon, 9 Nov 2026" }, style: { A1: { b: 1 }, B1: { b: 1 }, A2: { align: "right" }, B2: { align: "right" } } } }, note: "Format → Number → Date for a clean date. Custom date and time for the day name in front." },
     gapChips: ["Date time", "Time", "Currency"],
     exercises: [
-      { type: "choice", fact: "Custom date and time to include things like the day name", prompt: "You want “Mon, 9 Nov 2026”, with the day name. Which do you choose?",
+      { core: true, type: "choice", fact: "Custom date and time to include things like the day name", prompt: "You want “Mon, 9 Nov 2026”, with the day name. Which do you choose?",
         correct: "Format → Number → Custom date and time", wrong: ["Format → Number → Date", "Format → Number → Currency", "File → Settings"],
         why: "Date gives a clean date, like 9/11/2026. Only Custom date and time can add the day name." },
       { type: "choice", fact: "day name", prompt: "The locale is Australia. A cell holds 9/11/2026. You apply a custom format with the day name in front. What appears?",
         correct: "Mon, 9 Nov 2026", wrong: ["Fri, 11 Sep 2026", "9/11/2026 Monday", "Monday"] },
       { type: "order", fact: "Custom date and time", prompt: "Put the steps in order to show the day name in front of some dates.",
-        steps: ["Select the date cells", "Open Format → Number", "Choose Custom date and time", "Pick a pattern with the day name"] },
+        steps: ["Select the date cells", "Open the Format menu", "Point to Number", "Choose Custom date and time", "Pick a pattern with the day name"] },
     ],
   },
   "currency format": {
@@ -484,8 +491,10 @@ export const practice = {
     exercises: [
       { type: "choice", fact: "two decimal places", prompt: "A cell holds 18. You apply Currency format. What do you see?", correct: "$18.00", wrong: ["18", "$18", "18.00 $"],
         why: "Currency format adds the $ sign and two decimal places: 18 shows as $18.00." },
-      { type: "choice", fact: "Adds the $ sign", prompt: "A cell has Currency format. You want it to show $18.00. What do you type?", correct: "18", wrong: ["$18", "$18.00", "18$"],
+      { core: true, type: "choice", fact: "Adds the $ sign", prompt: "A cell has Currency format. You want it to show $18.00. What do you type?", correct: "18", wrong: ["$18", "$18.00", "18$"],
         why: "Type just the number. Currency format adds the $ and the .00 for you." },
+      { type: "order", fact: "Format → Number → Currency", prompt: "Put the steps in order to show the prices in C2:C9 as dollars.",
+        steps: ["Select C2:C9", "Open the Format menu", "Point to Number", "Choose Currency"] },
       { type: "choice", fact: "Format → Number → Currency", prompt: "Where is the Currency format?", correct: "Format → Number → Currency", wrong: ["File → Settings → Currency", "View → Currency", "Insert → Currency"] },
     ],
   },
@@ -493,7 +502,7 @@ export const practice = {
     learn: { visual: { grid: { cols: 3, rows: 5, cells: { A1: "Name", B1: "Stall", A2: "Priya", A3: "Jordan", A5: "Sam" }, style: { A4: { bg: "#d3e3fd" }, B4: { bg: "#d3e3fd" }, C4: { bg: "#d3e3fd" }, A1: { b: 1 }, B1: { b: 1 } } } }, note: "A new row was inserted above Sam: Sam moved down from row 4 to row 5. Nothing was overwritten. On a Chromebook, a two-finger tap is the right-click." },
     gapChips: ["Delete row, or Delete column", "Hide row, or Hide column", "Resize row, or Resize column"],
     exercises: [
-      { type: "choice", fact: "Everything shifts to make room", prompt: "Your data is in rows 2 to 5. You right-click row 4 and choose Insert 1 row above. Which row is the old row 4 in now?", correct: "Row 5", wrong: ["Row 4", "Row 3", "It's gone: the new row replaced it"],
+      { core: true, type: "choice", fact: "Everything shifts to make room", prompt: "Your data is in rows 2 to 5. You right-click row 4 and choose Insert 1 row above. Which row is the old row 4 in now?", correct: "Row 5", wrong: ["Row 4", "Row 3", "It's gone: the new row replaced it"],
         why: "The new row takes row 4's place, and everything below shifts down one: the old row 4 is now row 5." },
       { type: "gridClick", fact: "Right-click a row number", target: "row:3", prompt: "You want a new row above row 3. Which do you right-click (two-finger tap on a Chromebook)? Click it." },
       { type: "choice", fact: "nothing is overwritten", prompt: "You insert a column in the middle of your table. What happens to the data?", correct: "It shifts across to make room: nothing is overwritten", wrong: ["The column there is overwritten", "The data is deleted", "The table is split into two sheets"] },
@@ -505,7 +514,9 @@ export const practice = {
     gapChips: ["Zoom", "Group", "Show"],
     exercises: [
       { type: "choice", fact: "stay visible at the top", prompt: "Row 1 is frozen. You scroll far down the sheet. What stays visible at the top?", correct: "Row 1, the headers", wrong: ["Nothing: everything scrolls", "The last row", "Column A"] },
-      { type: "choice", fact: "View → Freeze", prompt: "Which menu freezes rows?", correct: "View → Freeze", wrong: ["Format → Freeze", "File → Settings", "Insert → Freeze"],
+      { type: "order", fact: "View → Freeze → 1 row", prompt: "Put the steps in order to keep the headers in row 1 on screen.",
+        steps: ["Open the View menu", "Point to Freeze", "Choose 1 row", "Scroll down: row 1 stays at the top"] },
+      { core: true, type: "choice", fact: "View → Freeze", prompt: "Which menu freezes rows?", correct: "View → Freeze", wrong: ["Format → Freeze", "File → Settings", "Insert → Freeze"],
         why: "Freezing changes what you see as you scroll, so it's in the View menu." },
     ],
   },
@@ -513,13 +524,15 @@ export const practice = {
     learn: { visual: { grid: { cols: 2, rows: 5, cells: { A1: "Name", B1: "Hours", A2: "Priya", B2: 2, A3: "Jordan", B3: 3, A4: "Sam", B4: 4, A5: "Mia", B5: 2 }, style: { A1: { b: 1 }, B1: { b: 1 }, B3: { bg: "#b7e1c5" }, B4: { bg: "#b7e1c5" } } } }, note: "The rule: Hours of 3 or more → green. Change Mia's 2 to a 3 and it turns green by itself." },
     gapChips: ["Alternating colours", "Clear formatting", "button"],
     exercises: [
-      { type: "choice", fact: "keeps checking itself as values change", prompt: "The rule is “3 or more → green”. A cell holds 2, so it isn't green. Later you type 3 into it. What happens?",
+      { core: true, type: "choice", fact: "keeps checking itself as values change", prompt: "The rule is “3 or more → green”. A cell holds 2, so it isn't green. Later you type 3 into it. What happens?",
         correct: "It turns green by itself", wrong: ["Nothing until you apply the rule again", "It turns red", "The rule is deleted"],
         why: "The rule keeps checking itself: as soon as the cell holds 3, the rule is true and the green comes on." },
       { type: "choice", fact: "applies formatting automatically whenever it is true", prompt: "The rule is “3 or more → green”. Which values turn green?",
         visual: { grid: { cols: 2, rows: 5, cells: { A1: "Name", B1: "Hours", A2: "Priya", B2: 2, A3: "Jordan", B3: 3, A4: "Sam", B4: 5, A5: "Mia", B5: 1 }, style: { A1: { b: 1 }, B1: { b: 1 } } } },
         correct: "3 and 5", wrong: ["Only 5", "2, 3 and 5", "All of them"],
         why: "“3 or more” includes 3 itself, so 3 and 5 turn green." },
+      { type: "order", fact: "Format → Conditional formatting", prompt: "Put the steps in order to make Hours of 3 or more turn green.",
+        steps: ["Select B2:B5", "Open the Format menu", "Choose Conditional formatting", "Set the rule: greater than or equal to 3", "Choose green, then click Done"] },
       { type: "choice", fact: "Format → Conditional formatting", prompt: "Where do you set up conditional formatting?", correct: "Format → Conditional formatting", wrong: ["View → Conditional formatting", "File → Settings", "Data → Freeze"],
         why: "Conditional formatting is formatting, so it's in the Format menu." },
     ],

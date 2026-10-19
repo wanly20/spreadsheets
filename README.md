@@ -11,8 +11,14 @@ http://127.0.0.1:8765/.
 - **Path:** each lesson is split into levels of 4–6 new terms (in slide order), then a *Mixed
   review*. Every level has 8–12 questions. Stars (by first-try accuracy), XP and the day streak
   are saved in this browser (localStorage). There are no accounts, no personal data and no analytics.
+  Each term's core question (`core` in `content/practice.js`) is always asked, and every skill gets a
+  hands-on task (drag, type, press the keys, put steps in order or tap the real button).
+  A wrong answer comes back at the end of the level, as a new version where there is one
+  (another cell, other numbers, the question the other way round).
 - **Review** (sidebar or the ↻ button) brings back the terms a student got wrong or hasn't seen
-  for a while (a simple spaced-repetition box per term).
+  for a while (a spaced-repetition box per term, moved up at most once a day, so *Learnt* means
+  right answers on three different days). It asks again exactly what was missed, and every Mixed
+  review has a typed cell reference and range.
 - **My knowledge** lists every term met so far, split into Know / Do, with *Learnt / Getting
   there / Needs review*.
 - **Settings:** sound on/off, *Download my progress* (a small `.txt` file), *Load my progress*

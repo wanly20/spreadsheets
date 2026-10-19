@@ -95,6 +95,9 @@ export function makeRng(seed) {
 const shuffleR = (a, rng) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const pickR = (a, rng) => a[Math.floor(rng() * a.length)];
 
+/** How many versions an exercise has (a list of targets, or of cells to move). */
+const versions = (ex) => (ex.type === "gridMove" ? [].concat(ex.from).length : Array.isArray(ex.target) && ex.type !== "gridMulti" ? ex.target.length : 1);
+
 /** Resolve list-valued targets (one picked at random; gridMove keeps from/to/value aligned). */
 function resolve(ex, rng) {
   const out = { ...ex };
@@ -219,8 +222,103 @@ export function genericExercises(item, pool, rng, { met } = {}) {
   return shuffleR(out, rng);
 }
 
+/** An item's hand-made exercises, each with `ex`: its place in practice.js (so a mistake can be traced to it). */
 export function authoredExercises(item, rng) {
-  return (item.extra?.exercises || []).map((ex) => ({ ...resolve(ex, rng), item: item.id }));
+  return (item.extra?.exercises || []).map((ex, i) => ({ ...resolve(ex, rng), item: item.id, ex: i }));
+}
+
+/** Where the student does it: drags, types, presses the keys, orders steps or taps the real thing (best first). */
+export const HANDS_ON = ["gridMove", "gridRange", "gridMulti", "rangeName", "gridName", "formula", "lockRef", "keys", "order", "hotspot", "gridClick"];
+const isHandsOn = (e) => !!e && HANDS_ON.includes(e.type);
+/** Production: typing, pressing keys, dragging or ordering (not picking from options or tapping). */
+export const PRODUCTION = new Set(["gridMove", "gridRange", "gridMulti", "rangeName", "gridName", "formula", "lockRef", "keys", "order"]);
+/** The best hands-on exercise in a list (drags and typing before taps), or undefined. */
+const bestHandsOn = (list) => list.filter(isHandsOn).sort((a, b) => HANDS_ON.indexOf(a.type) - HANDS_ON.indexOf(b.type))[0];
+
+/** What a step practises, saved with a wrong answer so Review can come back to that exact thing. */
+export function skillOf(step) {
+  if (step.type === "match") return { type: "match", gen: "match" };
+  return { type: step.type, ...(step.ex != null ? { ex: step.ex, fact: step.fact } : {}), ...(step.gen ? { gen: step.gen } : {}) };
+}
+
+/** True when a step practises the same thing as a recorded miss. */
+export function sameSkill(miss, s) {
+  if (!miss || !s) return false;
+  if (miss.gen === "match") return ["match", "termToDef", "defToTerm"].includes(s.gen);
+  if (miss.gen) return miss.gen === s.gen;
+  return s.ex === miss.ex || (!!s.fact && s.fact === miss.fact && s.type === miss.type);
+}
+
+/**
+ * One exercise for an item in a review or "From earlier". A recorded miss brings back that
+ * exercise (a new version of it) or a sibling testing the same fact; otherwise a hands-on one
+ * half the time.
+ */
+export function pickExercise(item, pool, rng, { met, miss } = {}) {
+  const authored = authoredExercises(item, rng);
+  const generic = genericExercises(item, pool, rng, { met });
+  if (miss) {
+    const same = miss.gen === "match" ? generic.filter((e) => e.gen === "termToDef" || e.gen === "defToTerm")
+      : miss.gen ? generic.filter((e) => e.gen === miss.gen)
+      : authored.filter((e) => sameSkill(miss, e));
+    const sameType = miss.ex != null ? authored.filter((e) => e.type === miss.type) : [];
+    const pick = same.length ? pickR(same, rng) : sameType.length ? pickR(sameType, rng) : null;
+    if (pick) return { ...pick, targeted: true };
+  }
+  const prod = authored.filter((e) => PRODUCTION.has(e.type));
+  if (prod.length && rng() < 0.5) return pickR(prod, rng);
+  return pickR([...authored, ...generic], rng);
+}
+
+/**
+ * The step that comes back after a wrong answer (at the end of the session): a different version
+ * of the same thing where there is one. The same exercise with another cell or range; else a
+ * sibling testing the same fact (other numbers); else another of the item's exercises of the same
+ * type; a term question asked the other way round; else the same step again.
+ */
+export function retryStep(model, step, rng = Math.random) {
+  const item = step.item && model.byId.get(step.item);
+  const was = { ex: step.ex, gen: step.gen, target: step.target ?? step.from ?? null, versions: 1 };
+  if (!item) return { ...step, retryOf: was };
+  if (step.ex != null) {
+    const list = item.extra?.exercises || [];
+    const orig = list[step.ex];
+    if (!orig) return { ...step, retryOf: was };
+    was.versions = versions(orig);
+    const key = (s) => JSON.stringify(s.target ?? s.from ?? null);
+    if (was.versions > 1) {
+      for (let t = 0; t < 20; t++) {
+        const r = { ...resolve(orig, rng), item: item.id, ex: step.ex };
+        if (key(r) !== key(step)) return { ...r, retryOf: was };
+      }
+    }
+    const others = list.map((e, i) => [e, i]).filter(([, i]) => i !== step.ex);
+    const sibs = others.filter(([e]) => e.fact === orig.fact && e.type === orig.type);
+    const sameType = others.filter(([e]) => e.type === orig.type);
+    const from = sibs.length ? sibs : sameType;
+    if (from.length) { const [e, i] = pickR(from, rng); return { ...resolve(e, rng), item: item.id, ex: i, retryOf: was }; }
+    return { ...step, retryOf: was };
+  }
+  const others = Object.values(step.others || {});
+  if (step.gen === "defToTerm") {
+    // Asked the other way round: the term, and its meaning among the meanings of the same wrong terms.
+    const defs = others.filter((o) => o.def.length <= 150).slice(0, 2);
+    const w = termWordIn(item.term, item.defPlain);
+    if (defs.length === 2 && item.defPlain.length <= 170 && (!w || defs.some((d) => termWordIn(w, d.def)))) {
+      return { type: "choice", gen: "termToDef", item: item.id, term: item.term, prompt: "What does this mean?", correct: item.defPlain, wrong: defs.map((d) => d.def), long: true,
+        others: Object.fromEntries(defs.map((d) => [d.def, d])), retryOf: was };
+    }
+  }
+  if (step.gen === "termToDef") {
+    const quote = termPrompt(item);
+    const w = quote && termWordIn(item.term, quote);
+    if (quote && others.length >= 2 && (!w || others.some((o) => termWordIn(w, o.term)))) {
+      return { type: "choice", gen: "defToTerm", item: item.id, quote, prompt: "Which term matches?", correct: item.term, wrong: others.map((o) => o.term), termOptions: true,
+        others: Object.fromEntries(others.map((o) => [o.term, o])), retryOf: was };
+    }
+  }
+  if (step.gen === "gaps") return { ...step, chips: shuffleR(step.chips, rng), retryOf: was };
+  return { ...step, retryOf: was };
 }
 
 /** A matching exercise for 4 items with short definitions, if there are enough. */
@@ -250,7 +348,7 @@ export const LEVEL_MIN = 8, LEVEL_MAX = 12;
  * mixed block (a second question per item, plus 1–2 retrieval questions from
  * earlier levels of the same lesson). 8–12 questions in all.
  */
-export function levelSession(model, level, { seed, need = () => -1 } = {}) {
+export function levelSession(model, level, { seed, need = () => -1, miss = () => null } = {}) {
   const rng = makeRng(seed);
   const lesson = model.lessons.find((l) => l.n === level.lesson);
   const met = metItems(model, level);
@@ -266,21 +364,33 @@ export function levelSession(model, level, { seed, need = () => -1 } = {}) {
     const generic = genericExercises(item, level.items.length >= 4 ? level.items : pool, rng, { met });
     // Alternate which term question comes first, so a level has both kinds.
     if (generic.length > 1 && (i % 2 === 1) !== (rng() < 0.2)) generic.reverse();
-    // First question: hands-on if there is one. Second: a term question for
-    // every other item, another hands-on one for the rest.
-    const first = authored.shift() || generic.shift();
-    const second = i % 2 === 0 ? generic.shift() || authored.shift() : authored.shift() || generic.shift();
+    const take = (e) => { authored.splice(authored.indexOf(e), 1); return e; };
+    // First question: the term's core question (practice.js `core`: the slides' key Predict-It),
+    // else a hands-on one, else any. It is never dropped.
+    const core = authored.find((e) => e.core);
+    const hands = bestHandsOn(authored);
+    const first = core ? take(core) : hands ? take(hands) : authored.shift() || generic.shift();
+    // Second: a skill always gets a hands-on task too (move a cell, merge, freeze…), also never
+    // dropped. Otherwise a term question for every other item, another hands-on one for the rest.
+    let second, keep = false;
+    const more = bestHandsOn(authored);
+    if (item.kind === "action" && !isHandsOn(first) && more) { second = take(more); keep = true; }
+    else if (more && PRODUCTION.has(more.type) && !PRODUCTION.has(first.type)) second = take(more); // type, drag, press or order it
+    else second = i % 2 === 0 ? generic.shift() || authored.shift() : (more ? take(more) : authored.shift()) || generic.shift();
     firstBlock.push({ type: "learn", item: item.id }, first);
-    if (second) rest.push(second);
+    if (second) rest.push(keep ? { ...second, keep: true } : second);
     spare.set(item, [...generic, ...authored]);
   });
   // A matching game when the level has enough short definitions.
   const m = matchExercise(level.items, rng);
   if (m) rest.push(m);
-  // Too many? Drop "which term matches?" questions first (the matching game covers them).
+  // Too many? Drop "which term matches?" questions first (the matching game covers them), then
+  // the last one that isn't a skill's hands-on task.
   while (level.items.length + rest.length > LEVEL_MAX) {
-    const k = rest.findIndex((x) => x.gen === "defToTerm");
-    rest.splice(k >= 0 ? k : rest.length - 1, 1);
+    let k = rest.findIndex((x) => x.gen === "defToTerm");
+    if (k < 0) k = rest.findLastIndex((x) => !x.keep);
+    if (k < 0) break;
+    rest.splice(k, 1);
   }
   let count = level.items.length + rest.length;
   // Retrieval from earlier levels of this lesson (weakest first).
@@ -289,7 +399,7 @@ export function levelSession(model, level, { seed, need = () => -1 } = {}) {
   const review = earlier.map((it) => [need(it.id) + rng(), it]).sort((a, b) => b[0] - a[0]).map((p) => p[1]);
   for (const it of review.slice(0, 2)) {
     if (count >= LEVEL_MAX) break;
-    const ex = pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng, { met })], rng);
+    const ex = pickExercise(it, pool, rng, { met, miss: miss(it.id) });
     if (ex) { rest.push({ ...ex, retrieval: true }); count++; }
   }
   // Top up to the minimum with spare questions on the new items.
@@ -311,7 +421,7 @@ export function metItems(model, level) {
 }
 
 /** A review: questions only, weakest/least-seen items first, plus one matching game. */
-export function reviewSession(model, items, { seed, count = 12, need = () => -1, match = true, met = null } = {}) {
+export function reviewSession(model, items, { seed, count = 12, need = () => -1, miss = () => null, match = true, met = null } = {}) {
   const rng = makeRng(seed);
   // Gap chips come from these items and earlier lessons (the sidebar Review passes the items seen so far).
   const first = Math.min(...items.map((x) => x.lesson));
@@ -319,7 +429,17 @@ export function reviewSession(model, items, { seed, count = 12, need = () => -1,
   const ranked = items.map((it) => [(need(it.id) < 0 ? 4 : need(it.id)) + rng() * 4, it]).sort((a, b) => b[0] - a[0]).map((p) => p[1]);
   const chosen = ranked.slice(0, Math.min(count, ranked.length));
   const pool = items.length >= 4 ? items : model.items;
-  const steps = chosen.map((it) => pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng, { met })], rng)).filter(Boolean);
+  const steps = chosen.map((it) => pickExercise(it, pool, rng, { met, miss: miss(it.id) })).filter(Boolean);
+  // Every review has the student type a cell reference and a range, where its terms have them:
+  // they swap in for a pick-an-answer question, so the review stays the same length.
+  for (const type of ["gridName", "rangeName"]) {
+    if (steps.some((s) => s.type === type)) continue;
+    const it = shuffleR(items, rng).find((x) => (x.extra?.exercises || []).some((e) => e.type === type));
+    if (!it) continue;
+    const typed = pickR(authoredExercises(it, rng).filter((e) => e.type === type), rng);
+    const k = steps.findIndex((s) => s.type === "choice" && !s.targeted && s.item !== it.id);
+    if (k >= 0) steps[k] = typed; else if (steps.length < count) steps.push(typed);
+  }
   // Short sessions get a second question on the weakest items.
   for (let i = 0; steps.length < Math.min(count, 8) && i < chosen.length; i++) {
     const ex = pickR(genericExercises(chosen[i], pool, rng, { met }), rng);

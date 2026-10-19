@@ -8,7 +8,10 @@
 //    references fit the grid, hotspot targets exist, steps, keys, fills),
 //  - automatic revision prompts don't give away their own term, "Which term matches?"
 //    never shows [[gaps]], and "Fill the gaps" has 2–3 wrong chips that are never right answers,
-//  - every level builds 8–12 questions (tried with 30 different shuffles).
+//  - every level builds 8–12 questions (tried with 30 different shuffles), always with each
+//    term's core question and, for a skill, a hands-on task (when it has one),
+//  - at most one core question per term, and every Mixed review has a typed cell reference
+//    and range when its terms have them.
 // Exits 1 on errors; warnings are printed but don't fail.
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -78,6 +81,7 @@ for (const it of model.items) {
   for (const t of [...(ex.confusable || []), ...Object.keys(ex.contrast || {})]) if (!model.items.some((x) => x.term === t)) err(`"${it.term}": confusable/contrast names "${t}", which isn't a term`);
   const answers = C.blanksOf(it.def).map((a) => a.toLowerCase());
   if (ex.gapChips && (!answers.length || ex.gapChips.some((c) => answers.includes(c.toLowerCase())))) err(`"${it.term}": gapChips need [[gaps]] and must never be a right answer`);
+  if ((ex.exercises || []).filter((e) => e.core).length > 1) err(`"${it.term}": only one exercise can be core`);
   const lv = ex.learn?.visual;
   for (const [id] of lv?.icons || []) if (!existsSync(path.join(ROOT, `assets/screens/${id}.webp`))) err(`"${it.term}" learn card: missing assets/screens/${id}.webp`);
   if (lv?.image && !screens[lv.image]) err(`"${it.term}" learn card: unknown screenshot ${lv.image}`);
@@ -197,6 +201,7 @@ for (const it of model.items) {
       }
     }
     if (e.why != null && (typeof e.why !== "string" || e.why.length < 10)) err(`${where}: why must be a sentence`);
+    if (e.core != null && e.core !== true) err(`${where}: core is true or left out`);
     if (e.tips && (e.type !== "hotspot" || Object.keys(e.tips).some((k) => k === e.target))) err(`${where}: tips are for the wrong areas of a hotspot`);
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
   });
@@ -252,11 +257,24 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
       steps.filter((s) => s.type === "learn").forEach((s) => covered.add(s.item));
       for (const s of steps) if (!s.type) err(`level ${lv.id}: an empty step (seed ${seed})`);
       for (const s of steps) if (s.gen === "defToTerm" && /\[\[|_{3,}/.test(s.quote)) err(`level ${lv.id}: "Which term matches?" with gaps`);
+      for (const it of lv.items) {
+        const list = it.extra?.exercises || [];
+        const mine = steps.filter((s) => s.item === it.id && s.ex != null && !s.retrieval);
+        const c = list.findIndex((e) => e.core);
+        if (c >= 0 && !mine.some((s) => s.ex === c)) err(`level ${lv.id}: "${it.term}" left out its core question (seed ${seed})`);
+        if (it.kind === "action" && list.some((e) => C.HANDS_ON.includes(e.type)) && !mine.some((s) => C.HANDS_ON.includes(s.type))) err(`level ${lv.id}: skill "${it.term}" got no hands-on task (seed ${seed})`);
+      }
     }
     if (min < C.LEVEL_MIN || max > C.LEVEL_MAX) err(`level ${lv.id}: ${min}–${max} questions (want ${C.LEVEL_MIN}–${C.LEVEL_MAX})`);
     console.log(`  ${lv.id.padEnd(5)} ${lv.title.padEnd(28)} ${String(lv.items.length).padStart(2)} new items · ${min === max ? min : `${min}–${max}`} questions`);
   }
   const rs = C.reviewSession(model, l.items, { seed: 1, count: 12 });
+  for (let seed = 1; seed <= 20; seed++) {
+    const r = C.reviewSession(model, l.items, { seed, count: 12 });
+    for (const type of ["gridName", "rangeName"]) {
+      if (l.items.some((it) => (it.extra?.exercises || []).some((e) => e.type === type)) && !r.some((x) => x.type === type)) err(`${l.review?.id}: no ${type} (typed) question (seed ${seed})`);
+    }
+  }
   console.log(`  ${l.review?.id.padEnd(5)} ${(l.review?.title || "").padEnd(28)} ${String(l.items.length).padStart(2)} items     · ${rs.length} questions`);
 }
 for (const it of model.items) if (!covered.has(it.id)) err(`"${it.term}" (lesson ${it.lesson}) never gets a learn card in any level`);

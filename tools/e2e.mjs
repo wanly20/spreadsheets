@@ -198,6 +198,78 @@ async function runViewport(vp) {
   await page.goto(BASE);
   await wait(1000);
 
+  // ------------------------------------------------------------ Part B rules (Chromebook only)
+  if (!vp.touch) {
+    const r = await page.evaluate(async () => {
+      const C = await import("./js/course.js");
+      // The knowledge scripts are already loaded by the app (loading them again would declare them twice).
+      const kn = {};
+      for (const l of C.course.lessons.filter((x) => !x.comingSoon)) kn[l.n] = Function(`return lesson${l.n}Knowledge`)();
+      const m = C.buildModel(kn);
+      const out = { coreMissing: [], handsMissing: [], levels: 0 };
+      for (const l of m.lessons.filter((x) => !x.comingSoon)) for (const lv of l.levels) for (let seed = 1; seed <= 15; seed++) {
+        out.levels++;
+        const steps = C.levelSession(m, lv, { seed });
+        for (const it of lv.items) {
+          const list = it.extra?.exercises || [];
+          const mine = steps.filter((x) => x.item === it.id && x.ex != null && !x.retrieval);
+          const c = list.findIndex((e) => e.core);
+          if (c >= 0 && !mine.some((x) => x.ex === c)) out.coreMissing.push(`${lv.id} ${it.term}`);
+          if (it.kind === "action" && list.some((e) => C.HANDS_ON.includes(e.type)) && !mine.some((x) => C.HANDS_ON.includes(x.type))) out.handsMissing.push(`${lv.id} ${it.term}`);
+        }
+      }
+      // Retries: another cell, other numbers, the question the other way round.
+      const by = (t) => m.items.find((x) => x.term === t);
+      const ref = by("cell reference"), pat = by("fill a pattern"), col = by("column");
+      const gn = C.authoredExercises(ref, Math.random).find((e) => e.type === "gridName");
+      const cells = Array.from({ length: 20 }, () => C.retryStep(m, gn).target);
+      const fill = C.authoredExercises(pat, Math.random).find((e) => e.type === "fill" && e.start[0] === 10);
+      const fr = C.retryStep(m, fill);
+      const d2t = C.genericExercises(col, m.lessons[0].levels[0].items, C.makeRng(2)).find((e) => e.gen === "defToTerm");
+      const flip = d2t && C.retryStep(m, d2t);
+      // Review aims at the recorded miss (here: Date vs Custom date and time).
+      const df = by("date format");
+      const k = (df.extra.exercises || []).findIndex((e) => /Custom date and time/.test(e.correct || ""));
+      const missed = { type: "choice", ex: k, fact: df.extra.exercises[k].fact };
+      const aimed = Array.from({ length: 10 }, (_, s) => C.reviewSession(m, m.items.filter((x) => x.lesson === 2), { seed: s + 1, count: 14, need: (id) => (id === df.id ? 99 : 1), miss: (id) => (id === df.id ? missed : null) }).find((x) => x.item === df.id));
+      // Typed references and ranges in every Mixed review.
+      const typed = [1, 2].map((n) => Array.from({ length: 10 }, (_, s) => C.reviewSession(m, m.items.filter((x) => x.lesson === n), { seed: s + 1 })).every((ss) => (n === 1 ? ss.some((x) => x.type === "gridName") : true) && ss.some((x) => x.type === "rangeName")));
+      return { ...out, cells, gnTarget: gn.target, fr: fr.start, flip: flip?.gen, aimed: aimed.map((x) => x && x.ex === k), typed };
+    });
+    ok(!r.coreMissing.length, `every level always serves each term's core question (${r.levels} sessions${r.coreMissing.length ? `; missing: ${r.coreMissing.slice(0, 4).join(", ")}` : ""})`);
+    ok(!r.handsMissing.length, `every skill always gets a hands-on task${r.handsMissing.length ? ` (missing: ${r.handsMissing.slice(0, 4).join(", ")})` : ""}`);
+    ok(r.cells.every((c) => c !== r.gnTarget), `a missed "type the cell" comes back with a different cell (${r.gnTarget} → ${[...new Set(r.cells)].join(", ")})`);
+    ok(JSON.stringify(r.fr) !== JSON.stringify([10, 20]), `a missed fill comes back with other numbers (10, 20 → ${r.fr})`);
+    ok(r.flip === "termToDef", `a missed "Which term matches?" comes back the other way round (${r.flip})`);
+    ok(r.aimed.every(Boolean), `Review brings back the exact miss (Date vs Custom date and time), not an easier question (${r.aimed.filter(Boolean).length}/10)`);
+    ok(r.typed.every(Boolean), "every Mixed review has a typed cell reference and a typed range");
+    // Leitner: at most one box up per term per calendar day (Date faked).
+    const lt = await page.evaluate(async () => {
+      const { store } = await import("./js/store.js");
+      const realNow = Date.now;
+      let t = new Date(2027, 1, 1, 10).getTime();
+      Date.now = () => t;
+      const id = "1:spreadsheet", seen = [];
+      try {
+        const st = store.get();
+        store.set({ items: { ...st.items, [id]: undefined } });
+        for (let i = 0; i < 4; i++) store.grade(id, true);
+        seen.push(store.get().items[id].box, store.strength(id, t)); // same day: box 1 only
+        for (let d = 1; d <= 2; d++) { t += 864e5; store.grade(id, true); store.grade(id, true); }
+        seen.push(store.get().items[id].box, store.strength(id, t)); // three days: box 3, learnt
+        store.grade(id, false, { skill: { type: "choice", ex: 0, fact: "calculates for you" } });
+        seen.push(store.get().items[id].box, store.get().items[id].miss?.ex);
+        store.grade(id, true, { skill: { type: "choice", ex: 0, fact: "calculates for you" } });
+        seen.push(store.get().items[id].box, store.get().items[id].miss ?? null); // same day as the promotion: stays at 0
+      } finally { Date.now = realNow; }
+      return seen;
+    });
+    ok(lt[0] === 1 && lt[1] !== "learnt", `four right answers in one day move a term up one box only (box ${lt[0]}, ${lt[1]})`);
+    ok(lt[2] === 3 && lt[3] === "learnt", `right answers on three different days make it “Learnt” (box ${lt[2]}, ${lt[3]})`);
+    ok(lt[4] === 0 && lt[5] === 0, "a wrong answer sends it back to box 0 and remembers which exercise was missed");
+    ok(lt[6] === 0 && lt[7] === null, "a right answer on that exercise clears the miss, but the box can't go up again the same day");
+  }
+
   // ------------------------------------------------------------ Lesson 5: kind tips for functions and brackets
   if (!vp.touch) {
     const tips = await page.evaluate(async () => {
@@ -271,6 +343,7 @@ async function runViewport(vp) {
   async function playSession(id, wrongDone) {
     const res = { done: false, steps: 0, wrong: 0, retries: 0, questions: 0 };
     const seenIds = new Set();
+    let sawRetry = false;
     for (let guard = 0; guard < 60; guard++) {
       if (await page.locator(".screen.complete").count()) { res.done = true; break; }
       const step = await page.evaluate(() => { const s = document.querySelector(".screen.lesson")?.__step; return s ? JSON.parse(JSON.stringify(s)) : null; });
@@ -282,6 +355,12 @@ async function runViewport(vp) {
       }, null, { timeout: 3000 }).catch(() => {});
       res.steps++;
       if (step.retry) res.retries++;
+      // A wrong answer comes back at the end of the session (after every new question), not 1–2 screens on.
+      if (step.retry) sawRetry = true;
+      else if (sawRetry && step.type !== "learn") ok(false, `${id}: a new question came after a retry (retries belong at the end)`);
+      if (step.retry && step.retryOf?.versions > 1 && step.ex === step.retryOf.ex) {
+        ok(JSON.stringify(step.target ?? step.from) !== JSON.stringify(step.retryOf.target), `${id}: the retry of ${step.type} is a new version (${JSON.stringify(step.retryOf.target)} → ${JSON.stringify(step.target ?? step.from)})`);
+      }
       if (step.type !== "learn" && !step.retry) res.questions++;
       let typeKey = step.type === "choice" && step.gen ? step.gen : step.type === "keys" && (await page.locator(".key-zone").count()) === 0 ? "keys-choice" : step.type === "hotspot" ? hotspotKey(step) : step.type === "formula" && step.accept[0].includes("$") ? "formula-lock" : step.type;
       if (step.type === "learn") typeKey = "learn-" + await page.evaluate(() => {
