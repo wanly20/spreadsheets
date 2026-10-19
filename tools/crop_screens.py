@@ -5,14 +5,16 @@
     python3 tools/crop_screens.py legend     # just one (by name)
     python3 tools/crop_screens.py --preview DIR   # also save PNGs with every region drawn on, to check them
 
-Reads ../spreadsheets/screenshots/google_sheets/menus/*.jpg (1335×896, Oct 2026; 12 is 1372×876). First removes the
+Reads ../spreadsheets/screenshots/google_sheets/menus/*.jpg (1335×896, Oct 2026; 12 is 1372×876; 13-18 are in an Australia-locale file). First removes the
 hover highlights (and the cursor) that would give an answer away, then crops, saves WebP, and prints
 the regions (in the crop's own pixels) as JSON for content/screens.js. Needs Pillow (system python3).
 Regions are written below in the ORIGINAL screenshot's pixels: x, y, width, height, label.
 
-Also (TOOLBAR, below) the Lesson 1-2 toolbar pictures from ../spreadsheets/screenshots/google_sheets/*.png:
-sheets-basic (with the UK-locale £ button repainted as the Australian $) and single toolbar buttons
-(ic-halign, ic-valign, ic-wrap) for the learn cards. Their regions are in content/screens.js already.
+Lessons 1-2 use shots 13-18 (a file with the locale set to Australia, so the currency button shows $):
+sheets-basic and fill-handle (13), the menus and the settings window (14-18), and single toolbar buttons
+from 13 (ICONS: ic-bold, ic-fontcolour, ic-fontsize, ic-fontfamily). SCALE enlarges a crop (and its
+regions) so it shows as big as before. TOOLBAR crops more single buttons (ic-halign, ic-valign, ic-wrap)
+from ../spreadsheets/screenshots/google_sheets/rest_of_ribbon.png for the learn cards.
 """
 import json, os, sys
 from pathlib import Path
@@ -23,20 +25,8 @@ SRC = APP.parent / "spreadsheets/screenshots/google_sheets/menus"
 SHEETS = APP.parent / "spreadsheets/screenshots/google_sheets"
 
 
-def dollar(im):
-    """basic.png was taken in a UK-locale file: its currency button shows £. Lesson 2 sets the
-    locale to Australia, where that button shows $, so paint the $ in the same grey."""
-    d = ImageDraw.Draw(im)
-    d.rectangle((394, 96, 414, 122), fill=(240, 244, 249))
-    f = ImageFont.truetype("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", 19)
-    l, t, r, b = d.textbbox((0, 0), "$", font=f)
-    d.text((404 - (r - l) / 2 - l, 109 - (b - t) / 2 - t), "$", font=f, fill=(95, 99, 104))
-    return im
-
-
 # name: (file in google_sheets/, crop box or None for the whole picture, fix or None)
 TOOLBAR = {
-    "sheets-basic": ("basic.png", None, dollar),
     "ic-halign": ("rest_of_ribbon.png", (168, 4, 222, 50), None),
     "ic-valign": ("rest_of_ribbon.png", (228, 4, 282, 50), None),
     "ic-wrap": ("rest_of_ribbon.png", (288, 4, 342, 50), None),
@@ -70,7 +60,16 @@ def source(name):
             for y in range(y0, y1):
                 if min(x - x0, x1 - 1 - x, y - y0, y1 - 1 - y) <= 5:
                     px[x, y] = px[x + 125, y]
+    if name == "18_row_menu":  # Cut has a light keyboard-focus highlight
+        unhover(im, (21, 222, 311, 251))
     return im
+
+# Single toolbar buttons from shot 13 for the learn cards (enlarged 1.6×, like the old ones).
+ICONS = {
+    "ic-bold": (586, 63, 613, 91), "ic-fontcolour": (674, 62, 701, 92),
+    "ic-fontsize": (497, 62, 580, 92), "ic-fontfamily": (402, 62, 494, 92),
+}
+SCALE = {"sheets-basic": 1.5, "fill-handle": 1.5, "tab-menu": 1.3, "row-menu": 1.15}
 
 TABS = {"Setup": (1062, 117, 76, 30, "the Setup tab"), "Customise": (1196, 117, 92, 30, "the Customise tab")}
 def sec(y, name): return (1048, y, 250, 30, f"the {name} section")
@@ -156,6 +155,54 @@ S = {
    "bottom-left corner": (238, 649, 20, 20, "the bottom-left corner handle"),
    "right edge": (780, 481, 20, 20, "the handle in the middle of the right edge"), "bottom edge": (509, 649, 20, 20, "the handle in the middle of the bottom edge")},
    "A selected pie chart with small square handles at its corners and edges, and ⋮ at the top right"),
+ # ---- Lessons 1-2 (shots 13-18, Australia locale)
+ "sheets-basic": ("13_toolbar_australia_locale", (0, 0, 704, 207), {
+   "title": (52, 8, 232, 26, "the spreadsheet title"), "menuFile": (53, 32, 28, 20, "the File menu"), "menuFormat": (214, 32, 48, 20, "the Format menu"),
+   "undo": (56, 64, 26, 26, "Undo"), "redo": (85, 64, 26, 26, "Redo"), "print": (115, 64, 26, 26, "Print"), "paintFormat": (144, 64, 26, 26, "Paint format (the paint roller)"),
+   "currency": (249, 64, 26, 26, "Format as currency ($)"), "percent": (278, 64, 26, 26, "Format as percent (%)"),
+   "decDecrease": (307, 64, 26, 26, "Decrease decimal places (.0 ←)"), "decIncrease": (337, 64, 26, 26, "Increase decimal places (.00 →)"),
+   "fontSize": (498, 64, 82, 26, "Font size"), "bold": (586, 64, 26, 26, "Bold"), "fontColour": (674, 64, 26, 26, "Font colour"),
+   "nameBox": (4, 103, 86, 23, "the Name Box"), "formulaBar": (100, 103, 300, 23, "the formula bar"),
+   "colC": (226, 130, 90, 19, "the header of column C"), "colE": (409, 130, 90, 19, "the header of column E"), "row2": (0, 169, 40, 18, "the header of row 2"),
+   "cellC2": (226, 170, 80, 16, "cell C2"), "fillHandle": (308, 180, 16, 16, "the fill handle")},
+   "Google Sheets: the title, menus, toolbar (its currency button shows $), Name Box, formula bar and the top-left of the grid, with C2 selected"),
+ "fill-handle": ("13_toolbar_australia_locale", (182, 129, 409, 226), {
+   "fillHandle": (306, 178, 20, 20, "the fill handle"), "cell": (226, 170, 80, 16, "the selected cell"), "colC": (226, 130, 90, 19, "the header of column C")},
+   "A selected cell in Google Sheets with the round fill handle at its bottom-right corner"),
+ "view-freeze": ("14_view_freeze", (118, 28, 654, 356), {
+   "View": (125, 31, 32, 22, "the View menu"),
+   **{n: (122, y - 14, 288, 28, f"{n}") for n, y in [("Show", 72), ("Freeze", 101), ("Group", 130), ("Comments", 159), ("Zoom", 247), ("Full screen", 276)]},
+   **{n: (412, y - 14, 234, 28, n) for n, y in [("No rows", 108), ("1 row", 137), ("2 rows", 166), ("Up to row 2", 195),
+      ("No columns", 238), ("1 column", 267), ("2 columns", 296), ("Up to column C", 325)]}},
+   "View → Freeze open: No rows, 1 row, 2 rows, Up to row 2, No columns, 1 column, 2 columns, Up to column C"),
+ # Format → Number is too tall to tap on a Chromebook in one piece: the money part (with the path) and the dates part.
+ "format-number": ("15_format_number", (206, 28, 760, 401), {
+   "Format": (215, 31, 47, 22, "the Format menu"),
+   **{n: (212, y - 14, 288, 28, "Number (in the Format menu)" if n == "Number" else n) for n, y in [("Theme", 72), ("Number", 117), ("Text", 146), ("Alignment", 175),
+      ("Wrapping", 204), ("Rotation", 233), ("Smart chips", 262), ("Font size", 306)]},
+   **{"Number → Number" if n == "Number" else n: (502, y - 14, 252, 28, "Number (1,000.12)" if n == "Number" else n) for n, y in [("Automatic", 123), ("Plain text", 152),
+      ("Number", 197), ("Percent", 226), ("Scientific", 255), ("Accounting", 299), ("Financial", 328), ("Currency", 357), ("Currency rounded", 386)]}},
+   "Format → Number open: Automatic, Plain text, Number, Percent, Scientific, Accounting, Financial, Currency ($1,000.12), Currency rounded ($1,000)"),
+ "format-number-dates": ("15_format_number", (206, 349, 760, 720), {
+   **{n: (212, y - 14, 288, 28, n) for n, y in [("Conditional formatting", 408), ("Alternating colours", 437), ("Clear formatting", 481)]},
+   "Currency": (502, 349, 252, 22, "Currency"),
+   **{n: (502, y - 14, 252, 28, n) for n, y in [("Currency rounded", 386), ("Date", 430), ("Time", 459), ("Date time", 488), ("Duration", 517),
+      ("Friday, 26 September 2008", 561), ("26 September 2008", 590), ("Custom currency", 635), ("Custom date and time", 664), ("Custom number format", 693)]}},
+   "The lower part of Format → Number: Currency, Currency rounded, Date (26/09/2008), Time, Date time, Duration, Friday, 26 September 2008, 26 September 2008, Custom currency, Custom date and time, Custom number format"),
+ "settings-locale": ("16_settings_locale_australia", (342, 233, 993, 663), {
+   "Close": (940, 253, 30, 30, "the close button (×)"), "General": (365, 297, 122, 32, "the General tab"), "Calculation": (500, 297, 124, 32, "the Calculation tab"),
+   "Locale": (367, 373, 89, 36, "the Locale list"), "Time zone": (367, 472, 192, 37, "the Time zone list"),
+   "Display language": (365, 548, 192, 32, "Display language"), "Cancel": (745, 607, 88, 34, "the Cancel button"), "Save settings": (843, 607, 128, 34, "the Save settings button")},
+   "The settings window for this spreadsheet, General tab: Locale Australia, Time zone, Display language, Cancel and Save settings"),
+ "tab-menu": ("17_sheet_tab_menu", (32, 543, 276, 896), {
+   **{n: (122, y - 14, 147, 28, n) for n, y in [("Delete", 567), ("Duplicate", 596), ("Copy to", 625), ("Rename", 654), ("Change colour", 683),
+      ("Protect the sheet", 712), ("Hide sheet", 741), ("Move right", 813), ("Move left", 842)]},
+   "+": (42, 866, 26, 28, "the + button"), "Data tab": (122, 866, 72, 28, "the Data tab"), "Notes tab": (197, 866, 68, 28, "the Notes tab")},
+   "The menu for the Data sheet tab, with the Notes tab beside it: Delete, Duplicate, Copy to, Rename, Change colour, Protect the sheet, Hide sheet, View comments, Move right, Move left (grey)"),
+ "row-menu": ("18_row_menu", (0, 128, 316, 541), {  # down to Resize the row: the whole menu is too tall to tap on a Chromebook
+   **{n: (21, y - 14, 289, 28, n) for n, y in [("Cut", 236), ("Copy", 265), ("Paste", 294), ("Paste special", 323), ("Insert 1 row above", 367),
+      ("Insert 1 row below", 396), ("Delete row", 425), ("Clear row", 454), ("Hide row", 483), ("Resize the row", 512)]}},
+   "The menu for row 4 (right-click its row number): Cut, Copy, Paste, Paste special, Insert 1 row above, Insert 1 row below, Delete row, Clear row, Hide row, Resize the row"),
 }
 args = sys.argv[1:]
 preview = None
@@ -172,21 +219,31 @@ for name, (src, box, fix) in TOOLBAR.items():
         im = im.crop(box)
     im.save(OUT / f"{name}.webp", "WEBP", quality=90, method=6)
     print(f"saved {name}.webp ({im.width}×{im.height})", file=sys.stderr)
+for name, box in ICONS.items():
+    if args and name not in args:
+        continue
+    im = source("13_toolbar_australia_locale").crop(box)
+    im = im.resize((round(im.width * 1.6), round(im.height * 1.6)), Image.LANCZOS)
+    im.save(OUT / f"{name}.webp", "WEBP", quality=90, method=6)
+    print(f"saved {name}.webp ({im.width}×{im.height})", file=sys.stderr)
 out = {}
 for name, (src, box, regs, alt) in S.items():
     if args and name not in args:
         continue
     im = source(src).crop(box)
+    k = SCALE.get(name, 1)
+    if k != 1:
+        im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
     im.save(OUT / f"{name}.webp", "WEBP", quality=86, method=6)
     x0, y0 = box[0], box[1]
     rr = {}
     pv = im.copy() if preview else None
-    for k, (x, y, w, h, label) in regs.items():
-        r = [x - x0, y - y0, w, h]
-        assert r[0] >= 0 and r[1] >= 0 and r[0] + w <= im.width and r[1] + h <= im.height, (name, k, r, im.size)
-        rr[k] = {"r": r, "label": label}
+    for key, (x, y, w, h, label) in regs.items():
+        r = [round((x - x0) * k), round((y - y0) * k), round(w * k), round(h * k)]
+        assert r[0] >= 0 and r[1] >= 0 and r[0] + r[2] <= im.width and r[1] + r[3] <= im.height, (name, key, r, im.size)
+        rr[key] = {"r": r, "label": label}
         if pv:
-            ImageDraw.Draw(pv).rectangle([r[0], r[1], r[0] + w, r[1] + h], outline=(255, 0, 255), width=2)
+            ImageDraw.Draw(pv).rectangle([r[0], r[1], r[0] + r[2], r[1] + r[3]], outline=(255, 0, 255), width=2)
     if pv:
         pv.save(preview / f"{name}.png")
     out[name] = {"src": f"assets/screens/{name}.webp", "w": im.width, "h": im.height, "alt": alt, "regions": rr}

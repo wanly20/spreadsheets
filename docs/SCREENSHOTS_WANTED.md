@@ -1,6 +1,6 @@
 # Google Sheets screenshots: what we have, what would still help
 
-Lessons 6 and 7 tap on real Google Sheets screenshots wherever we have one. The rest are
+Lessons 1, 2, 6 and 7 tap on real Google Sheets screenshots wherever we have one. The rest are
 drawn by the app as **stand-ins**, so each one can be swapped for a real screenshot later.
 
 ## How to add one
@@ -20,6 +20,8 @@ regions, so they're a small edit to `content/practice.js` too.
 
 ## Already real (Oct 2026 screenshots, cropped by `tools/crop_screens.py`)
 
+Shots 01–12 are from the School Fair sample; 13–18 from a new file with the locale set to Australia.
+
 | Name in `content/screens.js` | From | Used for |
 |---|---|---|
 | `menu-bar` | 11 (menu bar only) | Which menu sorts (Data)? Which menu makes a chart (Insert)? |
@@ -38,6 +40,15 @@ regions, so they're a small edit to `content/practice.js` too.
 | `legend` | 09 | The legend on the chart; Legend → Position, Legend font size |
 | `chart-menu` | 10 (Edit the chart's hover removed) | ⋮ → Edit the chart, ⋮ → Move to own sheet |
 | `chart-selected` | 11 | ⋮, the corner handle (resize), the chart itself (move) |
+| `sheets-basic` | 13 (Australia locale: the currency button shows $; enlarged 1.5×) | Name Box, fill handle, Bold, Font colour, paint format, decimal places, % (learn cards + taps) |
+| `fill-handle` | 13 (around C2, enlarged 1.5×) | Fill handle learn card |
+| `ic-bold`, `ic-fontcolour`, `ic-fontsize`, `ic-fontfamily` | 13 (single buttons) | Text formatting learn card |
+| `view-freeze` | 14 (Freeze is hovered: it's the path, never the answer) | Freeze learn card; View → Freeze → tap **1 row** |
+| `format-number` | 15, top part (Number is hovered: the path) | Currency format learn card; tap **Currency** |
+| `format-number-dates` | 15, lower part | Date format learn card; tap **Date** |
+| `settings-locale` | 16 | Locale learn card; tap the **Locale** list |
+| `tab-menu` | 17 (enlarged 1.3×) | Duplicate a sheet learn card; tap Duplicate, Move right, Change colour, Rename |
+| `row-menu` | 18 (down to Resize the row, enlarged 1.15×; Cut's focus highlight removed, and Cut is never an answer) | Insert row learn card; tap Insert 1 row above / below; tap Delete row (Lesson 4) |
 
 ## Still wanted
 
@@ -59,17 +70,17 @@ Most useful first. "Stand-in" means the app draws it now and swaps it in with on
 
 ### Lessons 1–2 (from the student reviews, Oct 2026)
 
-Students meet these menus only as words ("View → Freeze") or drawn pictures. A real shot of each,
-in a file with the locale set to **Australia**, would let a question show the real thing.
+All done (shots 13–18, Oct 2026, a file with the locale set to **Australia**): each menu is now a real
+shot in its learn card and a tap on the real item.
 
 | # | Filename | Lesson | Exact state to capture | What must be visible | Replaces |
 |---|---|---|---|---|---|
-| 12 | `sheets-basic-au.webp` | 1 | A new file with File → Settings → Locale → Australia, cell C2 selected, nothing hovered, same window size as `google_sheets/basic.png` (1088×304 crop). | The title, menus, the whole toolbar up to Font colour (its currency button shows **$**), Name Box, formula bar, columns A to G. | `sheets-basic` (today `basic.png` from a UK-locale file, with its £ button repainted as $ by `tools/crop_screens.py`) |
-| 13 | `view-freeze.webp` | 2 | View → Freeze open (pointer moved off the submenu). | View menu and the Freeze submenu: No rows, 1 row, 2 rows, Up to row …, No columns, 1 column … | the menu-path questions for *freeze* (could be a tap on **1 row**) |
-| 14 | `format-number.webp` | 2 | Format → Number open, nothing hovered. | Number, Percent, Currency, Date, Time, Date time, Custom date and time … | *date format* and *currency format* menu questions |
-| 15 | `settings-locale.webp` | 2 | File → Settings, the General tab. | The Locale list (showing Australia) and Save settings. | *locale* ("File → Settings → Locale") |
-| 16 | `tab-menu.webp` | 1 | Two-finger tap (right-click) a sheet tab called Data, with a second tab Notes beside it. | The whole tab menu: Delete, Duplicate, Copy to, Rename, Change colour, … Move right, Move left. | the drawn tab menu (`tabmenu`) |
-| 17 | `row-menu.webp` | 2 | Right-click the number of row 4. | Insert 1 row above, Insert 1 row below, Delete row, … | *insert row/column* |
+| 12 | ~~`sheets-basic-au.webp`~~ ✓ | 1 | Done: shot 13, cropped by `tools/crop_screens.py` as `sheets-basic` (the £ → $ repaint is gone). | | also `fill-handle` and the text formatting buttons |
+| 13 | ~~`view-freeze.webp`~~ ✓ | 2 | Done: shot 14. | | freeze learn card; a tap on **1 row** |
+| 14 | ~~`format-number.webp`~~ ✓ | 2 | Done: shot 15, as two crops (`format-number`, `format-number-dates`) so each fits a Chromebook screen. | | currency and date format learn cards; taps on **Currency** and **Date** |
+| 15 | ~~`settings-locale.webp`~~ ✓ | 2 | Done: shot 16. | | locale learn card; a tap on the Locale list |
+| 16 | ~~`tab-menu.webp`~~ ✓ | 1 | Done: shot 17. | | the drawn tab menu in every question (Duplicate, Move right, Change colour, and a new Rename tap) |
+| 17 | ~~`row-menu.webp`~~ ✓ | 2 | Done: shot 18 (cropped at Resize the row). | | insert row taps (above / below) and a Delete row tap in Lesson 4 |
 
 Not needed: the Customise sections themselves (Chart style, Pie chart, Pie slice, Chart and axis
 titles, Legend, Series) are all in the shots above, and every chart in the questions (pie,

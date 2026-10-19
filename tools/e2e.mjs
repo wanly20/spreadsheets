@@ -651,7 +651,7 @@ async function runViewport(vp) {
     if (step.ui?.chart) return "hotspot-chart";
     if (step.ui) return "hotspot-ui";
     const sc = step.screen;
-    if (["menu-bar", "data-menu", "data-menu-sort-range", "insert-menu"].includes(sc)) return "hotspot-menu";
+    if (["menu-bar", "data-menu", "data-menu-sort-range", "insert-menu", "view-freeze", "format-number", "format-number-dates", "tab-menu", "row-menu", "settings-locale"].includes(sc)) return "hotspot-menu";
     if (sc === "sort-window") return "hotspot-sortwin";
     if (["chart-type", "setup-column", "setup-switched", "titles", "pie-slice", "series-colour", "legend"].includes(sc)) return "hotspot-editor";
     if (["chart-menu", "chart-selected"].includes(sc)) return "hotspot-chartmenu";
