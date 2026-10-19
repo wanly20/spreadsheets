@@ -57,6 +57,20 @@ Most useful first. "Stand-in" means the app draws it now and swaps it in with on
 | 10 | `stacking.webp` | 7 | Select A3:D9 → Insert → Chart, before changing anything. | The default **stacked** column chart and Setup → Stacking: Standard. | only if Stacking → None is added to the Knowledge Bank (the slides' column chart needs it: Sheets stacks by default) |
 | 11 | ~~`customise-column.webp`~~ ✓ | 7 | Done: shot 12, cropped by `tools/crop_screens.py`. | | "which section do you open for the Lunch columns' colour?" is a tap on Series again |
 
+### Lessons 1–2 (from the student reviews, Oct 2026)
+
+Students meet these menus only as words ("View → Freeze") or drawn pictures. A real shot of each,
+in a file with the locale set to **Australia**, would let a question show the real thing.
+
+| # | Filename | Lesson | Exact state to capture | What must be visible | Replaces |
+|---|---|---|---|---|---|
+| 12 | `sheets-basic-au.webp` | 1 | A new file with File → Settings → Locale → Australia, cell C2 selected, nothing hovered, same window size as `google_sheets/basic.png` (1088×304 crop). | The title, menus, the whole toolbar up to Font colour (its currency button shows **$**), Name Box, formula bar, columns A to G. | `sheets-basic` (today `basic.png` from a UK-locale file, with its £ button repainted as $ by `tools/crop_screens.py`) |
+| 13 | `view-freeze.webp` | 2 | View → Freeze open (pointer moved off the submenu). | View menu and the Freeze submenu: No rows, 1 row, 2 rows, Up to row …, No columns, 1 column … | the menu-path questions for *freeze* (could be a tap on **1 row**) |
+| 14 | `format-number.webp` | 2 | Format → Number open, nothing hovered. | Number, Percent, Currency, Date, Time, Date time, Custom date and time … | *date format* and *currency format* menu questions |
+| 15 | `settings-locale.webp` | 2 | File → Settings, the General tab. | The Locale list (showing Australia) and Save settings. | *locale* ("File → Settings → Locale") |
+| 16 | `tab-menu.webp` | 1 | Two-finger tap (right-click) a sheet tab called Data, with a second tab Notes beside it. | The whole tab menu: Delete, Duplicate, Copy to, Rename, Change colour, … Move right, Move left. | the drawn tab menu (`tabmenu`) |
+| 17 | `row-menu.webp` | 2 | Right-click the number of row 4. | Insert 1 row above, Insert 1 row below, Delete row, … | *insert row/column* |
+
 Not needed: the Customise sections themselves (Chart style, Pie chart, Pie slice, Chart and axis
 titles, Legend, Series) are all in the shots above, and every chart in the questions (pie,
 column, bar, switched) is drawn on purpose, with patterns as well as colours, so it can show

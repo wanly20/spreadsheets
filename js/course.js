@@ -50,6 +50,7 @@ export function buildModel(knowledge) {
       def: k.def,
       defPlain: plainDef(k.def),
       prompt: promptOf(k),
+      review: k.review || null,
       kind: k.kind,
       at: k.at,
       extra: practice[k.term] || null,
@@ -104,10 +105,12 @@ function resolve(ex, rng) {
   return out;
 }
 
-/** Distractor terms for an item: same lesson first, same kind and nearby slides preferred. */
+/** Distractor terms for an item: its confusable terms first (practice.js `confusable`), then the
+ *  same lesson (never another lesson while this one has enough), same kind and nearby slides. */
 function otherTerms(item, pool, n, rng) {
   const cands = pool.filter((x) => x.id !== item.id && x.term.toLowerCase() !== item.term.toLowerCase());
-  const score = (x) => (x.kind === item.kind ? 0 : 10) + Math.abs(x.at - item.at) / 8 + rng() * 6;
+  const confusable = new Set(item.extra?.confusable || []);
+  const score = (x) => (confusable.has(x.term) ? -100 : 0) + (x.lesson === item.lesson ? 0 : 40) + (x.kind === item.kind ? 0 : 10) + Math.abs(x.at - item.at) / 8 + rng() * 6;
   return cands.map((x) => [score(x), x]).sort((a, b) => a[0] - b[0]).slice(0, n).map((p) => p[1]);
 }
 
@@ -130,7 +133,7 @@ export const blanksOf = (def) => [...String(def).matchAll(/\[\[(.+?)\]\]/g)].map
  * (a hidden word is part of the term, or the term itself appears).
  */
 export function termPrompt(item) {
-  if (item.review) return item.review;
+  if (item.review && !/_{3,}/.test(item.review)) return item.review; // a review with gaps isn't a quote
   if (blanksGiveAway(item)) return null;
   const text = item.defPlain;
   const re = new RegExp(`\\b${item.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
@@ -141,46 +144,76 @@ export function termPrompt(item) {
 let allItems = [];
 
 /**
- * Wrong chips for "Fill the gaps": hidden words of other items in the same
- * pool first, then (if there aren't enough) of the rest of its lesson and of earlier lessons, nearest first.
- * Never one of the answers.
+ * Wrong chips for "Fill the gaps": the item's own `gapChips` (practice.js) first, then hidden words
+ * of other items in the same pool, then (if there aren't enough) of the items the student has met
+ * (`met`; by default this lesson and earlier lessons), nearest first. Never one of the answers,
+ * and never a word from a level the student hasn't reached yet when `met` is given.
  */
-function gapDistractors(item, pool, answers, n, rng) {
+function gapDistractors(item, pool, answers, n, rng, met) {
   const lower = new Set(answers.map((a) => a.toLowerCase()));
   const seen = new Set(lower);
+  const out = [];
+  for (const w of shuffleR(item.extra?.gapChips || [], rng)) {
+    if (out.length < n && !seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); out.push(w); }
+  }
   // Prefer chips of a similar length to the answers, so the length doesn't give it away.
   const avg = answers.reduce((s, a) => s + a.length, 0) / answers.length;
   const words = (list) => {
-    const out = [];
+    const found = [];
     for (const x of shuffleR(list, rng)) {
       if (x.id === item.id) continue;
-      for (const w of blanksOf(x.def)) if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); out.push(w); }
+      for (const w of blanksOf(x.def)) if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); found.push(w); }
     }
-    return out.map((w) => [Math.abs(w.length - avg) + rng() * 6, w]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
+    return found.map((w) => [Math.abs(w.length - avg) + rng() * 6, w]).sort((a, b) => a[0] - b[0]).map((p) => p[1]);
   };
-  const out = words(pool).slice(0, n);
+  const metIds = met ? new Set(met.map((x) => x.id)) : null;
+  const ok = (x) => !metIds || metIds.has(x.id);
+  out.push(...words(pool.filter(ok)).slice(0, n - out.length));
   for (let l = item.lesson; out.length < n && l >= 1; l--) {
-    out.push(...words(allItems.filter((x) => x.lesson === l)).slice(0, n - out.length));
+    out.push(...words(allItems.filter((x) => x.lesson === l && ok(x))).slice(0, n - out.length));
   }
   return out;
 }
 
-/** The automatic exercises every item gets. */
-export function genericExercises(item, pool, rng) {
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** A word of the term that appears in `text` (as a whole word or its plural), or null. */
+const COMMON = new Set(["cell", "cells", "text", "sheet"]); // in most definitions: they give nothing away
+function termWordIn(term, text) {
+  return termWords(term).filter((w) => !COMMON.has(w)).find((w) => new RegExp(`\\b${escRe(stem(w))}(e?s)?\\b`, "i").test(text)) || null;
+}
+
+/**
+ * A word of the term in the right meaning only ("Press Ctrl + Z to undo…" for undo), or in the
+ * quote and only the right term's name, picks the answer by itself. Then one wrong option is
+ * swapped for one that shares the word; if none does, returns null (leave the question out).
+ */
+function noGiveaway(item, text, wrong, pool, key) {
+  const w = termWordIn(item.term, text);
+  if (!w || wrong.some((x) => termWordIn(w, key(x)))) return wrong;
+  const swap = pool.find((x) => x.id !== item.id && !wrong.includes(x) && x.term.toLowerCase() !== item.term.toLowerCase() && termWordIn(w, key(x)));
+  return swap ? [...wrong.slice(0, -1), swap] : null;
+}
+
+/** The automatic exercises every item gets. `met`: the items the student has met (for gap chips). */
+export function genericExercises(item, pool, rng, { met } = {}) {
   const out = [];
   const blanks = blanksOf(item.def);
   if (blanks.length) {
-    const wrong = gapDistractors(item, pool, blanks, blanks.length <= 2 ? 3 : 2, rng);
-    out.push({ type: "gaps", gen: "gaps", item: item.id, def: item.def, answers: blanks, showTerm: !blanksGiveAway(item), chips: shuffleR([...blanks, ...wrong], rng) });
+    const wrong = gapDistractors(item, pool, blanks, blanks.length <= 2 ? 3 : 2, rng, met);
+    out.push({ type: "gaps", gen: "gaps", item: item.id, def: item.def, answers: blanks, showTerm: item.extra?.gapShowTerm || !blanksGiveAway(item), chips: shuffleR([...blanks, ...wrong], rng) });
   }
   const prompt = termPrompt(item);
-  const terms = otherTerms(item, pool, 3, rng);
-  if (prompt && terms.length >= 2) {
-    out.push({ type: "choice", gen: "defToTerm", item: item.id, quote: prompt, prompt: "Which term matches?", correct: item.term, wrong: terms.map((t) => t.term), termOptions: true });
+  let terms = otherTerms(item, pool, 3, rng);
+  if (prompt) terms = noGiveaway(item, prompt, terms, pool, (x) => x.term);
+  if (prompt && terms && terms.length >= 2) {
+    out.push({ type: "choice", gen: "defToTerm", item: item.id, quote: prompt, prompt: "Which term matches?", correct: item.term, wrong: terms.map((t) => t.term), termOptions: true,
+      others: Object.fromEntries(terms.map((t) => [t.term, { term: t.term, def: t.defPlain }])) });
   }
-  const defs = otherTerms(item, pool.filter((x) => x.defPlain.length <= 150), 2, rng);
-  if (defs.length >= 2 && item.defPlain.length <= 170) {
-    out.push({ type: "choice", gen: "termToDef", item: item.id, term: item.term, prompt: "What does this mean?", correct: item.defPlain, wrong: defs.map((t) => t.defPlain), long: true });
+  const short = pool.filter((x) => x.defPlain.length <= 150);
+  const defs = noGiveaway(item, item.defPlain, otherTerms(item, short, 2, rng), short, (x) => x.defPlain);
+  if (defs && defs.length >= 2 && item.defPlain.length <= 170) {
+    out.push({ type: "choice", gen: "termToDef", item: item.id, term: item.term, prompt: "What does this mean?", correct: item.defPlain, wrong: defs.map((t) => t.defPlain), long: true,
+      others: Object.fromEntries(defs.map((t) => [t.defPlain, { term: t.term, def: t.defPlain }])) });
   }
   // Mix the order a little so a level gets all three kinds.
   return shuffleR(out, rng);
@@ -220,14 +253,17 @@ export const LEVEL_MIN = 8, LEVEL_MAX = 12;
 export function levelSession(model, level, { seed, need = () => -1 } = {}) {
   const rng = makeRng(seed);
   const lesson = model.lessons.find((l) => l.n === level.lesson);
-  const pool = lesson.items;
+  const met = metItems(model, level);
+  const metHere = met.filter((x) => x.lesson === level.lesson);
+  // Term questions only use terms the student has met: this level's, else this lesson's so far.
+  const pool = metHere.length >= 4 ? metHere : met;
   const steps = [];
   const rest = [];
   const firstBlock = [];
   const spare = new Map();
   level.items.forEach((item, i) => {
     const authored = shuffleR(authoredExercises(item, rng), rng);
-    const generic = genericExercises(item, level.items.length >= 4 ? level.items : pool, rng);
+    const generic = genericExercises(item, level.items.length >= 4 ? level.items : pool, rng, { met });
     // Alternate which term question comes first, so a level has both kinds.
     if (generic.length > 1 && (i % 2 === 1) !== (rng() < 0.2)) generic.reverse();
     // First question: hands-on if there is one. Second: a term question for
@@ -253,7 +289,7 @@ export function levelSession(model, level, { seed, need = () => -1 } = {}) {
   const review = earlier.map((it) => [need(it.id) + rng(), it]).sort((a, b) => b[0] - a[0]).map((p) => p[1]);
   for (const it of review.slice(0, 2)) {
     if (count >= LEVEL_MAX) break;
-    const ex = pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng)], rng);
+    const ex = pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng, { met })], rng);
     if (ex) { rest.push({ ...ex, retrieval: true }); count++; }
   }
   // Top up to the minimum with spare questions on the new items.
@@ -266,16 +302,27 @@ export function levelSession(model, level, { seed, need = () => -1 } = {}) {
   return [...firstBlock, ...spread(rest, rng)].filter(Boolean);
 }
 
+/** Every item a student has met by the end of `level`: earlier lessons, then this lesson's levels up to it. */
+export function metItems(model, level) {
+  const out = model.items.filter((it) => it.lesson < level.lesson);
+  const lesson = model.lessons.find((l) => l.n === level.lesson);
+  for (const lv of lesson.levels) { out.push(...lv.items); if (lv.id === level.id) break; }
+  return out;
+}
+
 /** A review: questions only, weakest/least-seen items first, plus one matching game. */
-export function reviewSession(model, items, { seed, count = 12, need = () => -1, match = true } = {}) {
+export function reviewSession(model, items, { seed, count = 12, need = () => -1, match = true, met = null } = {}) {
   const rng = makeRng(seed);
+  // Gap chips come from these items and earlier lessons (the sidebar Review passes the items seen so far).
+  const first = Math.min(...items.map((x) => x.lesson));
+  met = met || [...model.items.filter((x) => x.lesson < first), ...items];
   const ranked = items.map((it) => [(need(it.id) < 0 ? 4 : need(it.id)) + rng() * 4, it]).sort((a, b) => b[0] - a[0]).map((p) => p[1]);
   const chosen = ranked.slice(0, Math.min(count, ranked.length));
   const pool = items.length >= 4 ? items : model.items;
-  const steps = chosen.map((it) => pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng)], rng)).filter(Boolean);
+  const steps = chosen.map((it) => pickR([...authoredExercises(it, rng), ...genericExercises(it, pool, rng, { met })], rng)).filter(Boolean);
   // Short sessions get a second question on the weakest items.
   for (let i = 0; steps.length < Math.min(count, 8) && i < chosen.length; i++) {
-    const ex = pickR(genericExercises(chosen[i], pool, rng), rng);
+    const ex = pickR(genericExercises(chosen[i], pool, rng, { met }), rng);
     if (ex) steps.push(ex);
   }
   const out = spread(steps, rng);

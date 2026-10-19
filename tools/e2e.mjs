@@ -293,7 +293,7 @@ async function runViewport(vp) {
       // Answer wrong once per exercise type (per viewport), never on a retry.
       // A hotspot with only one region (e.g. "Tap the legend") has nothing wrong to tap: answer it right.
       const oneRegion = step.type === "hotspot" && await page.evaluate((t) => ![...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].some((b) => b.dataset.region !== t), step.target);
-      const goWrong = !step.retry && step.type !== "learn" && step.type !== "match" && !oneRegion && !wrongDone.has("*") && !wrongDone.has(typeKey);
+      const goWrong = !step.retry && step.type !== "learn" && !oneRegion && !wrongDone.has("*") && !wrongDone.has(typeKey);
       if (goWrong) { wrongDone.add(typeKey); res.wrong++; }
       await answer(step, !goWrong, typeKey);
       // feedback
@@ -332,6 +332,12 @@ async function runViewport(vp) {
       }
       if (step.type === "formula" && goWrong && !step.accept[0].includes("$")) ok(/Start with =/.test(await page.locator(".feedback__body").innerText()), "a formula without = gets the kind “Start with =” tip");
       if (step.type === "gridName" && goWrong) ok(/Letter first/.test(await page.locator(".feedback__title").innerText()), "typing 5C-style gets the kind “Letter first!” explanation");
+      if (step.type === "match" && goWrong) {
+        // A mix-up in the matching game is a wrong answer for that term: said, and saved.
+        ok(/mix-up/.test(await page.locator(".feedback__title").innerText()) && /You matched/.test(await page.locator(".feedback__body").innerText()), "match: a mix-up gets wrong-answer feedback that names it");
+        const it = await page.evaluate((id) => JSON.parse(localStorage.getItem("spreadsheets-practice.v1")).items[id], step.items[0]);
+        ok(it && it.wrong >= 1 && it.box === 0, `match: the mixed-up term is saved as a miss (${step.pairs[0].term}: wrong ${it?.wrong}, box ${it?.box})`);
+      }
       await page.evaluate(() => { document.querySelector(".screen.lesson").__old = document.querySelector(".screen.lesson").__step; });
       if (vp.touch) {
         try { await page.locator('[data-act="continue"]').tap({ timeout: 4000 }); }
@@ -541,6 +547,14 @@ async function runViewport(vp) {
         return check();
       }
       case "match": {
+        if (!right) {
+          // Wrong: the first term with the second meaning (it bounces back), then every pair right.
+          const ti = await page.evaluate((t) => [...document.querySelectorAll('.lesson-body .ex:not(.step-leave) .match-card[data-side="t"]')].findIndex((b) => b.textContent.trim() === t), step.pairs[0].term);
+          await tap(EX + `.match-card[data-side="t"] >> nth=${ti}`);
+          const di = await page.evaluate((d) => [...document.querySelectorAll('.lesson-body .ex:not(.step-leave) .match-card[data-side="d"]')].findIndex((b) => b.textContent.trim() === d), step.pairs[1].def);
+          await tap(EX + `.match-card[data-side="d"] >> nth=${di}`);
+          await wait(700);
+        }
         for (const p of step.pairs) {
           const ti = await page.evaluate((t) => [...document.querySelectorAll('.lesson-body .ex:not(.step-leave) .match-card[data-side="t"]')].findIndex((b) => b.textContent.trim() === t), p.term);
           await tap(EX + `.match-card[data-side="t"] >> nth=${ti}`);

@@ -5,7 +5,7 @@ import { icon } from "./icons.js";
 import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
 import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
-import { renderVisual, fillValues, keycaps, SORT_WINDOW_LABEL, MENU_BAR, drawnLabel } from "./visuals.js";
+import { renderVisual, fillValues, isDay, keycaps, SORT_WINDOW_LABEL, MENU_BAR, drawnLabel } from "./visuals.js";
 import { chartEl, chartDesc, chartPartLabel } from "./charts.js";
 import { screens } from "../content/screens.js";
 import { sortOptions, rowsText, dirLabel } from "./sort.js";
@@ -117,7 +117,7 @@ function choice(step, api) {
   if (step.term) promptHtml = `<p class="term-chip">${esc(step.term)}</p>`;
   const node = el(`
     <div class="ex ex-choice ${step.long ? "is-long" : ""} ${step.termOptions ? "is-terms" : ""}">
-      ${head(step, esc(step.prompt))}
+      ${head(step, esc(step.prompt).replace(/\bNOT\b/g, '<strong class="not">NOT</strong>'))}
       ${promptHtml}
       <div class="ex-visual"></div>
       ${optionsHtml(opts.map((o) => esc(o)), { cls: step.long ? "options--long" : "" })}
@@ -133,9 +133,17 @@ function choice(step, api) {
     check({ skipped } = {}) {
       o.reveal(step.correct);
       const ok = !skipped && o.chosen === step.correct;
-      return { ok, answer: step.correct, explain: step.gen === "termToDef" ? null : undefined, item };
+      return { ok, answer: step.correct, explain: step.gen === "termToDef" ? null : undefined, item, body: ok || skipped ? "" : mixUp(item, step.others?.[o.chosen], step.gen) };
     },
   };
+}
+
+/** Why a wrong term or meaning isn't it: what the chosen one means, and the item's own contrast. */
+function mixUp(item, other, gen) {
+  if (!other) return "";
+  const contrast = item?.extra?.contrast?.[other.term];
+  const what = gen === "termToDef" ? `That's what <b>${esc(other.term)}</b> means.` : `<b>${esc(other.term)}</b> means: ${esc(other.def)}`;
+  return `<span class="feedback__tip">${what}${contrast ? ` ${esc(contrast)}` : ""}</span>`;
 }
 
 // ================================================================ grid: click a cell / header / the fill handle
@@ -384,7 +392,11 @@ export function fillOptions(start, end) {
   const wrong = [];
   const add = (a) => { const s = seq(a); if (s !== correct && !wrong.includes(s)) wrong.push(s); };
   if (typeof start[0] !== "number") {
-    add([start[0], ...Array.from({ length: n }, (_, i) => `${start[0]}${i + 2}`)]);
+    if (isDay(start[0])) {
+      add([start[0], ...Array(n).fill(start[0])]); // copied, as for a plain word
+      const school = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], k = school.indexOf(start[0]);
+      if (k >= 0) add([start[0], ...Array.from({ length: n }, (_, i) => school[(k + i + 1) % 5])]); // school days only
+    } else add([start[0], ...Array.from({ length: n }, (_, i) => `${start[0]}${i + 2}`)]);
     add([start[0], ...Array(n).fill("(empty)")]);
   } else if (start.length === 1) {
     const v = start[0];
@@ -432,7 +444,9 @@ function fill(step, api) {
     check({ skipped } = {}) {
       o.reveal(correct);
       const ok = !skipped && o.chosen === correct;
-      const why = start.length === 1
+      const why = isDay(start[0])
+        ? "Google Sheets knows the days of the week, so one cell is enough: it carries on to the next day each time."
+        : start.length === 1
         ? "One cell selected: the fill handle copies the same value."
         : `Two cells show the pattern (${start[1] - start[0] >= 0 ? "+" : ""}${start[1] - start[0]} each time), so the fill handle keeps it going.`;
       return { ok, answer: correct, body: `<span class="feedback__tip">${why}</span>`,
@@ -786,8 +800,9 @@ function hotspot(step, api) {
         if (b.dataset.region === step.target) b.classList.add("is-correct");
         else if (b.dataset.region === chosen) b.classList.add("is-wrong");
       });
+      const tip = !ok && chosen && step.tips?.[chosen] ? ` ${esc(step.tips[chosen])}` : "";
       return { ok, answer: ok ? "" : label(step.target),
-        body: !ok && chosen ? `<span class="feedback__tip">You tapped ${esc(label(chosen))}.</span>` : "" };
+        body: !ok && chosen ? `<span class="feedback__tip">You tapped ${esc(label(chosen))}.${tip}</span>` : "" };
     },
   };
 }
@@ -857,6 +872,7 @@ function match(step, api) {
   let sel = { t: null, d: null };
   let matched = 0;
   const missed = new Set();
+  const mixups = []; // [term index, the meaning it was matched with]
   node.addEventListener("click", (e) => {
     const b = e.target.closest(".match-card");
     if (!b || b.disabled || b.classList.contains("is-busy")) return;
@@ -875,11 +891,20 @@ function match(step, api) {
         [a, c].forEach((x) => { x.setAttribute("aria-pressed", "false"); x.classList.add("is-correct"); restartAnim(x, "pop"); x.disabled = true; });
         setTimeout(() => [a, c].forEach((x) => x.classList.add("is-done")), 450);
         if (matched === step.pairs.length) {
-          setTimeout(() => api.complete({ ok: true, itemsWrong: [...missed].map((i) => step.items[i]),
-            body: `<span class="feedback__tip">${missed.size ? `All matched. You sorted out ${missed.size} mix-up${missed.size > 1 ? "s" : ""} on the way.` : "All matched on the first go!"}</span>` }), 600);
+          // A mix-up is a wrong answer for that term: it comes back later, and the stars count it.
+          const seenT = new Set();
+          const lines = mixups.filter(([i]) => !seenT.has(i) && seenT.add(i)).map(([i, d]) => {
+            const p = step.pairs[i], other = step.pairs[d];
+            const contrast = api.item(step.items[i])?.extra?.contrast?.[other.term];
+            return `You matched <b>${esc(p.term)}</b> with “${esc(other.def)}”: that's <b>${esc(other.term)}</b>.${contrast ? ` ${esc(contrast)}` : ""}`;
+          });
+          setTimeout(() => api.complete(missed.size
+            ? { ok: false, title: "All matched, with a mix-up", itemsWrong: [...missed].map((i) => step.items[i]), body: `<span class="feedback__tip">${lines.join("<br>")}</span>` }
+            : { ok: true, body: `<span class="feedback__tip">All matched on the first go!</span>` }), 600);
         }
       } else {
         missed.add(+a.dataset.i);
+        mixups.push([+a.dataset.i, +c.dataset.i]);
         sfx.wrong();
         [a, c].forEach((x) => { x.classList.add("is-wrong", "is-busy"); restartAnim(x, "shake"); });
         setTimeout(() => [a, c].forEach((x) => { x.classList.remove("is-wrong", "is-busy"); x.setAttribute("aria-pressed", "false"); }), 520);

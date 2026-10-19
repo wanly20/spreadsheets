@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Crop the real Google Sheets screenshots (Lessons 6 and 7) into assets/screens/*.webp.
+"""Crop the real Google Sheets screenshots into assets/screens/*.webp.
 
     python3 tools/crop_screens.py            # every picture
     python3 tools/crop_screens.py legend     # just one (by name)
@@ -9,6 +9,10 @@ Reads ../spreadsheets/screenshots/google_sheets/menus/*.jpg (1335×896, Oct 2026
 hover highlights (and the cursor) that would give an answer away, then crops, saves WebP, and prints
 the regions (in the crop's own pixels) as JSON for content/screens.js. Needs Pillow (system python3).
 Regions are written below in the ORIGINAL screenshot's pixels: x, y, width, height, label.
+
+Also (TOOLBAR, below) the Lesson 1-2 toolbar pictures from ../spreadsheets/screenshots/google_sheets/*.png:
+sheets-basic (with the UK-locale £ button repainted as the Australian $) and single toolbar buttons
+(ic-halign, ic-valign, ic-wrap) for the learn cards. Their regions are in content/screens.js already.
 """
 import json, os, sys
 from pathlib import Path
@@ -16,6 +20,27 @@ from PIL import Image, ImageDraw, ImageFont
 
 APP = Path(__file__).resolve().parent.parent
 SRC = APP.parent / "spreadsheets/screenshots/google_sheets/menus"
+SHEETS = APP.parent / "spreadsheets/screenshots/google_sheets"
+
+
+def dollar(im):
+    """basic.png was taken in a UK-locale file: its currency button shows £. Lesson 2 sets the
+    locale to Australia, where that button shows $, so paint the $ in the same grey."""
+    d = ImageDraw.Draw(im)
+    d.rectangle((394, 96, 414, 122), fill=(240, 244, 249))
+    f = ImageFont.truetype("/usr/share/fonts/liberation/LiberationSans-Regular.ttf", 19)
+    l, t, r, b = d.textbbox((0, 0), "$", font=f)
+    d.text((404 - (r - l) / 2 - l, 109 - (b - t) / 2 - t), "$", font=f, fill=(95, 99, 104))
+    return im
+
+
+# name: (file in google_sheets/, crop box or None for the whole picture, fix or None)
+TOOLBAR = {
+    "sheets-basic": ("basic.png", None, dollar),
+    "ic-halign": ("rest_of_ribbon.png", (168, 4, 222, 50), None),
+    "ic-valign": ("rest_of_ribbon.png", (228, 4, 282, 50), None),
+    "ic-wrap": ("rest_of_ribbon.png", (288, 4, 342, 50), None),
+}
 OUT = APP / "assets/screens"
 
 
@@ -137,6 +162,16 @@ preview = None
 if "--preview" in args:
     i = args.index("--preview"); preview = Path(args[i + 1]); del args[i:i + 2]
     preview.mkdir(parents=True, exist_ok=True)
+for name, (src, box, fix) in TOOLBAR.items():
+    if args and name not in args:
+        continue
+    im = Image.open(SHEETS / src).convert("RGB")
+    if fix:
+        im = fix(im)
+    if box:
+        im = im.crop(box)
+    im.save(OUT / f"{name}.webp", "WEBP", quality=90, method=6)
+    print(f"saved {name}.webp ({im.width}×{im.height})", file=sys.stderr)
 out = {}
 for name, (src, box, regs, alt) in S.items():
     if args and name not in args:

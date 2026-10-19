@@ -18,12 +18,21 @@ const defaults = () => ({
 
 export const PROGRESS_FILE = { app: "spreadsheets-practice", version: 1 };
 
+// Terms renamed to match Google Sheets' own words: saved progress follows them.
+const RENAMED = { "2:text wrap": "2:text wrapping", "2:freeze panes": "2:freeze" };
+function renameItems(items) {
+  const out = { ...items };
+  for (const [from, to] of Object.entries(RENAMED)) if (out[from] && !out[to]) { out[to] = out[from]; delete out[from]; }
+  return out;
+}
+
 let state = load();
 
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...defaults(), ...JSON.parse(raw) } : defaults();
+    const s = raw ? { ...defaults(), ...JSON.parse(raw) } : defaults();
+    return { ...s, items: renameItems(s.items || {}) };
   } catch {
     return defaults();
   }
@@ -135,6 +144,7 @@ export function readProgressFile(text) {
   };
   for (const [k, v] of Object.entries(p.levels)) if (isObj(v) && v.stars >= 1 && v.stars <= 3) clean.levels[k] = { stars: v.stars, best: +v.best || 0, xp: +v.xp || 0, plays: +v.plays || 1, at: +v.at || 0 };
   for (const [k, v] of Object.entries(p.items)) if (isObj(v) && Number.isFinite(v.box)) clean.items[k] = { box: Math.min(5, Math.max(0, v.box)), due: +v.due || 0, seen: +v.seen || 0, right: +v.right || 0, wrong: +v.wrong || 0 };
+  clean.items = renameItems(clean.items);
   return { progress: clean, saved: data.saved };
 }
 

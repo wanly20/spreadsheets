@@ -190,6 +190,8 @@ export function runLesson(app, session, hooks) {
       html += `<span class="feedback__label">Correct answer:</span><span class="feedback__answer ${result.answerHtml ? "feedback__answer--list" : ""}">${result.answerHtml ? result.answer : esc(result.answer)}</span>`;
     }
     if (result.body) html += result.body;
+    // An exercise's `why` (content/practice.js): the reason, not just the right answer.
+    if (!result.ok && step.why) html += `<span class="feedback__tip">${esc(step.why)}</span>`;
     // A wrong answer shows the definition again: that's the learning moment.
     if (!result.ok && item && result.explain !== null) html += `<span class="feedback__def"><b>${esc(item.term)}:</b> ${rich(item.def)}</span>`;
     else if (!result.ok && !result.body && !result.skipped) html += `<span class="feedback__tip">${pick(KIND)}</span>`;

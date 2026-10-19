@@ -58,7 +58,7 @@ nearest level. The checker tells you so you can tidy up the level list.
 | `content/course.js` | The path: lessons, their levels (lists of terms), "coming soon" |
 | `content/practice.js` | Learn-card pictures and extra exercises for each term (grid, fill, keys, hotspots, steps, formulas, locking a reference with $, predicting a formula after a fill down or across, predicting a sort, two ranges with Ctrl, choosing a chart…) |
 | `content/screens.js` | Real Google Sheets screenshots and their tappable areas, plus drawn stand-ins for the ones not photographed yet (`docs/SCREENSHOTS_WANTED.md`) |
-| `tools/crop_screens.py` | Crops the Lesson 6–7 screenshots (`../spreadsheets/screenshots/google_sheets/menus/`) into `assets/screens/` and prints their regions |
+| `tools/crop_screens.py` | Crops the Lesson 6–7 screenshots (`../spreadsheets/screenshots/google_sheets/menus/`) into `assets/screens/` and prints their regions; also the Lesson 1–2 toolbar pictures (`sheets-basic`, with the Australian $, and single buttons such as `ic-wrap`) |
 | `js/brand.js` | **App name and mascot, in one place** |
 | `js/course.js` | Builds levels and reviews from the content |
 | `js/exercises.js` · `js/grid.js` · `js/visuals.js` | Exercise types, the mini spreadsheet (incl. two ranges with Ctrl), pictures |

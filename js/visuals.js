@@ -1,8 +1,8 @@
 // Pictures for learn cards and questions. Each visual spec is an object with
 // one (or two) of these keys, rendered in this order:
-//   grid      a mini spreadsheet (js/grid.js spec)
-//   image     a real screenshot from content/screens.js (+ highlight: region)
 //   icons     [[screenId, label], …] toolbar buttons from the screenshots
+//   image     a real screenshot from content/screens.js (+ highlight: region)
+//   grid      a mini spreadsheet (js/grid.js spec)
 //   keys      ["Ctrl", "Z"] keycaps
 //   tabs      { tabs, active, highlight, editing, dragging, colours } the sheet tabs bar
 //   tabmenu   { tab, highlight } a tab with its two-finger-tap menu open
@@ -73,8 +73,13 @@ export function drawnLabel(spec = {}, id) {
 /** A drawn picture with one of its parts ringed. */
 const withHighlight = (spec, highlight) => { const k = drawnKind(spec); return highlight && k ? { ...spec, [k]: { ...spec[k], highlight } } : spec; };
 
-/** Worked out like Google Sheets: one cell copies; two numbers continue the step. */
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+/** A day name: Google Sheets fills the days of the week from one cell (Monday → Sunday). */
+export const isDay = (v) => DAYS.includes(v);
+
+/** Worked out like Google Sheets: one cell copies (a day name carries on); two numbers continue the step. */
 export function fillValues(start, count) {
+  if (start.length === 1 && isDay(start[0])) return Array.from({ length: count }, (_, i) => DAYS[(DAYS.indexOf(start[0]) + i + 1) % 7]);
   if (start.length === 1 || typeof start[0] !== "number" || typeof start[1] !== "number") {
     return Array.from({ length: count }, (_, i) => start.length === 1 ? start[0] : start[i % start.length]);
   }
@@ -87,6 +92,10 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
   const out = { el: wrap, hits: [] };
   const plays = [];
 
+  if (spec.icons) {
+    wrap.appendChild(el(`<div class="tool-icons">${spec.icons.map(([id, label]) =>
+      `<figure class="tool-icon"><img src="assets/screens/${id}.webp" alt="" draggable="false"><figcaption>${esc(label)}</figcaption></figure>`).join("")}</div>`));
+  }
   if (spec.image && screens[spec.image]?.drawn) {
     // Not photographed yet: draw it (see content/screens.js).
     wrap.appendChild(renderVisual(withHighlight(screens[spec.image].drawn, spec.highlight), { interactiveHits }).el);
@@ -100,10 +109,6 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
       box.appendChild(el(`<span class="shot-ring" style="left:${(x / s.w) * 100}%;top:${(y / s.h) * 100}%;width:${(w / s.w) * 100}%;height:${(h / s.h) * 100}%"></span>`));
     }
     wrap.appendChild(box);
-  }
-  if (spec.icons) {
-    wrap.appendChild(el(`<div class="tool-icons">${spec.icons.map(([id, label]) =>
-      `<figure class="tool-icon"><img src="assets/screens/${id}.webp" alt="" draggable="false"><figcaption>${esc(label)}</figcaption></figure>`).join("")}</div>`));
   }
   if (spec.grid) {
     const g = createGrid(spec.grid);
@@ -175,8 +180,8 @@ export function tabsBar({ tabs, active = 0, highlight, editing = -1, dragging = 
     </div>`);
 }
 
-/** A tab with its menu open (two-finger tap on a Chromebook = right-click). */
-export function tabMenu({ tab, highlight }) {
+/** A tab with its menu open (two-finger tap on a Chromebook = right-click). `tabs`: the whole tab row. */
+export function tabMenu({ tab, tabs = [tab], highlight }) {
   return el(`
     <div class="tab-menu-scene">
       <div class="tab-menu" role="menu" aria-label="Menu for the ${esc(tab)} tab">
@@ -185,7 +190,7 @@ export function tabMenu({ tab, highlight }) {
       </div>
       <div class="tabs-bar tabs-bar--mini">
         <span class="tabs-bar__btn" aria-hidden="true">${icon("plus", 20, 2.5)}</span>
-        <span class="sheet-tab is-active is-pressed"><span class="sheet-tab__name">${esc(tab)}</span>${icon("chevron-down", 14, 2.5)}</span>
+        ${tabs.map((t) => `<span class="sheet-tab ${t === tab ? "is-active is-pressed" : ""}"><span class="sheet-tab__name">${esc(t)}</span>${icon("chevron-down", 14, 2.5)}</span>`).join("")}
       </div>
     </div>`);
 }

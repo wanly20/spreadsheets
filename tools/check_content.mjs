@@ -17,7 +17,7 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
-const { TAB_MENU, fillValues, dataMenuHits, sortWindowHits, drawnHits } = await import(path.join(ROOT, "js/visuals.js"));
+const { TAB_MENU, fillValues, isDay, dataMenuHits, sortWindowHits, drawnHits } = await import(path.join(ROOT, "js/visuals.js"));
 const { chartHits } = await import(path.join(ROOT, "js/charts.js"));
 const { sortOptions, sortTies, rowsText } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
@@ -75,7 +75,11 @@ const isRef = (r) => /^[A-Z][1-9]\d?$/.test(r);
 for (const it of model.items) {
   const ex = it.extra;
   if (!ex) continue;
+  for (const t of [...(ex.confusable || []), ...Object.keys(ex.contrast || {})]) if (!model.items.some((x) => x.term === t)) err(`"${it.term}": confusable/contrast names "${t}", which isn't a term`);
+  const answers = C.blanksOf(it.def).map((a) => a.toLowerCase());
+  if (ex.gapChips && (!answers.length || ex.gapChips.some((c) => answers.includes(c.toLowerCase())))) err(`"${it.term}": gapChips need [[gaps]] and must never be a right answer`);
   const lv = ex.learn?.visual;
+  for (const [id] of lv?.icons || []) if (!existsSync(path.join(ROOT, `assets/screens/${id}.webp`))) err(`"${it.term}" learn card: missing assets/screens/${id}.webp`);
   if (lv?.image && !screens[lv.image]) err(`"${it.term}" learn card: unknown screenshot ${lv.image}`);
   else if (lv?.highlight && !(screens[lv.image]?.drawn ? drawnHits(screens[lv.image].drawn).includes(lv.highlight) : screens[lv.image]?.regions[lv.highlight])) err(`"${it.term}" learn card: unknown highlight ${lv.highlight}`);
   for (const c of [lv?.chart, ...(lv?.charts || [])].filter(Boolean)) checkChart(c, `"${it.term}" learn card`);
@@ -117,7 +121,8 @@ for (const it of model.items) {
     if (e.type === "gridMove") [...[].concat(e.from), ...[].concat(e.to)].forEach((t) => { if (!isRef(t)) err(`${where}: bad cell ${t}`); });
     if (e.type === "fill") {
       if (!Array.isArray(e.start) || e.start.length < 1 || e.start.length > 2 || !(e.end > e.start.length + 1)) err(`${where}: start must be 1 or 2 values and end bigger`);
-      if (e.start.length === 1 && typeof e.start[0] === "string" && /\d|^(mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(e.start[0])) err(`${where}: Google Sheets turns “${e.start[0]}” into a series, not a copy: use a plain word`);
+      if (e.start.length === 1 && isDay(e.start[0]) && it.term === "fill to copy") err(`${where}: a day name carries on (Monday, Tuesday…): it isn't a copy`);
+      if (e.start.length === 1 && typeof e.start[0] === "string" && !isDay(e.start[0]) && /\d|^(mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(e.start[0])) err(`${where}: Google Sheets turns “${e.start[0]}” into a series, not a copy: use a plain word`);
       if (e.start.length === 2 && fillValues(e.start, 1)[0] === e.start[1]) warn(`${where}: the pattern doesn't change`);
     }
     if (e.type === "keys") {
@@ -191,6 +196,8 @@ for (const it of model.items) {
         else if (moved === 2) err(`${where}: the sorted order is just one swap away from the start: mix the rows up more`);
       }
     }
+    if (e.why != null && (typeof e.why !== "string" || e.why.length < 10)) err(`${where}: why must be a sentence`);
+    if (e.tips && (e.type !== "hotspot" || Object.keys(e.tips).some((k) => k === e.target))) err(`${where}: tips are for the wrong areas of a hotspot`);
     if (e.type === "order" && (!Array.isArray(e.steps) || e.steps.length < 2 || new Set(e.steps).size !== e.steps.length)) err(`${where}: needs 2+ different steps`);
   });
 }
