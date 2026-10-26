@@ -16,5 +16,18 @@
   "thinking": "standing with one paw on the chin, looking up thoughtfully, eyebrows raised.",
   "celebrating": "jumping with both paws raised in the air, celebrating, mouth open in a big happy smile.",
   "laptop": "sitting at a small wooden desk and typing on an open silver laptop, looking happy and focused."
+ },
+ "_round3": "27 Oct 2026, Juan's round-2 answers: Byte seed 1 and Paddle the platypus (the on-all-fours concept) are picked. Their sentences below are LOCKED from those exact images (byte/oct24/byte_*_s1.png, platypus/platypus_paddle_s*.png). Pose sets: byte/ and paddle/, <who>_<pose>_s<seed>.png, seeds 1-3, seven poses (poses_v2), same style, background and 1024x1024 framing as Pip and the oct24 sets; Paddle's poses add paddle_view. Jobs: video_generation/images/moss/oct26/. Kiki: on hold (Juan said her pose set is not OK; reason pending).",
+ "byte_locked": "Byte, a stocky cartoon wombat (an Australian wombat, not a bear): a low, wide, barrel-shaped body on very short thick legs, soft dark grey-brown fur, a big wide head that is broader than it is tall, small rounded ears with pink insides on the top corners of the head, a pale beige rounded snout with a very broad flat dark brown nose pad, small round dark eyes with white highlights, soft pink cheeks, a calm friendly smile, a pale beige lower belly, short strong dark claws on his paws and feet, no visible tail, wearing a navy-blue t-shirt with a small bright green square on the chest.",
+ "paddle_locked": "Paddle, a young cartoon platypus, a furry mammal (not a bird, not a duck, not a penguin): a furry chocolate-brown otter-like body with a pale tan belly, a wide flat smooth slate-grey duck-like bill as long as the head, small dark eyes with white highlights set high on the head, a soft pink cheek, no visible ears, no feathers and no wings, short brown arms with small paws, short legs with grey webbed feet, and a broad flat brown beaver-like paddle tail, wearing a bright yellow knitted scarf tied at the neck with fringed ends. Cute chubby proportions.",
+ "paddle_view": "Seen in a three-quarter side view, so the long flat bill and the flat paddle tail are both clearly visible.",
+ "poses_v2": {
+  "neutral": "standing upright facing the viewer, arms relaxed at the sides, a gentle smile.",
+  "waving": "standing and waving hello with one paw raised high, a big friendly smile.",
+  "pointing": "standing and pointing to the right with one paw, as if showing something on a screen, smiling.",
+  "thinking": "standing with one paw on the chin, looking up thoughtfully, eyebrows raised.",
+  "celebrating": "jumping with both paws raised in the air, celebrating, mouth open in a big happy smile.",
+  "laptop": "sitting at a small wooden desk and typing on an open silver laptop, looking happy and focused.",
+  "sign": "standing and holding up a blank white rectangular sign board with both paws in front of the chest, smiling; the sign is completely blank, with nothing written on it."
  }
 }
