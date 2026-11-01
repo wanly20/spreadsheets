@@ -12,6 +12,10 @@
 //    term's core question and, for a skill, a hands-on task (when it has one),
 //  - at most one core question per term, and every Mixed review has a typed cell reference
 //    and range when its terms have them.
+//  - no level names a term, menu, button, function, syntax or shortcut that is taught in a
+//    later level, or never (hidden load: tools/hidden_load.mjs), and no level has more than
+//    6 new things (terms + hidden extras). `--load` prints, per level, everything used there
+//    for the first time.
 // Exits 1 on errors; warnings are printed but don't fail.
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -24,6 +28,7 @@ const { TAB_MENU, fillValues, isDay, dataMenuHits, sortWindowHits, drawnHits } =
 const { chartHits } = await import(path.join(ROOT, "js/charts.js"));
 const { sortOptions, sortTies, rowsText } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
+const { hiddenLoad, loadReport } = await import(path.join(ROOT, "tools/hidden_load.mjs"));
 // js/exercises.js needs a browser to load, so the fill-formula helpers are read straight from it.
 const exSrc = readFileSync(path.join(ROOT, "js/exercises.js"), "utf8");
 const fillHelpers = exSrc.slice(exSrc.indexOf("const FREF_RE"), exSrc.indexOf("function fillFormula("));
@@ -278,6 +283,19 @@ for (const l of model.lessons.filter((x) => !x.comingSoon)) {
   console.log(`  ${l.review?.id.padEnd(5)} ${(l.review?.title || "").padEnd(28)} ${String(l.items.length).padStart(2)} items     · ${rs.length} questions`);
 }
 for (const it of model.items) if (!covered.has(it.id)) err(`"${it.term}" (lesson ${it.lesson}) never gets a learn card in any level`);
+
+// ------------------------------------------------------------ hidden load
+const load = hiddenLoad(model, C, screens);
+for (const r of load) {
+  for (const f of r.flags) {
+    if (f.allowed) continue;
+    const m = `level ${r.level}: ${f.where} names “${f.thing}”, taught ${f.taught === "never" ? "nowhere" : `in ${f.taught}`}`;
+    if (f.source === "app") err(`${m} (hidden load: reword it, or add it to ALLOW in tools/hidden_load.mjs)`);
+    else warn(`${m} (hidden load in ${{ kb: "the Knowledge Bank: change the xlsx", auto: "the automatic questions", js: "js/exercises.js" }[f.source]})`);
+  }
+  if (r.count > 6) warn(`level ${r.level} has ${r.count} new things: ${r.terms.length} terms + ${r.extras.length} hidden extras (${r.extras.map((e) => e.thing).join("; ")})`);
+}
+if (process.argv.includes("--load")) console.log(loadReport(load));
 
 console.log(`\n${model.items.length} knowledge items in ${model.lessons.filter((x) => !x.comingSoon).length} ready lesson(s); ` +
   `${model.items.reduce((a, it) => a + (it.extra?.exercises?.length || 0), 0)} extra exercises.`);

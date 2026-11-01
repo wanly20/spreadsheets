@@ -85,12 +85,12 @@ const colThreeSwitched = { type: "column", labels: ["Morning", "Lunch", "Afterno
 export const practice = {
   // ======================================================= Lesson 1
   spreadsheet: {
-    learn: { visual: { grid: { cols: 4, rows: 4, cells: shop, sel: "D2", nameBox: true, formula: "=B2*C2" } }, note: "D2 holds a formula (see the bar above the grid: =B2*C2). You typed the Price and the Qty; the formula works out the Total." },
+    learn: { visual: { grid: { cols: 4, rows: 4, cells: shop, sel: "D2", nameBox: true } }, note: "You typed the Price and the Qty. You didn't type the Total: the spreadsheet works it out for you (Price × Qty), and works it out again when a number changes." },
     exercises: [
-      { core: true, type: "choice", fact: "calculates for you", prompt: "D2 holds a formula that multiplies the Price by the Qty. The Pen costs $2 and you buy 3. You didn't type 6. What does D2 show?",
-        visual: { grid: { cols: 4, rows: 3, cells: { ...shop, D2: "?", A3: "", B3: "", C3: "", D3: "" }, sel: "D2", nameBox: true, formula: "=B2*C2" } },
-        correct: "6: the formula works it out for you", wrong: ["Nothing: you have to type the answer", "23", "5"],
-        why: "The formula in D2 multiplies 2 by 3, so D2 shows 6. Change the Price and the Total changes by itself." },
+      { core: true, type: "choice", fact: "calculates for you", prompt: "D2 multiplies the Price by the Qty by itself. The Pen costs $2 and you buy 3. You didn't type 6. What does D2 show?",
+        visual: { grid: { cols: 4, rows: 3, cells: { ...shop, D2: "?", A3: "", B3: "", C3: "", D3: "" }, sel: "D2", nameBox: true } },
+        correct: "6: the spreadsheet works it out for you", wrong: ["Nothing: you have to type the answer", "23", "5"],
+        why: "D2 multiplies 2 by 3 for you, so D2 shows 6. Change the Price and the Total changes by itself." },
     ],
   },
   cell: {
@@ -146,12 +146,12 @@ export const practice = {
   },
   "Name Box": {
     learn: { visual: { image: "sheets-basic", highlight: "nameBox" }, note: "Type E2 in the Name Box, press Enter, and you jump straight to E2." },
-    gapChips: ["tab", "handle", "menu"],
+    gapChips: ["row", "handle", "menu"],
     exercises: [
       { type: "hotspot", fact: "top-left", screen: "sheets-basic", target: "nameBox", prompt: "Tap the Name Box." },
       { type: "order", fact: "press Enter to jump there", prompt: "Put the steps in order to jump to cell E2.",
         steps: ["Click in the Name Box", "Type E2", "Press Enter"] },
-      { core: true, type: "keys", fact: "press Enter", prompt: "You typed F10 in the Name Box. Press the key that jumps there!", combo: "enter", label: "Enter", wrong: ["Delete", "Ctrl + Z", "Space"],
+      { core: true, type: "keys", fact: "press Enter", prompt: "You typed F10 in the Name Box. Press the key that jumps there!", combo: "enter", label: "Enter", wrong: ["Space", "Shift", "Esc"],
         scene: { grid: { cols: 5, rows: 4, sel: "B2", nameBox: "F10" } } },
       { type: "choice", fact: "It shows the cell you are on", prompt: "You drag from B2 down to B6. What does the Name Box show?",
         visual: { grid: { cols: 4, rows: 7, sel: "B2:B6", nameBox: "?" } }, correct: "B2:B6", wrong: ["B2", "B6", "B2-B6"],
@@ -160,12 +160,12 @@ export const practice = {
   },
   "fill handle": {
     learn: { visual: { image: "fill-handle" }, note: "Hover over the blue circle until the cursor is a thin +, then drag." },
-    gapChips: ["box", "tab", "move", "clear"],
+    gapChips: ["box", "cell", "move", "clear"],
     exercises: [
       { core: true, type: "hotspot", fact: "bottom-right corner", screen: "sheets-basic", target: "fillHandle", prompt: "Tap the fill handle." },
       { type: "gridClick", fact: "bottom-right corner", target: "handle", prompt: "Grab the fill handle of the selected cell.", grid: { cols: 5, rows: 5, sel: "B2", cells: { B2: 5 } } },
       { type: "choice", fact: "small blue circle", prompt: "What does the fill handle look like in Google Sheets?",
-        correct: "A small blue circle", wrong: ["A small blue triangle", "A plus sign at the top-left", "A paint bucket"] },
+        correct: "A small blue circle", wrong: ["A small blue triangle", "A plus sign at the top-left", "A small grey square"] },
       { type: "fill", fact: "Drag it to fill cells", start: ["Monday"], end: 7 },
     ],
   },
@@ -208,15 +208,15 @@ export const practice = {
     ],
   },
   "clear cell contents": {
-    learn: { visual: { keys: ["Delete"] }, note: "Formatting is how a cell looks: its background colour, bold, borders. Delete clears what's in the cell, not how it looks. On a Chromebook, Backspace clears a cell too." },
-    gapChips: ["clears the colour", "clears the formatting", "deletes the whole row"],
+    learn: { visual: { keys: ["Delete"] }, note: "Delete empties the cell, but the cell keeps its look: a green background stays green. On a Chromebook, Backspace clears a cell too." },
+    gapChips: ["clears the colour", "clears the look", "removes the whole row"],
     exercises: [
       { type: "keys", fact: "press Delete", prompt: "B2 is selected. Clear what's in it!", combo: "delete", label: "Delete", wrong: ["Ctrl + Y", "Enter", "Ctrl + Z"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: 42 } }, after: { cells: { B2: "" } } } },
       { core: true, type: "choice", fact: "not any formatting", prompt: "B2 holds 42 and has a green background. You click it and press Delete. What is left?",
         visual: { grid: { cols: 4, rows: 3, sel: "B2", cells: { B2: 42 }, style: { B2: { bg: "#b7e1c5" } } } },
         correct: "An empty cell that still has its green background", wrong: ["An empty white cell: the green is gone too", "42 is still there", "The cell is deleted and C2 moves into its place"],
-        why: "A background colour is formatting. Delete clears the contents only, so the 42 goes and the green stays." },
+        why: "Delete clears the contents only: the 42 goes, and the green background stays." },
     ],
   },
   undo: {
@@ -225,7 +225,7 @@ export const practice = {
     contrast: { redo: "Ctrl + Z takes your last action back. Ctrl + Y brings back what Ctrl + Z took away." },
     gapChips: ["bring back", "copy", "clear"],
     exercises: [
-      { core: true, type: "keys", fact: "Ctrl + Z", prompt: "Oops! You cleared 42 from B2 by mistake. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Ctrl + X", "Ctrl + U"],
+      { core: true, type: "keys", fact: "Ctrl + Z", prompt: "Oops! You cleared 42 from B2 by mistake. Undo it!", combo: "ctrl+z", label: "Ctrl + Z", wrong: ["Ctrl + Y", "Delete", "Enter"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: "" } }, after: { cells: { B2: 42 } } } },
       { type: "choice", fact: "Press it again to go further back", prompt: "You made three mistakes in a row. Ctrl + Z took back the last one. How do you take back the other two?",
         correct: "Press Ctrl + Z two more times", wrong: ["Press Ctrl + Y two more times", "You can't: Ctrl + Z only works once", "Close the spreadsheet and open it again"] },
@@ -236,7 +236,7 @@ export const practice = {
     confusable: ["undo"],
     contrast: { undo: "Ctrl + Y brings back what Ctrl + Z took away. Ctrl + Z takes your last action back." },
     exercises: [
-      { core: true, type: "keys", fact: "Ctrl + Y", prompt: "You pressed Ctrl + Z one time too many and 42 disappeared. Bring it back!", combo: "ctrl+y", label: "Ctrl + Y", wrong: ["Ctrl + Z", "Ctrl + B", "Delete"],
+      { core: true, type: "keys", fact: "Ctrl + Y", prompt: "You pressed Ctrl + Z one time too many and 42 disappeared. Bring it back!", combo: "ctrl+y", label: "Ctrl + Y", wrong: ["Ctrl + Z", "Enter", "Delete"],
         scene: { grid: { cols: 4, rows: 4, sel: "B2", cells: { B2: "" } }, after: { cells: { B2: 42 } } } },
       { type: "choice", fact: "bring back what Ctrl + Z just took away", prompt: "What does Ctrl + Y do?",
         correct: "Brings back what Ctrl + Z just took away", wrong: ["Takes back your last action", "Clears the selected cell", "Copies the cell"] },
@@ -280,7 +280,7 @@ export const practice = {
       { core: true, type: "hotspot", fact: "paint bucket", screen: "sheets-ribbon", target: "fillColour", prompt: "Tap the fill colour button.",
         tips: { borders: "That's Borders. Fill colour is the paint bucket, just to its left." } },
       { type: "choice", fact: "background colour", prompt: "What does fill colour change?",
-        correct: "The background of the selected cells", wrong: ["The colour of the writing", "The lines around the cells", "The colour of the sheet tab"] },
+        correct: "The background of the selected cells", wrong: ["The colour of the writing", "The lines around the cells", "The size of the writing"] },
     ],
   },
   borders: {
@@ -289,7 +289,7 @@ export const practice = {
       { core: true, type: "order", fact: "Pick the colour and thickness first, then where", prompt: "Put the steps in order to put a thick red box around B2.",
         steps: ["Select B2", "Click the Borders button", "Choose red with the pencil", "Choose a thick line", "Click the outer box"] },
       { type: "choice", fact: "where", prompt: "The borders menu lets you set three things. Which three?",
-        correct: "Where, colour and thickness", wrong: ["Font, size and bold", "Width, height and wrap", "Where, size and font"] },
+        correct: "Where, colour and thickness", wrong: ["Font, size and bold", "Width, height and position", "Where, size and font"] },
       { type: "hotspot", fact: "outer box", screen: "border-menu", target: "outer", prompt: "Tap the button for a box around the outside only." },
       { type: "hotspot", fact: "colour (the pencil)", screen: "border-menu", target: "colour", prompt: "Tap where you choose the border's colour.",
         tips: { style: "That sets the thickness. The pencil sets the colour." } },
@@ -314,7 +314,7 @@ export const practice = {
     gapChips: ["rename a sheet", "copy a sheet", "colour a tab"],
     exercises: [
       { core: true, type: "hotspot", fact: "Click the +", ui: { tabs: { tabs: ["Data", "Notes"], active: 0 } }, target: "+", prompt: "Add a new sheet." },
-      { type: "choice", fact: "bottom-left", prompt: "Where is the + that adds a new sheet?", correct: "At the bottom-left", wrong: ["At the top-right", "In the Name Box", "In the Format menu"] },
+      { type: "choice", fact: "bottom-left", prompt: "Where is the + that adds a new sheet?", correct: "At the bottom-left", wrong: ["At the top-right", "In the Name Box", "Next to the Bold button"] },
     ],
   },
   "rename a sheet": {
@@ -343,7 +343,7 @@ export const practice = {
   },
   "move a sheet": {
     learn: { visual: { tabs: { tabs: ["Notes", "Data"], active: 1, dragging: 1 } }, note: "Drag a tab along the row, or use Move right / Move left in the tab menu." },
-    gapChips: ["Duplicate", "Rename", "Copy to"],
+    gapChips: ["Duplicate", "Rename", "Change colour"],
     exercises: [
       { core: true, type: "hotspot", fact: "Move right", screen: "tab-menu", target: "Move right", prompt: "The Data tab's menu is open. Move the Data sheet one place to the right, after Notes.",
         tips: { "Move left": "Move left is grey: Data is already the first tab. Move right puts it after Notes." } },
@@ -355,7 +355,7 @@ export const practice = {
     learn: { visual: { tabs: { tabs: ["Data", "Notes"], active: 0, colours: ["#1f9a4f", "#fbbc04"] } } },
     // The menu's exact words: other tab-menu actions would fit "→ ____" too, so the term is shown.
     gapShowTerm: true,
-    gapChips: ["Fill colour", "Tab colour", "Rename"],
+    gapChips: ["Fill colour", "Duplicate", "Rename"],
     exercises: [
       { core: true, type: "hotspot", fact: "Change colour", screen: "tab-menu", target: "Change colour", prompt: "The Data tab's menu is open. Make the Data tab green. What do you choose?" },
     ],
@@ -383,7 +383,7 @@ export const practice = {
       { core: true, type: "hotspot", fact: "Drag the line between two row numbers", ui: { rowheads: { n: 4 } }, target: "2|3", prompt: "Tap the line you'd drag to make row 2 taller.",
         why: "Row 2's line is the one under its number: the line between 2 and 3." },
       { type: "choice", fact: "Drag the line between two row numbers", prompt: "How do you make a row taller?",
-        correct: "Drag the line under its row number down", wrong: ["Drag the line between two column letters", "Press Enter in the row", "Merge the row's cells"] },
+        correct: "Drag the line under its row number down", wrong: ["Drag the line between two column letters", "Press Enter in the row", "Make the text bold"] },
     ],
   },
   default: {
@@ -429,7 +429,7 @@ export const practice = {
   "merge cells": {
     learn: { visual: { grid: { cols: 4, rows: 3, merges: ["A1:D1"], cells: { A1: "Fair Stalls", A2: "Stall", B2: "Date", C2: "Location", D2: "Notes" }, style: { A1: { b: 1, align: "center" }, A2: { b: 1 }, B2: { b: 1 }, C2: { b: 1 }, D2: { b: 1 } } }, image: "merge-button" },
       note: "The merge button stays grey until you select two or more cells." },
-    gapChips: ["View", "Insert", "borders"],
+    gapChips: ["File", "borders", "wrap"],
     exercises: [
       { core: true, type: "choice", fact: "the whole selection becomes one cell", prompt: "You select A1:E1 and choose Merge all. How many cells is A1:E1 now?", correct: "One", wrong: ["Five", "Two", "None: they're deleted"] },
       { type: "order", fact: "then centre it", prompt: "Put the steps in order to make a heading across A1:D1.",
@@ -455,7 +455,7 @@ export const practice = {
     exercises: [
       { core: true, type: "choice", fact: "day-first vs month-first", prompt: "The locale is Australia. You type 03/04/2026. Which date is it?", correct: "3 April 2026", wrong: ["4 March 2026", "3 March 2026", "4 April 2026"],
         why: "Australia writes the day first: 03/04 is the 3rd day of the 4th month." },
-      { type: "choice", fact: "File → Settings → Locale", prompt: "Where do you change a spreadsheet's locale?", correct: "File → Settings → Locale", wrong: ["Format → Number → Locale", "View → Locale", "Format → Conditional formatting"],
+      { type: "choice", fact: "File → Settings → Locale", prompt: "Where do you change a spreadsheet's locale?", correct: "File → Settings → Locale", wrong: ["Format → Locale", "Format → Merge cells", "Right-click the cell → Locale"],
         why: "The locale is a setting for the whole file, so it's in File → Settings." },
       { type: "hotspot", fact: "day-first vs month-first", screen: "settings-locale", target: "Locale", prompt: "File → Settings is open. Tap the setting that decides whether 03/04 means 3 April or 4 March.",
         tips: { "Time zone": "The time zone sets the clock for the file's history. How dates are read and written follows the locale." } },
@@ -466,12 +466,12 @@ export const practice = {
     ],
   },
   "format vs value": {
-    learn: { visual: { grid: { cols: 3, rows: 2, cells: { A1: "Item", B1: "Cost", A2: "Pen", B2: "$7.50" }, style: { B2: { align: "right" } }, sel: "B2", nameBox: true, formula: "7.5" } }, note: "The cell shows $7.50, but the formula bar (the bar above the grid, next to fx) shows what it really holds: 7.5." },
+    learn: { visual: { grid: { cols: 3, rows: 2, cells: { A1: "Item", B1: "Cost", A2: "Pen", B2: "$7.50" }, style: { B2: { align: "right" } }, sel: "B2", nameBox: true, formula: "7.5" } }, note: "The cell shows $7.50, but the bar above the grid (next to fx) shows what it really holds: 7.5." },
     exercises: [
       { type: "choice", fact: "never changes what the cell actually holds", prompt: "B2 shows $7.50. What does B2 actually hold?",
         visual: { grid: { cols: 3, rows: 2, cells: { A1: "Item", B1: "Cost", A2: "Pen", B2: "$7.50" }, style: { B2: { align: "right" } }, sel: "B2", nameBox: true, formula: "?" } },
         correct: "7.5", wrong: ["$7.50", "7.50 $", "The text “$7.50”"],
-        why: "The $ and the 0 are only the look. The formula bar shows what the cell holds: 7.5." },
+        why: "The $ and the 0 are only the look. The bar above the grid shows what the cell holds: 7.5." },
       { core: true, type: "choice", fact: "never changes what the cell actually holds", prompt: "A cell holds 18. You change its format so it shows $18.00. What does the cell hold now?",
         correct: "Still 18: only the look changed", wrong: ["$18.00", "18.00", "The text “$18.00”"],
         why: "Changing the format changes how 18 looks, never what the cell holds." },
@@ -479,7 +479,7 @@ export const practice = {
   },
   "date format": {
     learn: { visual: { image: "format-number-dates", highlight: "Date", grid: { cols: 2, rows: 2, widths: { B: 1.6 }, cells: { A1: "Typed", B1: "Custom date with the day name", A2: "9/11/2026", B2: "Mon, 9 Nov 2026" }, style: { A1: { b: 1 }, B1: { b: 1 }, A2: { align: "right" }, B2: { align: "right" } } } }, note: "Format → Number → Date for a clean date. Custom date and time for the day name in front." },
-    gapChips: ["Date time", "Time", "Currency"],
+    gapChips: ["Currency", "Number", "Locale"],
     exercises: [
       { core: true, type: "choice", fact: "Custom date and time to include things like the day name", prompt: "You want “Mon, 9 Nov 2026”, with the day name. Which do you choose?",
         correct: "Format → Number → Custom date and time", wrong: ["Format → Number → Date", "Format → Number → Currency", "File → Settings"],
@@ -494,7 +494,7 @@ export const practice = {
   },
   "currency format": {
     learn: { visual: { image: "format-number", highlight: "Currency", grid: { cols: 2, rows: 2, cells: { A1: "Typed", B1: "Currency", A2: 18, B2: "$18.00" }, style: { A1: { b: 1 }, B1: { b: 1 }, B2: { align: "right" } } } }, note: "Never type the $ yourself: the format adds it." },
-    gapChips: ["Date", "Plain text", "Time"],
+    gapChips: ["Date", "Number", "Locale"],
     exercises: [
       { type: "choice", fact: "two decimal places", prompt: "A cell holds 18. You apply Currency format. What do you see?", correct: "$18.00", wrong: ["18", "$18", "18.00 $"],
         why: "Currency format adds the $ sign and two decimal places: 18 shows as $18.00." },
@@ -502,7 +502,7 @@ export const practice = {
         why: "Type just the number. Currency format adds the $ and the .00 for you." },
       { type: "order", fact: "Format → Number → Currency", prompt: "Put the steps in order to show the prices in C2:C9 as dollars.",
         steps: ["Select C2:C9", "Open the Format menu", "Point to Number", "Choose Currency"] },
-      { type: "choice", fact: "Format → Number → Currency", prompt: "Where is the Currency format?", correct: "Format → Number → Currency", wrong: ["File → Settings → Currency", "View → Currency", "Insert → Currency"] },
+      { type: "choice", fact: "Format → Number → Currency", prompt: "Where is the Currency format?", correct: "Format → Number → Currency", wrong: ["File → Settings → Currency", "View → Currency", "Right-click the cell → Currency"] },
       { type: "hotspot", fact: "two decimal places", screen: "format-number", target: "Currency", prompt: "Format → Number is open. Show the prices as dollars and cents, like $18.00. Tap what you choose.",
         tips: { "Currency rounded": "Currency rounded drops the cents: $18. Currency shows $18.00.", "Accounting": "Accounting is for account books: it puts minus amounts in brackets. Currency shows $18.00.",
           "Number → Number": "Number shows 18.00, with no $ sign. Currency adds the $." } },
@@ -510,7 +510,7 @@ export const practice = {
   },
   "insert row/column": {
     learn: { visual: { image: "row-menu", highlight: "Insert 1 row above", grid: { cols: 3, rows: 5, cells: { A1: "Name", B1: "Stall", A2: "Priya", A3: "Jordan", A5: "Sam" }, style: { A4: { bg: "#d3e3fd" }, B4: { bg: "#d3e3fd" }, C4: { bg: "#d3e3fd" }, A1: { b: 1 }, B1: { b: 1 } } } }, note: "A new row was inserted above Sam: Sam moved down from row 4 to row 5. Nothing was overwritten. On a Chromebook, a two-finger tap is the right-click." },
-    gapChips: ["Delete row, or Delete column", "Hide row, or Hide column", "Resize row, or Resize column"],
+    gapChips: ["Freeze 1 row, or Freeze 1 column", "Move right, or Move left", "Merge all, or Merge cells"],
     exercises: [
       { core: true, type: "choice", fact: "Everything shifts to make room", prompt: "Your data is in rows 2 to 5. You right-click row 4 and choose Insert 1 row above. Which row is the old row 4 in now?", correct: "Row 5", wrong: ["Row 4", "Row 3", "It's gone: the new row replaced it"],
         why: "The new row takes row 4's place, and everything below shifts down one: the old row 4 is now row 5." },
@@ -525,7 +525,7 @@ export const practice = {
   },
   freeze: {
     learn: { visual: { image: "view-freeze", highlight: "1 row", grid: { cols: 3, rows: 4, frozen: 1, rowLabels: [1, 14, 15, 16], cells: { A1: "Name", B1: "Stall", C1: "Hours", A2: "Leo", B2: "Cake Stall", C2: 3, A3: "Mia", B3: "Raffle", C3: 2, A4: "Sam", B4: "Photo Booth", C4: 4 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 } } } }, note: "Scrolled down to row 14, and the headers in row 1 are still there." },
-    gapChips: ["Zoom", "Group", "Show"],
+    gapChips: ["Merge", "Wrap", "Locale"],
     exercises: [
       { type: "choice", fact: "stay visible at the top", prompt: "Row 1 is frozen. You scroll far down the sheet. What stays visible at the top?", correct: "Row 1, the headers", wrong: ["Nothing: everything scrolls", "The last row", "Column A"] },
       { type: "hotspot", fact: "1 row", screen: "view-freeze", target: "1 row", prompt: "View → Freeze is open. Keep the headers in row 1 on screen as you scroll down.",
@@ -533,13 +533,13 @@ export const practice = {
           "1 column": "1 column keeps column A on screen as you scroll sideways. You want a row." } },
       { type: "order", fact: "View → Freeze → 1 row", prompt: "Put the steps in order to keep the headers in row 1 on screen.",
         steps: ["Open the View menu", "Point to Freeze", "Choose 1 row", "Scroll down: row 1 stays at the top"] },
-      { core: true, type: "choice", fact: "View → Freeze", prompt: "Which menu freezes rows?", correct: "View → Freeze", wrong: ["Format → Freeze", "File → Settings", "Insert → Freeze"],
+      { core: true, type: "choice", fact: "View → Freeze", prompt: "Which menu freezes rows?", correct: "View → Freeze", wrong: ["Format → Freeze", "File → Settings", "Double-click row 1"],
         why: "Freezing changes what you see as you scroll, so it's in the View menu." },
     ],
   },
   "conditional formatting": {
     learn: { visual: { grid: { cols: 2, rows: 5, cells: { A1: "Name", B1: "Hours", A2: "Priya", B2: 2, A3: "Jordan", B3: 3, A4: "Sam", B4: 4, A5: "Mia", B5: 2 }, style: { A1: { b: 1 }, B1: { b: 1 }, B3: { bg: "#b7e1c5" }, B4: { bg: "#b7e1c5" } } } }, note: "The rule: Hours of 3 or more → green. Change Mia's 2 to a 3 and it turns green by itself." },
-    gapChips: ["Alternating colours", "Clear formatting", "button"],
+    gapChips: ["Merge cells", "Currency", "button"],
     exercises: [
       { core: true, type: "choice", fact: "keeps checking itself as values change", prompt: "The rule is “3 or more → green”. A cell holds 2, so it isn't green. Later you type 3 into it. What happens?",
         correct: "It turns green by itself", wrong: ["Nothing until you apply the rule again", "It turns red", "The rule is deleted"],
@@ -550,7 +550,7 @@ export const practice = {
         why: "“3 or more” includes 3 itself, so 3 and 5 turn green." },
       { type: "order", fact: "Format → Conditional formatting", prompt: "Put the steps in order to make Hours of 3 or more turn green.",
         steps: ["Select B2:B5", "Open the Format menu", "Choose Conditional formatting", "Set the rule: greater than or equal to 3", "Choose green, then click Done"] },
-      { type: "choice", fact: "Format → Conditional formatting", prompt: "Where do you set up conditional formatting?", correct: "Format → Conditional formatting", wrong: ["View → Conditional formatting", "File → Settings", "Data → Freeze"],
+      { type: "choice", fact: "Format → Conditional formatting", prompt: "Where do you set up conditional formatting?", correct: "Format → Conditional formatting", wrong: ["View → Conditional formatting", "File → Settings", "View → Freeze"],
         why: "Conditional formatting is formatting, so it's in the Format menu." },
     ],
   },
@@ -573,7 +573,7 @@ export const practice = {
     exercises: [
       { type: "choice", fact: "* multiply", prompt: "Which sign multiplies in a spreadsheet?", correct: "*", wrong: ["x", "×", "÷"] },
       { type: "choice", fact: "/ divide", prompt: "Which sign divides in a spreadsheet?", correct: "/", wrong: ["÷", ":", "\\"] },
-      { type: "choice", fact: "Shift + 8", prompt: "Which keys type the * sign?", correct: "Shift + 8", wrong: ["Shift + X", "Ctrl + 8", "Alt + 8"] },
+      { type: "choice", fact: "Shift + 8", prompt: "Which keys type the * sign?", correct: "Shift + 8", wrong: ["Shift + X", "Shift + 7", "The x key"] },
       { type: "choice", fact: "* multiply", prompt: "A1 holds 6 and B1 holds 4. What does =A1*B1 show?", visual: { grid: { cols: 3, rows: 1, cells: { A1: 6, B1: 4, C1: "=A1*B1" } } }, correct: "24", wrong: ["10", "2", "64"] },
       { type: "choice", fact: "/ divide", prompt: "A1 holds 6 and B1 holds 4. What does =A1/B1 show?", visual: { grid: { cols: 3, rows: 1, cells: { A1: 6, B1: 4, C1: "=A1/B1" } } }, correct: "1.5", wrong: ["24", "2", "0.67"] },
       { type: "formula", fact: "Never x", prompt: "40 stickers are in F5, shared between the helpers in F6. Write the formula for how many each.", accept: ["=F5/F6"] },
@@ -609,7 +609,7 @@ export const practice = {
   "show formulas": {
     learn: { visual: { keys: ["Ctrl", "`"], grid: { cols: 4, rows: 3, widths: { D: 1.3 }, cells: { B1: "Cost", C1: "Qty", D1: "Total", B2: 3, C2: 20, D2: "=B2*C2", B3: 4, C3: 15, D3: "=B3*C3" } } }, note: "The ` key is under Esc, top-left. Nothing changes in the cells: only what you see." },
     exercises: [
-      { type: "keys", fact: "Ctrl + `", prompt: "Show every formula on the sheet, so you can check your work!", combo: "ctrl+`", label: "Ctrl + `", wrong: ["Ctrl + F", "Ctrl + Z", "Ctrl + Y"],
+      { type: "keys", fact: "Ctrl + `", prompt: "Show every formula on the sheet, so you can check your work!", combo: "ctrl+`", label: "Ctrl + `", wrong: ["Enter", "Ctrl + Z", "Ctrl + Y"],
         scene: { grid: { cols: 4, rows: 3, widths: { D: 1.3 }, cells: { B1: "Cost", C1: "Qty", D1: "Total", B2: 3, C2: 20, D2: 60, B3: 4, C3: 15, D3: 60 } }, after: { cells: { D2: "=B2*C2", D3: "=B3*C3" } } } },
       { type: "choice", fact: "see every formula instead of its answer", prompt: "Formulas are showing. B2 has the number 12 typed in (no formula). What does B2 show?", correct: "12", wrong: ["=12", "=B2", "Nothing"] },
       { type: "choice", fact: "Press it again to go back", prompt: "Formulas are showing. How do you go back to the answers?", correct: "Press Ctrl + ` again", wrong: ["Press Ctrl + Z", "Close the spreadsheet", "Delete the formulas"] },
@@ -688,7 +688,7 @@ export const practice = {
       { type: "choice", fact: "It stays the same when you fill", prompt: "B2 holds =A2*$D$1. You fill it down to B4. What does B4 show?",
         visual: { grid: { cols: 4, rows: 4, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: 20, A3: 150, B3: 15, A4: 80, B4: "?" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B4" } },
         correct: "8", wrong: ["0", "20", "80"] },
-      { type: "choice", fact: "$ is Shift + 4", prompt: "Which keys type the $ sign?", correct: "Shift + 4", wrong: ["Shift + 8", "Ctrl + 4", "Alt + 4"] },
+      { type: "choice", fact: "$ is Shift + 4", prompt: "Which keys type the $ sign?", correct: "Shift + 4", wrong: ["Shift + 8", "Shift + 3", "Shift + 5"] },
       { type: "lockRef", fact: "a $ before the letter AND the number", prompt: "Every row uses the rate in D1. Lock it, so it stays the same when you fill down.", formula: "=A2*D1", lock: ["D1"],
         visual: { grid: { cols: 4, rows: 3, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, A3: 150 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B2" } } },
       { type: "formula", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. Type the formula that's now in C5.", hint: "$F$1 is locked. B2 is not.", accept: ["=B5*$F$1", "=$F$1*B5"] },
@@ -702,7 +702,7 @@ export const practice = {
         visual: { grid: { cols: 3, rows: 5, widths: { A: 1.3 }, cells: { A1: "Ticket price", B1: 2, A3: "Class", B3: "Tickets", C3: "Money", A4: "7A", B4: 48, A5: "7B", B5: 35 }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 } }, sel: "C4" } } },
       { type: "lockRef", fact: "Lock it with $", prompt: "H4 works out each stall's charity share: its total (E4) × the charity rate (B10). Lock the right reference.", formula: "=E4*B10", lock: ["B10"] },
       { type: "choice", fact: "When every row uses the same one cell", prompt: "D5 holds =C5*B2. B2 is the class share (25%), and every row uses it. Which reference gets the $?", correct: "B2: every row uses the same share", wrong: ["C5: it's the first one", "Both of them", "Neither: $ is only for SUM"] },
-      { type: "formula", fact: "Lock it with $", prompt: "Tickets sold are in B4. The ticket price is in B1, and every row uses it. In C4, write the formula so it still works when you fill it down.", hint: "Lock the price with $. On Windows: press F4. On a Chromebook: type $ (Shift + 4).", accept: ["=B4*$B$1", "=$B$1*B4"],
+      { type: "formula", fact: "Lock it with $", prompt: "Tickets sold are in B4. The ticket price is in B1, and every row uses it. In C4, write the formula so it still works when you fill it down.", hint: "Lock the price with $ (Shift + 4).", accept: ["=B4*$B$1", "=$B$1*B4"],
         visual: { grid: { cols: 3, rows: 4, widths: { A: 1.3 }, cells: { A1: "Ticket price", B1: 2, A3: "Class", B3: "Tickets", C3: "Money", A4: "7A", B4: 48 }, style: { A3: { b: 1 }, B3: { b: 1 }, C3: { b: 1 } }, sel: "C4" } } },
       { type: "choice", fact: "changing that one cell updates every answer", prompt: "H4:H8 all use $B$10, which holds 10%. You change B10 to 15%. What happens?", correct: "Every answer in H4:H8 updates by itself", wrong: ["Only H4 changes", "Nothing until you fill down again", "The formulas stop working"] },
       { type: "choice", fact: "a rate, a price, a budget", prompt: "You fill a formula down a list of stalls. Which one should be locked with $?", correct: "The charity rate, in one cell", wrong: ["Each stall's own total", "Each stall's own name", "The row the formula is in"] },
@@ -804,7 +804,7 @@ export const practice = {
       { type: "choice", fact: "0.25 shows as 25%", prompt: "A cell holds 0.4. You click %. What shows?", correct: "40%", wrong: ["0.4%", "4%", "400%"] },
       { type: "choice", fact: "The cell still holds 0.25", prompt: "A cell shows 25% because you clicked %. What number does it hold?", correct: "0.25", wrong: ["25", "2.5", "250"] },
       { type: "hotspot", fact: "shows a number as a percentage", screen: "sheets-basic", target: "percent", prompt: "Tap the button that shows a number as a percentage." },
-      { type: "choice", fact: "Format → Number → Percent", prompt: "Which menu also shows a number as a percentage?", correct: "Format → Number → Percent", wrong: ["Insert → Percent", "Data → Number → Percent", "View → Percent"] },
+      { type: "choice", fact: "Format → Number → Percent", prompt: "Which menu also shows a number as a percentage?", correct: "Format → Number → Percent", wrong: ["File → Settings → Percent", "Format → Number → Currency", "View → Percent"] },
       { type: "choice", fact: "shows a number as a percentage", prompt: "I4:I9 hold each stall's share of the takings. I10 holds =SUM(I4:I9) and shows 1. What should you do?",
         correct: "Click %: 1 shows as 100%", wrong: ["Change the formula: it should give 100", "Type 100% over it", "Delete row 10"] },
       { type: "choice", fact: "0.25 shows as 25%", prompt: "I4 shows 0.2865. You click %. What shows?", correct: "28.65%", wrong: ["0.2865%", "2865%", "0.29%"] },
@@ -926,9 +926,9 @@ export const practice = {
   },
   "chart editor": {
     learn: { visual: { image: "setup-column" },
-      note: "Setup: the chart type and which cells. Customise: titles, colours, the legend. Closed it by mistake? ⋮ on the chart → Edit the chart." },
+      note: "Setup: the chart type and which cells. Customise: how the chart looks, like its colours. Closed it by mistake? ⋮ on the chart → Edit the chart." },
     exercises: [
-      { type: "hotspot", fact: "titles, colours, legend", screen: "setup-column", target: "Customise", prompt: "You want to change how the chart looks: its titles and colours. Tap the tab you need." },
+      { type: "hotspot", fact: "titles, colours, legend", screen: "setup-column", target: "Customise", prompt: "You want to change how the chart looks, like its colours. Tap the tab you need." },
       { type: "hotspot", fact: "chart type", screen: "setup-column", target: "Chart type", prompt: "You want a different kind of chart. Tap where you change it." },
       { type: "hotspot", fact: "which cells", screen: "setup-column", target: "Data range", prompt: "Tap where the chart editor shows which cells the chart uses." },
       { type: "hotspot", fact: "⋮ on the chart", screen: "chart-selected", target: "⋮", prompt: "The chart editor has gone. First, tap what opens the chart's menu." },
@@ -992,7 +992,7 @@ export const practice = {
       { type: "hotspot", fact: "pick the set of columns", screen: "customise-column", target: "Series", prompt: "You want the Lunch columns in a new colour. Tap the section you open." },
       { type: "hotspot", fact: "pick the set of columns", screen: "series-colour", target: "series list", prompt: "Series is open. Tap where you pick which set of columns." },
       { type: "choice", fact: "Or click it on the chart", prompt: "What's a quick way to get to one slice's colour?", correct: "Click the slice on the chart", wrong: ["Sort the table", "Delete the chart", "Click the Name Box"] },
-      { type: "choice", fact: "pick the set of columns", prompt: "In a column chart, what is a series?", correct: "One set of columns, like all the Lunch columns", wrong: ["One stall's name", "The chart's title", "A tick box on the Setup tab"] },
+      { type: "choice", fact: "pick the set of columns", prompt: "In this chart, what is a series?", visual: { chart: colSessions }, correct: "One set of columns, like all the Lunch columns", wrong: ["One stall's name", "The chart's title", "A tick box on the Setup tab"] },
     ],
   },
   "move to own sheet": {

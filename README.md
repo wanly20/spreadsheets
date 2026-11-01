@@ -42,7 +42,8 @@ The terms and definitions come **only** from the unit's Knowledge Bank. Never ed
 3. If the checker says **Content OK**, publish (commit and push).
 
 The checker (`node tools/check_content.mjs`) stops with a clear message if, for example, a level
-names a term that no longer exists, or an extra exercise no longer matches its definition. Every
+names a term that no longer exists, or an extra exercise no longer matches its definition, or a level's questions name something
+taught only in a later level (hidden load: see `docs/HIDDEN_LOAD_AUDIT.md`). Every
 extra exercise in `content/practice.js` names a `fact`, a phrase that must appear in the
 definition, so an exercise can't contradict a definition you've changed. A renamed or new term
 still works straight away: it gets the automatic "term ↔ definition" questions and joins the
@@ -99,6 +100,7 @@ Set up once, outside the repo: `mkdir -p /tmp/pw && cd /tmp/pw && npm i playwrig
 Then serve the app (`python3 -m http.server 8765 --bind 127.0.0.1`) and run:
 
     node tools/check_content.mjs                                   # content
+    node tools/check_content.mjs --load                            # + what each level uses for the first time
     NODE_PATH=/tmp/pw/node_modules node tools/e2e.mjs screenshots  # every level, 1366×768 and 390×844
     NODE_PATH=/tmp/pw/node_modules node tools/e2e-keyboard.mjs     # keyboard only
     python3 tools/contrast.py                                      # colour contrast
