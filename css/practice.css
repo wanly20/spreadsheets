@@ -485,6 +485,9 @@ button.menu-bar__item { cursor: pointer; }
 .ctrl-latch.is-on > .face { background: var(--blue-50); border-color: var(--blue-500); }
 .ctrl-latch.is-on .keycap { background: var(--blue-500); color: var(--white); border-color: var(--blue-700); }
 .ctrl-latch__text { font-weight: 700; }
+/* With a mouse it's a hint, not a button: holding the real Ctrl is the skill */
+.ctrl-hint { display: inline-flex; align-items: center; gap: var(--sp-3); margin: 0; }
+.ctrl-hint .keycap { transition: background-color var(--dur-fast), color var(--dur-fast); }
 .ctrl-row__tip { color: var(--c-text-soft); font-size: var(--fs-sm); }
 .data-menus--insert { margin-left: min(110px, 9%); }
 .ex-choice .ex-visual .shot { width: min(100%, var(--w), 340px); }

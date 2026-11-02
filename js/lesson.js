@@ -11,6 +11,8 @@ const MAX_RETRIES = 2;
 const PRAISE = ["Nice!", "Great job!", "Spot on!", "Nailed it!", "You got it!", "Brilliant!", "Correct!"];
 const ENCOURAGE = ["Not quite", "Almost!", "Good try!", "Not yet"];
 const KIND = ["Mistakes help you learn.", "Every mistake is practice.", "Now you know for next time."];
+/** The words a bit of feedback HTML says (to check that nothing is said twice). */
+const textOf = (h) => { const d = document.createElement("div"); d.innerHTML = h || ""; return d.textContent; };
 
 /**
  * session: { id, title, steps, xpBase }
@@ -45,6 +47,7 @@ export function runLesson(app, session, hooks) {
         <div class="feedback__head">
           <span class="feedback__icon"></span>
           <h2 class="feedback__title"></h2>
+          <span class="feedback__tag" hidden>${icon("rotate-ccw", 14, 2.75)} Comes back later</span>
         </div>
         <div class="feedback__body"></div>
         ${button("Continue", { variant: "correct", attrs: 'data-act="continue"' })}
@@ -72,24 +75,25 @@ export function runLesson(app, session, hooks) {
   sizes.observe(body);
   body.addEventListener("scroll", updateMore, { passive: true });
 
-  // Secondary actions on the left of the bottom bar (from 700px wide).
+  // Quiet secondary actions: bottom-left of the bar from 700px wide, under the answers on a phone.
   const ASIDE = {
-    skip: () => button("Skip", { variant: "secondary", block: false, attrs: 'data-act="skip"' }),
-    "no-keyboard": () => `<button class="btn-text" data-act="no-keyboard">${icon("hand", 20, 2.5)} No keyboard?</button>`,
+    skip: () => `<button class="btn-text btn-text--quiet" data-act="skip">I don't know yet</button>`,
+    "no-keyboard": () => `<button class="btn-text btn-text--quiet" data-act="no-keyboard">${icon("hand", 20, 2.5)} No keyboard?</button>`,
   };
 
   const api = {
-    setFooter(label, { enabled = true, variant = "primary" } = {}) {
+    setFooter(label, { enabled = true, variant = "primary", hidden = false } = {}) {
       mainBtn.querySelector(".face > span").textContent = label;
       mainBtn.className = `press btn btn--${variant} btn--block`;
       mainBtn.disabled = !enabled;
+      mainBtn.hidden = hidden; // e.g. Press the keys: the keyboard is the answer, not a button
     },
     enableCheck(on) { mainBtn.disabled = !on; },
     setAside(keys = []) {
       aside.innerHTML = keys.map((k) => ASIDE[k]?.() || "").join("");
-      // Phones have no bottom-bar aside: "No keyboard?" also sits in the exercise.
+      // Phones have no bottom-bar aside: the same buttons sit in the exercise, under the answers.
       current?.el?.querySelector(".ex-escape")?.remove();
-      if (keys.includes("no-keyboard") && current?.el) current.el.appendChild(el(`<div class="ex-escape">${ASIDE["no-keyboard"]()}</div>`));
+      if (keys.length && current?.el) current.el.appendChild(el(`<div class="ex-escape">${keys.map((k) => ASIDE[k]?.() || "").join("")}</div>`));
     },
     complete(result) { showFeedback(result); },
     next() { advance(true); },
@@ -201,17 +205,22 @@ export function runLesson(app, session, hooks) {
     $(".feedback__icon", sheet).innerHTML = icon(result.ok ? "check" : "x", 28, 3.5);
     $(".feedback__title", sheet).textContent = result.title || (result.ok ? pick(PRAISE) : result.skipped ? "Here's the answer" : pick(ENCOURAGE));
 
+    // A wrong answer says it once, in this order: what you did (struck through), one reason,
+    // the answer (left out when the reason already says it). The definition waits behind a link.
     let html = "";
-    if (!result.ok && result.answer) {
-      html += `<span class="feedback__label">Correct answer:</span><span class="feedback__answer ${result.answerHtml ? "feedback__answer--list" : ""}">${result.answerHtml ? result.answer : esc(result.answer)}</span>`;
+    if (result.ok) html = result.body || "";
+    else {
+      const tips = [result.body, step.why && !textOf(result.body).includes(step.why) ? `<span class="feedback__tip">${esc(step.why)}</span>` : ""].join("");
+      const said = textOf(tips);
+      if (result.given && !result.skipped && !said.includes(result.given.text)) html += `<span class="feedback__you">${result.given.label}: <s>${esc(result.given.text)}</s></span>`;
+      html += tips;
+      if (result.answer && (result.answerHtml || !said.includes(result.answer))) {
+        html += `<span class="feedback__answer-line"><span class="feedback__label">Answer:</span> <span class="feedback__answer ${result.answerHtml ? "feedback__answer--list" : ""}">${result.answerHtml ? result.answer : esc(result.answer)}</span></span>`;
+      }
+      if (!textOf(html).trim() && !result.skipped) html = `<span class="feedback__tip">${pick(KIND)}</span>`;
+      if (item && result.explain !== null) html += `<details class="feedback__more"><summary>What does it mean?</summary><span class="feedback__def"><b>${esc(item.term)}:</b> ${rich(item.def)}</span></details>`;
     }
-    if (result.body) html += result.body;
-    // An exercise's `why` (content/practice.js): the reason, not just the right answer.
-    if (!result.ok && step.why) html += `<span class="feedback__tip">${esc(step.why)}</span>`;
-    // A wrong answer shows the definition again: that's the learning moment.
-    if (!result.ok && item && result.explain !== null) html += `<span class="feedback__def"><b>${esc(item.term)}:</b> ${rich(item.def)}</span>`;
-    else if (!result.ok && !result.body && !result.skipped) html += `<span class="feedback__tip">${pick(KIND)}</span>`;
-    if (wrongAndRetry) html += `<span class="feedback__later">${icon("rotate-ccw", 16, 2.75)} We'll come back to this one.</span>`;
+    $(".feedback__tag", sheet).hidden = !wrongAndRetry;
     $(".feedback__body", sheet).innerHTML = html;
     $(".feedback__body", sheet).hidden = !html;
     sheet.classList.toggle("has-body", !!html);
@@ -225,9 +234,23 @@ export function runLesson(app, session, hooks) {
     updateMore();
     if (result.after) afterTimer = setTimeout(result.after, 250);
     setTimeout(() => contBtn.focus({ preventScroll: true }), 80);
+    keepInView();
+  }
+
+  // Phone: the sheet covers the answers, so scroll what you picked (or the answer) just above it.
+  function keepInView() {
+    if (window.innerWidth >= 700) return;
+    const ex = current?.el;
+    const mine = ex && (ex.querySelector(".option.is-wrong, .type-field.is-wrong, .lock-ref.is-wrong, .hot.is-wrong, .hot-ui.is-wrong, .gap.is-off, .order-slot.is-off")
+      || ex.querySelector(".option.is-correct, .hot.is-correct, .hot-ui.is-correct, .type-field, .lock-bar"));
+    if (!mine) return;
+    body.style.paddingBottom = `${Math.max(0, sheet.offsetHeight - foot.offsetHeight) + 24}px`;
+    const over = mine.getBoundingClientRect().bottom - (screen.getBoundingClientRect().top + sheet.offsetTop) + 12;
+    if (over > 0) body.scrollBy({ top: over, behavior: reducedMotion() ? "auto" : "smooth" });
   }
 
   function hideSheet() {
+    body.style.paddingBottom = "";
     sheet.classList.remove("is-open");
     sheet.inert = true;
     foot.inert = false;
@@ -267,15 +290,17 @@ export function runLesson(app, session, hooks) {
     const t = e.target instanceof Element ? e.target : null;
     if (e.key === "Enter") {
       if (e.repeat) { e.preventDefault(); return; }
-      if (mode === "feedback") { e.preventDefault(); contBtn.click(); return; }
+      if (mode === "feedback") { if (t?.matches("summary")) return; e.preventDefault(); contBtn.click(); return; }
       const isButton = t?.matches("button, a[href]") && t !== mainBtn;
       if (isButton && !(t.matches(".option, .hot, .hot-ui, .word-chip, .gap, .lock-ref") && !mainBtn.disabled)) return;
       e.preventDefault();
       if (!mainBtn.disabled) mainBtn.click();
     } else if (e.key === "Escape") confirmQuit();
     else if (mode === "answer" && current?.onKey && !t?.matches("input, textarea")) {
-      if (/^[1-9]$/.test(e.key)) { e.preventDefault(); current.onKey(+e.key); }
-      else if (e.key === "Backspace") { e.preventDefault(); current.onKey("Backspace"); }
+      // Letters pick a step or a word chip (A, B, C…): numbers there would look like the order.
+      if (current.letters) { if (/^[a-i]$/i.test(e.key) && !e.shiftKey) { e.preventDefault(); current.onKey(e.key.toLowerCase().charCodeAt(0) - 96); } }
+      else if (/^[1-9]$/.test(e.key)) { e.preventDefault(); current.onKey(+e.key); }
+      if (e.key === "Backspace") { e.preventDefault(); current.onKey("Backspace"); }
     }
   }
   document.addEventListener("keydown", onKey);

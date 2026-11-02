@@ -1,6 +1,8 @@
 // Exercise types. Each takes (step, api) and returns a controller:
 //   { el, footer?, aside?, mount?(), check?() -> result, onMain?(), onKey?(n), onSkip?(), destroy?() }
-// Results: { ok, title?, answer?, body?, explain?, after?() }  (after runs once the feedback shows).
+// Results: { ok, title?, given?: { label, text }, answer?, body?, explain?, after?() }
+//   given: what the student chose or typed ("You chose: …", struck through on a wrong answer);
+//   after runs once the feedback shows.
 import { icon } from "./icons.js";
 import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
@@ -12,6 +14,7 @@ import { sortOptions, rowsText, dirLabel } from "./sort.js";
 
 export const EXERCISES = { learn, choice, chartChoice, gridClick, gridName, gridRange, gridMulti, rangeName, fill, fillFormula, sortPredict, gridMove, keys, hotspot, order, match, formula, gaps, lockRef };
 
+const LETTERS = "ABCDEFGHI";
 const KICKER = {
   choice: ["check", "Choose the answer"],
   gridClick: ["pointer", "Click it"],
@@ -33,15 +36,27 @@ const KICKER = {
   match: ["sparkles", "Match the pairs"],
 };
 
+const isTouchOnly = () => matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
+/** An instruction's "Tap" says "Click" with a mouse ("two-finger tap" is a Chromebook gesture: kept),
+ *  and the kicker's "Click it" says "Tap it" on a touch screen. */
+export function pointerWords(s, touch = isTouchOnly()) {
+  if (touch) return s.replace(/^Click it$/, "Tap it");
+  return s.replace(/(?<![\w-]|finger )([Tt])ap(s|ped|ping)?\b/g, (_, t, end) => `${t === "T" ? "C" : "c"}lick${{ s: "s", ped: "ed", ping: "ing" }[end] || ""}`);
+}
+const chose = (text) => ({ label: "You chose", text: String(text) });
+const typed = (text) => ({ label: "You typed", text: String(text) });
+
 function head(step, title, sub = "") {
   const [ico, label] = KICKER[step.type] || ["sparkles", ""];
+  // Review says why a term is back (step.tag: "Missed last time", "From Lesson 1, 5 days ago").
+  const tag = step.retry ? `<span class="ex-kicker__tag ex-kicker__tag--again">${icon("rotate-ccw", 14, 2.75)} Try again</span>`
+    : step.tag ? `<span class="ex-kicker__tag ${step.tagMissed ? "ex-kicker__tag--again" : ""}">${icon("repeat", 14, 2.75)} ${esc(step.tag)}</span>`
+    : step.retrieval ? `<span class="ex-kicker__tag">${icon("repeat", 14, 2.75)} From earlier</span>` : "";
   return `<div class="ex-head">
-    <span class="ex-kicker">${icon(ico, 16, 2.75)} ${label}${step.retrieval ? `<span class="ex-kicker__tag">${icon("repeat", 14, 2.75)} From earlier</span>` : ""}${step.retry ? `<span class="ex-kicker__tag ex-kicker__tag--again">${icon("rotate-ccw", 14, 2.75)} Try again</span>` : ""}</span>
-    <h1 class="h-title">${title}</h1>${sub ? `<p class="ex-sub">${sub}</p>` : ""}
+    <span class="ex-kicker">${icon(ico, 16, 2.75)} ${pointerWords(label)}${tag}</span>
+    <h1 class="h-title">${pointerWords(title)}</h1>${sub ? `<p class="ex-sub">${pointerWords(sub)}</p>` : ""}
   </div>`;
 }
-
-const isTouchOnly = () => matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches;
 const normRef = (s) => String(s).toUpperCase().replace(/\s+/g, "");
 
 // ================================================================ learn card
@@ -133,7 +148,7 @@ function choice(step, api) {
     check({ skipped } = {}) {
       o.reveal(step.correct);
       const ok = !skipped && o.chosen === step.correct;
-      return { ok, answer: step.correct, explain: step.gen === "termToDef" ? null : undefined, item, body: ok || skipped ? "" : mixUp(item, step.others?.[o.chosen], step.gen) };
+      return { ok, given: chose(o.chosen), answer: step.correct, explain: step.gen === "termToDef" ? null : undefined, item, body: ok || skipped ? "" : mixUp(item, step.others?.[o.chosen], step.gen) };
     },
   };
 }
@@ -152,10 +167,11 @@ function gridClick(step, api) {
   const kind = t === "handle" ? "handle" : t.startsWith("col:") ? "col" : t.startsWith("row:") ? "row" : "cell";
   const val = t.replace(/^(col|row):/, "");
   const spec = step.grid || { cols: Math.max(5, kind === "col" || kind === "cell" ? colIndex(val[0]) + 1 : 5), rows: Math.max(6, kind === "row" ? +val : kind === "cell" ? +val.slice(1) : 6) };
+  const verb = isTouchOnly() ? "Tap" : "Click";
   const prompt = step.prompt || {
-    cell: `Click cell <b class="ref">${val}</b>.`,
-    col: `Click the letter of column <b class="ref">${val}</b>.`,
-    row: `Click the number of row <b class="ref">${val}</b>.`,
+    cell: `${verb} cell <b class="ref">${val}</b>.`,
+    col: `${verb} the letter of column <b class="ref">${val}</b>.`,
+    row: `${verb} the number of row <b class="ref">${val}</b>.`,
     handle: "Grab the fill handle.",
   }[kind];
   let pick = null;
@@ -183,7 +199,7 @@ function gridClick(step, api) {
         const p = pick.ref;
         const flipped = `${colLetter(+p.slice(1) - 1)}${colIndex(p[0]) + 1}`;
         body = flipped === val
-          ? `You clicked <b>${p}</b>: column ${p[0]}, row ${p.slice(1)}. For <b>${val}</b>, go across to column ${val[0]} first, then down to row ${val.slice(1)}.`
+          ? `${pointerWords("You tapped")} <b>${p}</b>: column ${p[0]}, row ${p.slice(1)}. For <b>${val}</b>, go across to column ${val[0]} first, then down to row ${val.slice(1)}.`
           : `<b>${val}</b> means column ${val[0]} (the letters along the top), row ${val.slice(1)} (the numbers down the side).`;
       }
       if (!ok && (kind === "col" || kind === "row")) body = kind === "col" ? "Column letters are along the top." : "Row numbers are down the left side.";
@@ -222,10 +238,10 @@ function gridName(step, api) {
       if (ok) return { ok };
       const m = /^(\d+)([A-Z]+)$/.exec(got);
       if (m && `${m[2]}${m[1]}` === target) {
-        return { ok: false, title: "Letter first!", answer: target,
+        return { ok: false, title: "Letter first!", given: typed(got), answer: target,
           body: `<span class="feedback__tip">You wrote <b>${esc(got)}</b>. A cell reference is the column letter first, then the row number: <b>${target}</b>. Never ${esc(got)}.</span>` };
       }
-      return { ok: false, answer: target, body: `<span class="feedback__tip">Column ${target[0]} (along the top), row ${target.slice(1)} (down the side).</span>` };
+      return { ok: false, given: typed(got), answer: target, body: `<span class="feedback__tip">Column ${target[0]} (along the top), row ${target.slice(1)} (down the side).</span>` };
     },
   };
 }
@@ -283,16 +299,17 @@ function gridMulti(step, api) {
       ${head(step, step.prompt, `${touch ? "Drag" : "Click and drag"} the first range. Then hold <b>Ctrl</b> and ${touch ? "drag" : "click and drag"} the second.`)}
       <div class="ex-sheet"></div>
       <div class="ctrl-row">
-        <button type="button" class="press ctrl-latch" aria-pressed="false" aria-label="Ctrl key: ${touch ? "tap to hold it down" : "hold it on your keyboard, or tap here"}">
-          <span class="face"><kbd class="keycap keycap--wide">Ctrl</kbd><span class="ctrl-latch__text">${touch ? "Tap to hold Ctrl" : "Hold Ctrl on your keyboard"}</span></span>
-        </button>
+        ${touch ? `<button type="button" class="press ctrl-latch" aria-pressed="false" aria-label="Ctrl key: tap to hold it down">
+          <span class="face"><kbd class="keycap keycap--wide">Ctrl</kbd><span class="ctrl-latch__text">Tap to hold Ctrl</span></span>
+        </button>` : `<p class="ctrl-latch ctrl-hint"><kbd class="keycap keycap--wide">Ctrl</kbd><span class="ctrl-latch__text">Hold Ctrl on your keyboard</span></p>`}
         <span class="ctrl-row__tip">Same on Windows and on a Chromebook: <b>Ctrl</b> + click.</span>
       </div>
     </div>`);
   $(".ex-sheet", node).appendChild(g.el);
   const btn = $(".ctrl-latch", node);
-  const show = () => { const on = latched || physical; btn.classList.toggle("is-on", on); btn.setAttribute("aria-pressed", String(latched)); $(".ctrl-latch__text", node).textContent = latched ? "Ctrl is held (tap to let go)" : physical ? "Holding Ctrl" : touch ? "Tap to hold Ctrl" : "Hold Ctrl on your keyboard"; };
-  btn.addEventListener("click", () => { if (node.classList.contains("is-locked")) return; latched = !latched; sfx.tap(); show(); });
+  const show = () => { const on = latched || physical; btn.classList.toggle("is-on", on); if (touch) btn.setAttribute("aria-pressed", String(latched)); $(".ctrl-latch__text", node).textContent = latched ? "Ctrl is held (tap to let go)" : physical ? "Holding Ctrl" : touch ? "Tap to hold Ctrl" : "Hold Ctrl on your keyboard"; };
+  // With a mouse, Ctrl is a hint (the skill is holding the real key); a touch screen gets an on-screen Ctrl to tap.
+  if (touch) btn.addEventListener("click", () => { if (node.classList.contains("is-locked")) return; latched = !latched; sfx.tap(); show(); });
   const down = (e) => { if (e.key === "Control" || e.key === "Meta") { physical = true; show(); } };
   const up = (e) => { if (e.key === "Control" || e.key === "Meta") { physical = false; show(); } };
   window.addEventListener("keydown", down, true);
@@ -310,8 +327,10 @@ function gridMulti(step, api) {
       const got = picked.map(normRange);
       const ok = !skipped && got.length === want.length && want.every((w) => got.includes(w));
       if (!ok) want.forEach((w) => g.mark(w, "ok"));
-      return { ok, answer: ok ? "" : `${want[0]}, hold Ctrl, ${want[1]}`,
-        body: `<span class="feedback__tip">${ok ? `Two separate ranges: ${esc(want.join(" and "))}. The chart's data range is ${esc(want.join(","))}: the columns in between are left out.` : skipped ? "" : multiTip(picked, step.target)}</span>` };
+      const tip = ok ? `Two separate ranges: ${esc(want.join(" and "))}. The chart's data range is ${esc(want.join(","))}: the columns in between are left out.` : skipped ? "" : multiTip(picked, step.target);
+      // The answer line only when the tip doesn't already name both ranges.
+      return { ok, answer: ok || want.every((w) => tip.includes(w)) ? "" : `${want[0]}, hold Ctrl, ${want[1]}`,
+        body: tip ? `<span class="feedback__tip">${tip}</span>` : "" };
     },
   };
 }
@@ -342,7 +361,8 @@ function chartChoice(step, api) {
     check({ skipped } = {}) {
       o.reveal(step.correct.desc);
       const ok = !skipped && o.chosen === step.correct.desc;
-      return { ok, answer: ok ? "" : step.correct.desc, body: step.why ? `<span class="feedback__tip">${esc(step.why)}</span>` : "" };
+      const pickedChart = all.find((c) => c.desc === o.chosen);
+      return { ok, given: pickedChart ? chose(pickedChart.caption || pickedChart.desc) : null, answer: ok ? "" : step.correct.caption || step.correct.desc, body: "" };
     },
   };
 }
@@ -379,7 +399,7 @@ function rangeName(step, api) {
       let tip = `First cell, a colon, then the last cell: <b>${step.target}</b>.`;
       if (got === `${b}:${a}`) tip = `Nearly! Write the first cell first: <b>${step.target}</b>, said “${a} to ${b}”.`;
       else if (/[-–]|TO|\.\./.test(got) && got.includes(a) && got.includes(b)) tip = `Use a colon ( : ) between the two cells. The colon means “to”: <b>${step.target}</b>.`;
-      return { ok: false, title: tip.startsWith("Nearly") ? "So close!" : undefined, answer: step.target, body: `<span class="feedback__tip">${tip}</span>` };
+      return { ok: false, title: tip.startsWith("Nearly") ? "So close!" : undefined, given: typed(got), answer: step.target, body: `<span class="feedback__tip">${tip}</span>` };
     },
   };
 }
@@ -449,7 +469,7 @@ function fill(step, api) {
         : start.length === 1
         ? "One cell selected: the fill handle copies the same value."
         : `Two cells show the pattern (${start[1] - start[0] >= 0 ? "+" : ""}${start[1] - start[0]} each time), so the fill handle keeps it going.`;
-      return { ok, answer: correct, body: `<span class="feedback__tip">${why}</span>`,
+      return { ok, given: chose(o.chosen), answer: correct, body: `<span class="feedback__tip">${why}</span>`,
         after() { g.clearMarks(); g.animateFill(col, r0, start, fillValues(start, end - start.length)); } };
     },
   };
@@ -533,7 +553,7 @@ function fillFormula(step, api) {
         ? "Fill across: the column letters move, one letter for each column. The row numbers stay the same."
         : "Fill down: the row numbers move, one for each row. The column letters stay the same.";
       const lock = formula.includes("$") ? " A reference with $ never moves, whichever way you fill." : "";
-      return { ok, answer: correct, body: `<span class="feedback__tip">${esc(why + lock)}</span>`, after: play };
+      return { ok, given: chose(o.chosen), answer: correct, body: `<span class="feedback__tip">${esc(why + lock)}</span>`, after: play };
     },
   };
 }
@@ -641,7 +661,7 @@ function keys(step, api, { forceChoice = false } = {}) {
       <div class="ex-visual"></div>
       <div class="key-zone" aria-live="polite">
         <span class="key-zone__icon">${icon("keyboard", 30, 2.25)}</span>
-        <span class="key-zone__text">Press the keys on your keyboard</span>
+        <span class="key-zone__text">Waiting for your keys…</span>
         <span class="key-zone__pressed keycaps"></span>
       </div>
     </div>`);
@@ -686,7 +706,7 @@ function keys(step, api, { forceChoice = false } = {}) {
   const off = () => { window.removeEventListener("keydown", onKey, true); window.removeEventListener("keyup", keyUp, true); };
   return {
     el: node,
-    footer: { label: "Press the keys", enabled: false },
+    footer: { label: "Press the keys", enabled: false, hidden: true },
     aside: ["skip", "no-keyboard"],
     onSkip() { done = true; off(); api.complete({ ok: false, skipped: true, answer: step.label }); },
     noKeyboard() { off(); api.replace(keysChoice(step, api)); },
@@ -714,7 +734,7 @@ function keysChoice(step, api) {
       o.reveal(step.label);
       const ok = !skipped && o.chosen === step.label;
       if (ok && vis?.grid && step.scene.after) vis.grid.setCells(step.scene.after.cells);
-      return { ok, answer: step.label };
+      return { ok, given: chose(o.chosen), answer: step.label };
     },
   };
 }
@@ -789,7 +809,7 @@ function hotspot(step, api) {
       });
       const tip = !ok && chosen && step.tips?.[chosen] ? ` ${esc(step.tips[chosen])}` : "";
       return { ok, answer: ok ? "" : label(step.target),
-        body: !ok && chosen ? `<span class="feedback__tip">You tapped ${esc(label(chosen))}.${tip}</span>` : "" };
+        body: !ok && chosen ? `<span class="feedback__tip">${pointerWords("You tapped")} ${esc(label(chosen))}.${tip}</span>` : "" };
     },
   };
 }
@@ -804,7 +824,7 @@ function order(step, api) {
       ${head(step, esc(step.prompt), "Tap the steps in the order you'd do them.")}
       <ol class="order-slots" aria-label="Your order">${step.steps.map((_, i) => `<li class="order-slot"><span class="order-slot__n">${i + 1}</span></li>`).join("")}</ol>
       <div class="order-bank" aria-label="Steps">
-        ${bankOrder.map((si, k) => `<span class="order-slotbg"><button class="press order-card" data-si="${si}"><span class="face"><span class="key" aria-hidden="true">${k + 1}</span><span class="label">${esc(step.steps[si])}</span></span></button></span>`).join("")}
+        ${bankOrder.map((si, k) => `<span class="order-slotbg"><button class="press order-card" data-si="${si}"><span class="face"><span class="key" aria-hidden="true">${LETTERS[k]}</span><span class="label">${esc(step.steps[si])}</span></span></button></span>`).join("")}
       </div>
     </div>`);
   const slots = $$(".order-slot", node);
@@ -829,6 +849,7 @@ function order(step, api) {
     el: node,
     footer: { label: "Check", enabled: false },
     aside: ["skip"],
+    letters: true, // A, B, C… pick a card (numbers would look like the order)
     onKey(k) {
       if (node.classList.contains("is-locked")) return;
       if (k === "Backspace") { if (placed.length) { placed.pop(); render(); } return; }
@@ -885,6 +906,8 @@ function match(step, api) {
             const contrast = api.item(step.items[i])?.extra?.contrast?.[other.term];
             return `You matched <b>${esc(p.term)}</b> with “${esc(other.def)}”: that's <b>${esc(other.term)}</b>.${contrast ? ` ${esc(contrast)}` : ""}`;
           });
+          // The mix-up stays readable (coral outline) while every other card fades.
+          mixups.forEach(([i, d]) => { $(`.match-card[data-side="t"][data-i="${i}"]`, node)?.classList.add("is-mixed"); $(`.match-card[data-side="d"][data-i="${d}"]`, node)?.classList.add("is-mixed"); });
           setTimeout(() => api.complete(missed.size
             ? { ok: false, title: "All matched, with a mix-up", itemsWrong: [...missed].map((i) => step.items[i]), body: `<span class="feedback__tip">${lines.join("<br>")}</span>` }
             : { ok: true, body: `<span class="feedback__tip">All matched on the first go!</span>` }), 600);
@@ -919,7 +942,7 @@ export function formulaTip(got, accept) {
   const bare = (f) => f.replace(/\$/g, "");
   if (want.includes("$") && accept.some((a) => bare(a) === bare(got))) {
     const ref = (/\$([A-Z])\$(\d+)/.exec(want) || []).slice(1).join("");
-    if (!got.includes("$")) return { title: "Lock it!", tip: `Every row uses ${ref}, so it needs a $: $${ref[0]}$${ref.slice(1)}. On Windows: click the reference and press F4. On a Chromebook: type $ (Shift + 4).` };
+    if (!got.includes("$")) return { title: "Lock it!", tip: `Every row uses ${ref}, so lock it: $${ref[0]}$${ref.slice(1)}. Windows: click it and press F4. Chromebook: type $ (Shift + 4).` };
     const over = (got.match(/\$[A-Z]\$\d+/g) || []).map(bare).filter((r) => r !== ref);
     if (over.length) return { title: "Too many $", tip: `Only ${ref} is shared by every row. ${over.join(" and ")} should move with the row, so leave it without $.` };
     return { title: "Almost!", tip: `Put a $ before the letter AND before the number: $${ref[0]}$${ref.slice(1)}. The other reference stays as it is, so it moves with the row.` };
@@ -976,7 +999,7 @@ function formula(step, api) {
       if (!skipped) { field.classList.add(ok ? "is-correct" : "is-wrong"); if (!ok) restartAnim(field, "shake"); }
       if (ok) return { ok };
       const t = skipped ? { tip: "" } : formulaTip(got, accept);
-      return { ok: false, title: t.title, answer: step.accept[0], body: t.tip ? `<span class="feedback__tip">${esc(t.tip)}</span>` : "" };
+      return { ok: false, title: t.title, given: typed(input.value.trim()), answer: step.accept[0], body: t.tip ? `<span class="feedback__tip">${esc(t.tip)}</span>` : "" };
     },
   };
 }
@@ -995,7 +1018,7 @@ function gaps(step, api) {
       ${head(step, step.showTerm === false ? "Complete the definition" : `Complete the meaning of <span class="term-inline">${esc(item.term)}</span>`, n > 1 ? "Start with gap 1. Tap a filled gap to take its words back." : "Tap the words that fill the gap.")}
       <p class="gap-text">${textHtml}</p>
       <div class="chip-bank" role="group" aria-label="Words">
-        ${step.chips.map((c, i) => `<span class="chip-slot"><button type="button" class="press word-chip" data-chip="${i}"><span class="face"><span class="key" aria-hidden="true">${i + 1}</span><span class="label">${esc(c)}</span></span></button></span>`).join("")}
+        ${step.chips.map((c, i) => `<span class="chip-slot"><button type="button" class="press word-chip" data-chip="${i}"><span class="face"><span class="key" aria-hidden="true">${LETTERS[i]}</span><span class="label">${esc(c)}</span></span></button></span>`).join("")}
       </div>
     </div>`);
   const slots = $$(".gap", node), chips = $$(".word-chip", node);
@@ -1042,6 +1065,7 @@ function gaps(step, api) {
     el: node,
     footer: { label: "Check", enabled: false },
     aside: ["skip"],
+    letters: true, // A, B, C… pick a word (numbers are the gaps)
     onKey(key) {
       if (key === "Backspace") { if (order.length) unplace(order[order.length - 1]); return; }
       const b = chips[key - 1];
@@ -1123,7 +1147,7 @@ function lockRef(step, api) {
       else if (shared.length && !extra.length) tip = `Every row uses ${shared.join(" and ")}, so lock it.`;
       else if (extra.length && !shared.length) tip = `${extra.join(" and ")} should move with the row: each row uses its own. Leave it without $.`;
       else tip = `Lock the one cell every row shares (${step.lock.join(", ")}). Leave the others to move with the row.`;
-      return { ok: false, answer: text(want), body: tip ? `<span class="feedback__tip">${esc(tip)}</span>` : "" };
+      return { ok: false, given: { label: "Your formula", text: text(locked) }, answer: text(want), body: tip ? `<span class="feedback__tip">${esc(tip)}</span>` : "" };
     },
   };
 }

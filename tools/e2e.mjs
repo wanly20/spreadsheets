@@ -326,6 +326,24 @@ async function runViewport(vp) {
     ok(shots.every((x) => x.ok), `every screenshot loads at its listed size (${shots.filter((x) => !x.ok).map((x) => x.id).join(", ") || shots.length + " pictures"})`);
   }
 
+  // ------------------------------------------------------------ "I don't know yet" (was Skip): quiet, same on laptop and phone
+  await page.goto(BASE + "#/play/1-1");
+  await wait(1000);
+  for (let k = 0; k < 6 && (await page.evaluate(() => document.querySelector(".screen.lesson")?.__step?.type)) === "learn"; k++) { await tap('.lesson-foot [data-act="main"]'); await wait(600); }
+  const idk = page.locator('[data-act="skip"]:visible');
+  ok(await idk.count() === 1 && /I don.t know yet/.test(await idk.innerText()), `“I don't know yet” shows once (${vp.touch ? "under the answers" : "bottom-left"})`);
+  ok(await idk.evaluate((b) => b.classList.contains("btn-text")), "“I don't know yet” is a quiet text button, not a big one");
+  const left = await page.evaluate(() => document.querySelector(".screen.lesson").__step);
+  await idk.first().click();
+  await page.waitForSelector(".feedback.is-open", { timeout: 4000 }).catch(() => {});
+  ok(/Here's the answer/.test(await page.locator(".feedback__title").innerText()) && await page.locator(".feedback.is-wrong").count() === 1, "“I don't know yet” shows the answer");
+  ok(await page.locator(".feedback__tag:not([hidden])").count() === 1, "… and the question comes back later");
+  ok(left.type !== "learn", `skipped a question (${left.type})`);
+  await page.keyboard.press("Escape");
+  await wait(400);
+  await tap('[data-q="leave"]');
+  await wait(700);
+
   // ------------------------------------------------------------ quit dialog
   await tap(".node.is-done");
   await wait(400);
@@ -396,7 +414,27 @@ async function runViewport(vp) {
         const across = step.from[0] !== step.to[0];
         ok((across ? /letters move/ : /numbers move/).test(await page.locator(".feedback__body").innerText()), `fillFormula: the feedback says the ${across ? "letters" : "numbers"} move`);
       }
-      if (goWrong && ["hotspot-menu", "hotspot-sortwin", "hotspot-editor", "hotspot-chartmenu", "hotspot-chart"].includes(typeKey)) ok(/You tapped/.test(await page.locator(".feedback__body").innerText()), `${typeKey}: a wrong tap says what was tapped`);
+      if (goWrong && ["hotspot-menu", "hotspot-sortwin", "hotspot-editor", "hotspot-chartmenu", "hotspot-chart"].includes(typeKey)) ok(new RegExp(vp.touch ? "You tapped" : "You clicked").test(await page.locator(".feedback__body").innerText()), `${typeKey}: a wrong ${vp.touch ? "tap" : "click"} says what was ${vp.touch ? "tapped" : "clicked"}`);
+      // Say it once: what you chose (struck through), the reason, the answer only if not said yet; the meaning behind a link.
+      if (goWrong && ["choice", "fill", "fillFormula", "chartChoice", "keys-choice", "rangeName", "formula", "lockRef"].includes(step.type === "keys" ? typeKey : step.type)) {
+        const fb = await page.evaluate(() => {
+          const ex = document.querySelector(".lesson-body .ex:not(.step-leave)");
+          const given = ex.querySelector(".type-input")?.value.trim().toUpperCase() || ex.querySelector(".option.is-wrong .label")?.textContent.replace(/\s+/g, " ").trim() || "";
+          return { given, you: document.querySelector(".feedback__you s")?.textContent || "", text: document.querySelector(".feedback__body").innerText, tag: !document.querySelector(".feedback__tag").hidden, more: !!document.querySelector(".feedback__more"), open: !!document.querySelector(".feedback__more[open]") };
+        });
+        // Charts and keycaps are pictures: their "You chose" line uses the caption or key names.
+        ok(fb.you || (fb.given && fb.text.replace(/\s+/g, " ").toUpperCase().includes(fb.given.toUpperCase())), `${typeKey}: the feedback says what was ${/rangeName|formula/.test(step.type) ? "typed" : "chosen"} (“${fb.you || fb.given}”)`);
+        ok(!/Correct answer/.test(fb.text) && fb.text.split("Answer:").length <= 2, `${typeKey}: the answer is said at most once`);
+        if (fb.more) ok(!fb.open, `${typeKey}: the definition waits behind “What does it mean?”`);
+        if (!step.retry) ok(fb.tag, `${typeKey}: “Comes back later” is a small tag by the title`);
+      }
+      if (vp.touch && goWrong && step.type === "choice") {
+        // Phone: the option you chose is scrolled into view just above the sheet.
+        const r = await page.evaluate(() => { const o = document.querySelector(".lesson-body .ex:not(.step-leave) .option.is-wrong"); const s = document.querySelector(".feedback"); return o ? [o.getBoundingClientRect().bottom, s.getBoundingClientRect().top] : null; });
+        await wait(500);
+        const r2 = await page.evaluate(() => { const o = document.querySelector(".lesson-body .ex:not(.step-leave) .option.is-wrong"); const s = document.querySelector(".feedback"); return o ? [o.getBoundingClientRect().bottom, s.getBoundingClientRect().top] : null; });
+        if (r2) ok(r2[0] <= r2[1] + 1, `choice: on the phone, your wrong choice stays in view above the sheet (${Math.round(r2[0])} ≤ ${Math.round(r2[1])})`);
+      }
       if (step.type === "gridMulti") {
         const fb = await page.locator(".feedback__body").innerText();
         ok(goWrong ? /Hold Ctrl|hold Ctrl/.test(fb) : new RegExp(`data range is ${step.target.join(",")}`).test(fb), `gridMulti: the feedback ${goWrong ? "says to hold Ctrl" : `gives the data range ${step.target.join(",")}`}`);
@@ -579,7 +617,7 @@ async function runViewport(vp) {
         }
         for (const w of seq) {
           const i = await page.evaluate((w) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .word-chip")].findIndex((b) => !b.disabled && b.querySelector(".label").textContent.toLowerCase() === w.toLowerCase()), w);
-          if (vp.touch) await page.locator(EX + ".word-chip").nth(i).tap(); else await page.keyboard.press(String(i + 1));
+          if (vp.touch) await page.locator(EX + ".word-chip").nth(i).tap(); else await page.keyboard.press(String.fromCharCode(97 + i)); // letters pick a word
           await wait(120);
         }
         if (!right) ok(await page.locator(EX + ".gap.is-filled").count() === step.answers.length, "gaps: every slot filled in order");

@@ -156,9 +156,9 @@
 @media (min-width: 700px) {
   :root {
     --gutter: 32px;
-    --bar-max: 1000px;     /* lesson header + bottom bar content width */
+    --bar-max: 760px;      /* lesson header + bottom bar content width: lined up with the content */
     --stage: 720px;        /* lesson content width */
-    --foot-btn-w: 224px;   /* CHECK and CONTINUE share one size and spot */
+    --foot-btn-w: 200px;   /* CHECK and CONTINUE share one size and spot */
     --footer-h: 120px;
     --path-col: 560px;     /* path column (nodes and banners) */
   }
@@ -209,6 +209,7 @@
   .lesson-foot__aside { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; flex-wrap: wrap; }
   .lesson-foot__aside .btn { min-width: 148px; }
   .lesson-foot__aside .btn-text { padding-inline: var(--sp-3); }
+  .lesson-foot__aside .btn-text--quiet { padding-inline: 0; }
   .lesson-foot__main { flex: none; width: var(--foot-btn-w); margin-left: auto; }
   .lesson-foot__main .btn > .face, .feedback > .btn > .face { padding-inline: var(--sp-3); white-space: nowrap; }
 
@@ -233,20 +234,11 @@
   }
   .feedback__head { grid-area: head; padding-right: 0; min-height: 0; }
   .feedback__icon { width: 40px; height: 40px; }
-  /* Compact body: [tip · we'll come back] on one line, [answer 🔊 meaning] on the next */
-  .feedback__body {
-    grid-area: body; padding-right: 0; min-height: 0; margin: var(--sp-1) 0 0 52px;
-    display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--sp-3); row-gap: 0;
-  }
+  /* Body, under the title: you chose · the reason · the answer · What does it mean? */
+  .feedback__body { grid-area: body; min-height: 0; margin: var(--sp-1) 0 0 52px; }
   .feedback__body[hidden] { display: none; }
-  .feedback__body::before { content: ""; order: 2; flex-basis: 100%; height: 0; }
-  .feedback__tip { order: 0; margin: 0; }
-  .feedback__later { order: 1; margin: 0; }
-  .feedback__label { order: 3; margin: 0; }
-  .feedback__answer { order: 4; }
-  .feedback__answer--list { flex-basis: 100%; }
+  .feedback__tip { margin-bottom: var(--sp-1); }
   .lesson-body { padding-top: var(--body-pt); }
-  .feedback__def { order: 5; margin: 0; flex-basis: 100%; }
   .feedback > .btn { grid-area: btn; align-self: end; }
 
   /* Dialogs (settings, quit) become centred cards */
@@ -343,11 +335,14 @@
   .complete-body { grid-area: 1 / 3; width: auto; margin: 0; padding: var(--sp-4) 0; align-items: flex-start; text-align: left; overflow: visible; }
   .complete-sub { margin-bottom: var(--sp-5); }
   .complete > .lesson-foot { grid-area: 2 / 1 / 3 / -1; }
+  /* The bar lines up with the two columns: CONTINUE's right edge is the stats' right edge. */
+  .complete { --bar-max: calc(520px + 460px + clamp(32px, 4vw, 64px)); }
 }
 
 /* Big monitors (1080p and up): a roomier celebration */
 @media (min-width: 1600px) and (min-height: 900px) {
   .screen.complete { grid-template-columns: minmax(var(--gutter), 1fr) minmax(0, 640px) minmax(0, 540px) minmax(var(--gutter), 1fr); }
+  .complete { --bar-max: calc(640px + 540px + clamp(32px, 4vw, 64px)); }
   .complete { --fs-3xl: 3rem; --fs-xl: 1.75rem; }
   .complete-sub { font-size: var(--fs-lg); }
   .stat__value { min-height: 80px; }
@@ -394,4 +389,38 @@
   /* A tall screenshot fits the height left under the question (--fit-h, measured by the
      hotspot exercise), so nothing to tap hides below the bar. */
   .shot--hot { width: min(100%, var(--w), calc(var(--fit-h, 100dvh - 270px) * var(--ar))); }
+}
+
+/* Tall screens (1920×1080): CHECK, CONTINUE and the feedback sit right under the content,
+   in the middle of the screen, instead of in a bar at the bottom (short screens keep the bar,
+   lined up with the content: --bar-max). */
+@media (min-width: 1024px) and (min-height: 900px) {
+  .lesson { --bar-max: var(--stage); --body-pb: 8px; }
+  .lesson-body { flex: 0 1 auto; margin-top: auto; }
+  .lesson .ex { min-height: 0; justify-content: flex-start; }
+  .lesson .step-leave { min-height: 0; }
+  .lesson > .lesson-foot { height: auto; margin-bottom: auto; padding-block: var(--sp-5) var(--sp-4); border-top: 0; background: none; }
+  .lesson:has(.feedback.is-open) > .lesson-foot { display: none; }
+  .lesson > .feedback {
+    position: relative; left: auto; right: auto; bottom: auto;
+    display: none; margin: var(--sp-5) var(--bar-pad) auto; max-height: none;
+    padding: var(--sp-4) var(--sp-5); min-height: 0;
+    border-radius: var(--r-xl); transform: none; transition: none;
+  }
+  .lesson > .feedback.is-open { display: grid; animation: card-in var(--dur-med) var(--ease-out) both; }
+  /* In the card the words get the full width; CONTINUE sits under them, on the right */
+  .lesson > .feedback { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "owl head" "owl body" "owl btn"; }
+  .lesson > .feedback > .btn { width: var(--foot-btn-w); justify-self: end; margin-top: var(--sp-2); }
+  .lesson > .feedback .feedback__owl { margin-bottom: calc(-1 * var(--sp-4)); height: 96px; }
+  .lesson .more-hint { display: none; }
+  @keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
+
+  /* Level complete: CONTINUE right under "You practised" */
+  .screen.complete { grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr); }
+  .complete-hero { grid-area: 2 / 2 / 4 / 3; }
+  .complete-body { grid-area: 2 / 3; padding-bottom: 0; }
+  .complete > .lesson-foot { grid-area: 3 / 3; height: auto; padding: var(--sp-6) 0 0; border-top: 0; background: none; align-self: start; }
+  .complete .lesson-foot__inner { flex-wrap: wrap; }
+  .complete .lesson-foot__main { order: -1; margin-left: 0; }
+  .complete .lesson-foot__aside { flex-basis: 100%; }
 }

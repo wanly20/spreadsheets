@@ -296,7 +296,11 @@
 /* Feedback sheet (answer checked) */
 .feedback { background: var(--c-correct-bg); color: var(--c-correct-text); }
 .feedback.is-wrong { background: var(--c-wrong-bg); color: var(--c-wrong-text); }
-.feedback__head { display: flex; align-items: center; gap: var(--sp-3); padding-right: 112px; min-height: 52px; }
+/* At most about half the screen: the long part scrolls, CONTINUE stays put */
+.feedback { display: flex; flex-direction: column; max-height: 55%; }
+.feedback > .btn { flex: none; }
+.feedback__body { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.feedback__head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px var(--sp-3); padding-right: 72px; min-height: 52px; }
 .feedback__icon {
   flex: none; width: 44px; height: 44px; border-radius: var(--r-pill);
   display: grid; place-items: center;
@@ -305,12 +309,12 @@
 .feedback.is-wrong .feedback__icon { color: var(--coral-600); }
 .feedback__icon .icon { width: 28px; height: 28px; }
 .feedback__title { font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-xl); line-height: 1.15; margin: 0; }
-.feedback__body { margin: var(--sp-3) 0 var(--sp-4); font-size: var(--fs-md); line-height: 1.4; color: var(--ink); padding-right: 96px; min-height: 40px; }
+.feedback__body { margin: var(--sp-3) 0 var(--sp-4); font-size: var(--fs-md); line-height: 1.4; color: var(--ink); }
 .feedback__label { font-family: var(--font-display); font-weight: var(--display-weight-bold); color: inherit; display: block; margin-bottom: 2px; }
 .feedback__answer { font-family: var(--font-learn); font-weight: 700; font-size: var(--fs-lg); display: inline-flex; align-items: center; gap: var(--sp-2); }
 .feedback__owl {
   position: absolute; right: var(--sp-3); top: var(--sp-3);
-  height: 92px; width: auto;
+  height: 64px; width: auto;
   max-width: none;
   pointer-events: none;
   opacity: 0;

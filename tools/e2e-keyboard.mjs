@@ -132,11 +132,11 @@ async function answer(step) {
     case "gaps": {
       // A wrong chip first, then Backspace takes it back, then the answers.
       const wrong = step.chips.findIndex((c) => !step.answers.map((a) => a.toLowerCase()).includes(c.toLowerCase()));
-      await key(String(wrong + 1)); await key("Backspace");
+      await key(String.fromCharCode(97 + wrong)); await key("Backspace"); // letters pick a word chip
       ok(await p.locator(".lesson-body .ex:not(.step-leave) .gap.is-filled").count() === 0, "Backspace takes the last chip back");
       for (const w of step.answers) {
         const i = await p.evaluate((w) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) .word-chip")].findIndex((b) => !b.disabled && b.querySelector(".label").textContent.toLowerCase() === w.toLowerCase()), w);
-        await key(String(i + 1)); await wait(100);
+        await key(String.fromCharCode(97 + i)); await wait(100);
       }
       return;
     }
@@ -171,7 +171,7 @@ async function answer(step) {
       ok(await p.evaluate((t) => document.activeElement?.dataset?.region === t, t), "Tab reaches a screenshot area past the number keys");
       await key("Space"); return;
     }
-    case "order": for (const s of step.steps) { const i = await optionIndex(".order-card .label", s); await key(String(i + 1)); await wait(150); } return;
+    case "order": for (const s of step.steps) { const i = await optionIndex(".order-card .label", s); await key(String.fromCharCode(97 + i)); await wait(150); } return; // letters, not numbers
     case "match":
       for (const pr of step.pairs) {
         const a = await optionIndex('.match-card[data-side="t"]', pr.term);
