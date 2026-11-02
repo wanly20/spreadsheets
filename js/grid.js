@@ -7,6 +7,9 @@
 //           sel: "C5" | "C2:C7" | "C:C" | "3:3", nameBox: true | "text", formula: "=B2*C2",
 //           handle: true }
 //   spec.also: ["E3:E9"] more selected ranges (shown with Ctrl, as two separate ranges)
+//   spec.marks: { "C2:C5": "target" } boxes drawn on the grid (target: dashed, ok, bad)
+//   On a phone (touch, or under 700px wide) columns share the width by their longest text and
+//   rows are taller (practice.css); a formula too long for its cell ends in "…" there.
 //   mode: "static" | "click" (cells, headers, fill handle) | "range" (drag to select)
 //         | "multi" (drag a range; hold Ctrl, or ctrlHeld(), to add another) | "move" (drag a cell to a new place)
 //   In multi mode, keyboard: Shift + arrows select; hold Ctrl and use the arrows (with Shift) for the next range.
@@ -64,9 +67,30 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
   let also = (spec.also || []).map((x) => parseSel(x, S)); // the other selected ranges (Ctrl)
   const showBar = spec.nameBox != null && spec.nameBox !== false || spec.formula != null;
 
+  const phone = matchMedia("(pointer: coarse)").matches || window.innerWidth < 700;
+  // Text that can spill into the empty cell next door (as in Sheets) doesn't widen its column.
+  const spills = (ref, v) => {
+    const p = parseRef(ref), next = cells[`${colLetter(p.c + 1)}${p.r}`];
+    return typeof v === "string" && v !== "" && !(phone && v.startsWith("=")) && !style[ref]?.wrap && (next == null || next === "") && p.c + 1 < cols;
+  };
+  /** Phone: each column's share of the width, from its longest text (Arial 13px, as drawn there). */
+  function textWidths() {
+    const ctx = document.createElement("canvas").getContext("2d");
+    return Array.from({ length: cols }, (_, c) => {
+      let w = 0;
+      for (let r = 1; r <= rows; r++) {
+        const ref = `${colLetter(c)}${r}`, v = cells[ref];
+        if (v == null || v === "" || spills(ref, v)) continue;
+        ctx.font = `${style[ref]?.b ? "bold " : ""}13px Arial, sans-serif`;
+        w = Math.max(w, ctx.measureText(String(v)).width);
+      }
+      return Math.min(140, Math.max(40, Math.ceil(w) + 12));
+    });
+  }
   // Column widths (relative) and row heights (px), as in Google Sheets.
   function tracks() {
-    const w = Array.from({ length: cols }, (_, c) => `minmax(0, ${spec.widths?.[colLetter(c)] ?? 1}fr)`).join(" ");
+    const tw = phone ? textWidths() : null;
+    const w = Array.from({ length: cols }, (_, c) => `minmax(0, ${tw ? tw[c] : spec.widths?.[colLetter(c)] ?? 1}fr)`).join(" ");
     const h = Array.from({ length: rows }, (_, r) => (spec.heights?.[r + 1] === "auto" ? "minmax(var(--rh), auto)" : spec.heights?.[r + 1] ? `${spec.heights[r + 1]}px` : "var(--rh)")).join(" ");
     return `--col-tracks:${w};--row-tracks:${h}`;
   }
@@ -98,7 +122,9 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       const ref = d.dataset.ref;
       const v = cells[ref];
       const st = style[ref] || {};
-      d.textContent = v == null ? "" : String(v);
+      // Phone: a formula too long for its cell ends in "…" (the bar above the grid shows all of it).
+      if (phone && typeof v === "string" && v.startsWith("=")) d.replaceChildren(Object.assign(document.createElement("span"), { className: "sh-t", textContent: v }));
+      else d.textContent = v == null ? "" : String(v);
       d.classList.toggle("is-num", typeof v === "number");
       d.style.background = st.bg || "";
       d.style.color = st.color || "";
@@ -111,7 +137,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
       d.classList.toggle("is-frozen", spec.frozen === +ref.slice(1));
       // Text longer than its cell spills into an empty cell next door (the default).
       const p = parseRef(ref), next = `${colLetter(p.c + 1)}${p.r}`;
-      d.classList.toggle("is-spill", typeof v === "string" && v !== "" && !st.wrap && (cells[next] == null || cells[next] === "") && p.c + 1 < cols);
+      d.classList.toggle("is-spill", spills(ref, v));
       const m = coveredBy(p.c, p.r);
       d.hidden = !!m && !(m.c1 === p.c && m.r1 === p.r);
       if (m && m.c1 === p.c && m.r1 === p.r) place(d, m);
@@ -151,6 +177,7 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
 
   paintCells();
   paintSel();
+  for (const [box, kind] of Object.entries(spec.marks || {})) mark(box, kind);
 
   // ------------------------------------------------------------ marks (feedback boxes)
   function mark(box, kind = "ok") {
@@ -409,6 +436,8 @@ export function createGrid(spec, { mode = "static", onChange, label = "Spreadshe
     get cells() { return cells; },
     setSel: (s) => setSel(typeof s === "string" ? parseSel(s, S) : s),
     setCells(patch) { cells = { ...cells, ...patch }; paintCells(); paintSel(); },
+    /** The formula bar shows this (e.g. the newest filled formula). */
+    setFx(text) { const fx = root.querySelector(".sheet-fx__text"); if (fx) fx.textContent = text; },
     reset(newCells) { cells = { ...newCells }; paintCells(); },
     mark,
     markHeader,

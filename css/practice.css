@@ -60,6 +60,15 @@
   line-height: 1.25;
 }
 .sh-cell.is-spill { overflow: visible; position: relative; z-index: 1; }
+.sh-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Touch screens: taller rows and headers, smaller sheet text (columns are sized to it), and
+   real 44px column letters and row numbers when they are what you tap. */
+@media (pointer: coarse) {
+  .msheet { font-size: 13px; }
+  .msheet:not(.msheet--static) { --rh: 40px; --hh: 32px; } /* the ones you tap or drag */
+  .msheet:not(.msheet--static) .sh-cell { padding-bottom: 10px; }
+  .msheet--click { --hh: 44px; --hw: 44px; }
+}
 .sh-cell.is-wrap { white-space: normal; overflow-wrap: anywhere; }
 .sh-cell.is-clip { overflow: hidden; }
 .sh-cell[style*="align-items: flex-start"] { padding-top: 4px; }
@@ -125,7 +134,7 @@
 .shot-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--sp-1); width: 100%; }
 .shot-toggle { align-self: flex-end; min-height: 40px; padding: 0 var(--sp-3); border: 2px solid var(--line-200); border-radius: var(--r-pill); background: var(--white); color: var(--green-700); text-transform: none; letter-spacing: 0.02em; font-size: var(--fs-sm); }
 .shot-toggle .icon { flex: none; }
-.shot-ring { position: absolute; border: 3px solid var(--yellow-500); border-radius: 8px; box-shadow: 0 0 0 4px rgb(251 188 4 / 0.3); animation: ring-pulse 1.8s ease-in-out infinite; }
+.shot-ring { position: absolute; border: 3px solid var(--yellow-500); border-radius: 8px; box-shadow: 0 0 0 4px rgb(251 188 4 / 0.3); animation: ring-pulse 1.8s ease-in-out 3; }
 @keyframes ring-pulse { 50% { box-shadow: 0 0 0 8px rgb(251 188 4 / 0.18); } }
 
 /* Hotspots: invisible until focused, chosen or checked. Small targets get a
@@ -183,7 +192,7 @@
   text-align: center;
   transition: border-color var(--dur-med), background-color var(--dur-med);
 }
-.key-zone__icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--blue-50); color: var(--blue-600); animation: float 2.4s ease-in-out infinite; }
+.key-zone__icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--blue-50); color: var(--blue-600); animation: float 2.4s ease-in-out 3; }
 .key-zone__text { font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-lg); color: var(--ink-soft); }
 .key-zone__pressed:empty { display: none; }
 .key-zone.is-holding { border-color: var(--blue-400); }
@@ -228,7 +237,7 @@ button.tabs-bar__btn { cursor: pointer; }
 @keyframes caret { 50% { opacity: 0; } }
 .sheet-tab.is-dragging { background: var(--white); box-shadow: var(--shadow-md); transform: translate(-26px, -4px) rotate(-2deg); outline: 2px solid var(--sheet-sel); }
 .sheet-tab.is-pressed { box-shadow: 0 0 0 2px var(--sheet-sel); }
-.is-ring { box-shadow: 0 0 0 3px var(--yellow-500), 0 0 0 7px rgb(251 188 4 / 0.3) !important; animation: ring-pulse 1.8s ease-in-out infinite; }
+.is-ring { box-shadow: 0 0 0 3px var(--yellow-500), 0 0 0 7px rgb(251 188 4 / 0.3) !important; animation: ring-pulse 1.8s ease-in-out 3; }
 
 .tab-menu-scene { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: min(100%, 300px); }
 .tab-menu {
@@ -357,7 +366,7 @@ button.sheet-tab:not(:disabled) { cursor: default; }
   font-family: var(--font-display); font-size: 11px; font-weight: 700; line-height: 1; color: var(--ink-soft);
 }
 .gap__text { white-space: normal; text-align: center; }
-.gap.is-active { background: var(--blue-50); border-bottom-color: var(--blue-500); box-shadow: 0 0 0 2px var(--blue-400); animation: gap-pulse 1.4s ease-in-out infinite; }
+.gap.is-active { background: var(--blue-50); border-bottom-color: var(--blue-500); box-shadow: 0 0 0 2px var(--blue-400); animation: gap-pulse 1.4s ease-in-out 3; }
 .gap.is-active .gap__n { border-color: var(--blue-500); color: var(--blue-600); }
 @keyframes gap-pulse { 50% { box-shadow: 0 0 0 4px rgb(91 156 245 / 0.35); } }
 .gap.is-filled { background: var(--white); box-shadow: inset 0 0 0 2px var(--line-200); border-bottom-color: var(--line-300); color: var(--ink); }
@@ -456,6 +465,8 @@ button.menu-bar__item { cursor: pointer; }
 .chart-axis-title { fill: #202124; font-weight: 700; }
 .chart-num { fill: #202124; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
 .chart-grid { stroke: #e3e3e3; stroke-width: 1; }
+.chart-pct { font-weight: 700; fill: #202124; }
+.chart-lead { stroke: #5f6368; stroke-width: 1.2; fill: none; }
 .chart-axis { stroke: #9aa0a6; }
 .chart .shot-ring { border-radius: 6px; }
 .chart-hot { z-index: 1; }
@@ -469,6 +480,16 @@ button.menu-bar__item { cursor: pointer; }
 .options--charts .chart { width: 100%; box-shadow: none; }
 .chart-cap { font-weight: 700; font-size: var(--fs-sm); text-align: center; }
 .ex-chartc .ex-visual .chart { width: min(100%, 230px); }
+/* Phone: the three charts two by two, so all of them are in view before you choose */
+@media (max-width: 699.98px) {
+  .options--charts { grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+  .options--charts .option:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - var(--sp-1)); }
+  .options--charts .option > .face { padding: 6px; }
+  .options--charts .label { padding-top: 0; }
+  .options--charts .chart-cap { font-size: var(--fs-xs); line-height: 1.25; }
+  .ex-chartc .ex-visual .chart { width: min(100%, 190px); }
+}
+@media (max-width: 699.98px) and (pointer: fine), (max-width: 699.98px) and (pointer: none) { .options--charts .label { padding-top: 28px; } }
 
 /* A chart on the sheet: beside the table, or covering it */
 .chart-card { position: relative; display: inline-block; width: min(100%, 300px); }

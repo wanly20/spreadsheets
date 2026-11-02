@@ -382,6 +382,22 @@
   .tab-menu { padding: 4px 0; }
 }
 
+/* Laptop learn cards: the toolbar pictures, keycaps and step chips 1.5× bigger, labels 14px+ */
+@media (min-width: 1024px) {
+  .learn-card .tool-icon img { height: 60px; padding: 6px; }
+  .learn-card .tool-icon figcaption { font-size: var(--fs-sm); }
+  .learn-card .tool-icons { gap: var(--sp-5); }
+  .learn-card .keycaps:not(.keycaps--sm) .keycap { min-width: 84px; height: 84px; font-size: 2.25rem; border-radius: 16px; box-shadow: 0 5px 0 var(--line-300); }
+  .learn-card .keycaps:not(.keycaps--sm) .keycap--wide { min-width: 112px; font-size: 1.5rem; }
+  .learn-card .keycaps:not(.keycaps--sm) .keycap-plus { font-size: 2rem; }
+  .learn-card .step-chip { font-size: 1.25rem; padding: var(--sp-3) var(--sp-5) var(--sp-3) var(--sp-3); }
+  .learn-card .step-chip b { width: 40px; height: 40px; }
+}
+@media (min-width: 1024px) and (max-height: 820px) {
+  .learn-card .keycaps:not(.keycaps--sm) .keycap { min-width: 72px; height: 72px; font-size: 1.875rem; }
+  .learn-card .keycaps:not(.keycaps--sm) .keycap--wide { min-width: 96px; font-size: 1.25rem; }
+}
+
 /* Wide screens: chart options and real screenshots may use some of the space beside the stage,
    so drawn charts and Google Sheets' own (small) text stay readable. */
 @media (min-width: 1024px) {

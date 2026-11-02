@@ -2,10 +2,12 @@
 //
 //   chart        { type: "pie" | "column" | "bar", labels: [...], series: [{ name, values }],
 //                  title?, legend? (default true), xTitle?, yTitle?, colours?: { index: paletteSlot },
-//                  compact? (bigger text, for small pictures), highlight?: a part }
+//                  compact? (bigger text, for small pictures), narrow? (for half a phone's width:
+//                  the pie's legend goes under it), highlight?: a part }
 //                Parts you can tap (hotspot `ui: { chart }`): title, legend, xTitle, yTitle, plot.
 //                Colour-blind friendly: every series (or slice) has its own colour AND pattern,
-//                and the legend shows both; pies also print each slice's percentage.
+//                and the legend shows both. A pie's percentages are in its legend ("Cake stall 41.4%"),
+//                never printed on the patterns; with no legend they sit outside the slice on a short line.
 //   chartOnSheet { grid, chart, at: "over" | "beside" } a chart over (or beside) a table
 //
 // The chart editor, the chart's ⋮ menu and a selected chart are real screenshots (content/screens.js).
@@ -44,9 +46,9 @@ function lines(label, max = 9) {
   return [s.slice(0, i), s.slice(i + 1)];
 }
 /** Round axis maximum and step, e.g. 245 → 0, 50, … 250. */
-function niceAxis(max) {
+function niceAxis(max, most = 6) {
   const steps = [5, 10, 20, 25, 40, 50, 100, 200, 250, 500];
-  for (const st of steps) if (max / st <= 6) return { step: st, top: Math.ceil(max / st) * st };
+  for (const st of steps) if (max / st <= most) return { step: st, top: Math.ceil(max / st) * st };
   return { step: 1000, top: Math.ceil(max / 1000) * 1000 };
 }
 export const pct = (v, total) => `${(Math.round((v / total) * 1000) / 10).toFixed(1)}%`;
@@ -83,11 +85,11 @@ export function chartDesc(spec) {
  */
 export function chartEl(spec, { hits = false } = {}) {
   const id = `ch${++uid}`;
-  const compact = !!spec.compact;
-  const W = spec.w || (compact ? 300 : 400);
-  const fs = compact ? 13 : 11;          // labels
-  const tfs = compact ? 15 : 14;         // title
+  const compact = !!spec.compact, narrow = !!spec.narrow;
   const isPie = spec.type === "pie";
+  const W = spec.w || (narrow ? 200 : compact ? 300 : 400);
+  const fs = isPie ? (narrow || compact ? 14 : 13) : narrow || compact ? 13 : 11; // labels
+  const tfs = narrow ? 14 : compact ? 15 : 14;                                     // title
   const series = spec.series;
   const slotOf = (i) => spec.colours?.[i] ?? i;
   const legendItems = isPie ? spec.labels : series.map((s) => s.name);
@@ -105,49 +107,78 @@ export function chartEl(spec, { hits = false } = {}) {
   const swatch = (x, yy, i) => `<rect x="${x}" y="${yy}" width="${fs}" height="${fs}" rx="2" ${paint(id, slotOf(i))} stroke="#fff" stroke-width=".8"/>`;
   let H;
   if (isPie) {
-    // Pie on the left, legend down the right (as Google Sheets does it).
+    // Pie on the left, legend down the right (as Google Sheets does it), or under the pie when
+    // there isn't room. Each legend line ends with the slice's percentage.
     const v = series[0].values, total = v.reduce((a, b) => a + b, 0);
-    const legW = showLegend ? Math.min(W * 0.42, Math.max(...legendItems.map((l) => textW(l, fs))) + fs + 14) : 0;
-    const r = Math.min((W - legW - 24) / 2, compact ? 74 : 84);
-    const cx = showLegend ? 12 + (W - legW - 12) / 2 : W / 2, cy = y + 6 + r;
+    const items = legendItems.map((l, i) => ({ l, p: pct(v[i], total) }));
+    const legW = showLegend ? Math.max(...items.map((it) => textW(it.l, fs) + textW(` ${it.p}`, fs) * 1.1)) + fs + 10 : 0;
+    const below = showLegend && (narrow || legW > W * 0.48);
+    const side = showLegend && !below ? legW : 0;
+    const out = showLegend ? 0 : textW("00.0%", fs) + 16; // room for labels outside the slices
+    const r = Math.min((W - side - 24 - 2 * out) / 2, narrow ? 70 : compact ? 74 : 84);
+    const cx = side ? 12 + (W - side - 12) / 2 : W / 2, cy = y + 6 + r + (out ? fs : 0);
     let a = -Math.PI / 2;
+    const labels = [];
     v.forEach((val, i) => {
       const da = (val / total) * Math.PI * 2;
       const b = a + da;
       const p = (t, rr = r) => `${(cx + rr * Math.cos(t)).toFixed(2)} ${(cy + rr * Math.sin(t)).toFixed(2)}`;
       svg.push(`<path d="M${cx} ${cy}L${p(a)}A${r} ${r} 0 ${da > Math.PI ? 1 : 0} 1 ${p(b)}Z" ${paint(id, slotOf(i))} stroke="#fff" stroke-width="2"/>`);
       const m = (a + b) / 2;
-      svg.push(`<text x="${(cx + r * 0.66 * Math.cos(m)).toFixed(1)}" y="${(cy + r * 0.66 * Math.sin(m) + fs * 0.35).toFixed(1)}" text-anchor="middle" class="chart-num" font-size="${fs}">${pct(val, total)}</text>`);
+      labels.push({ m, right: Math.cos(m) >= 0, y: cy + (r + 12) * Math.sin(m), text: pct(val, total) });
       a = b;
     });
-    boxes.plot = [cx - r, cy - r, 2 * r, 2 * r];
-    if (showLegend) {
-      const lx = W - legW, gap = fs + 9, ly0 = cy - (legendItems.length * gap) / 2;
-      legendItems.forEach((l, i) => {
-        svg.push(swatch(lx, ly0 + i * gap, i));
-        svg.push(`<text x="${lx + fs + 6}" y="${ly0 + i * gap + fs - 1.5}" class="chart-lbl" font-size="${fs}">${esc(l)}</text>`);
-      });
-      boxes.legend = [lx - 4, ly0 - 5, legW, legendItems.length * gap + 6];
+    if (!showLegend) {
+      // Outside the pie, on a short line from the slice; labels on one side never overlap.
+      for (const right of [true, false]) {
+        const group = labels.filter((l) => l.right === right).sort((p, q) => p.y - q.y);
+        group.forEach((l, k) => { if (k) l.y = Math.max(l.y, group[k - 1].y + fs + 3); });
+      }
+      for (const l of labels) {
+        const ex = cx + r * 0.92 * Math.cos(l.m), ey = cy + r * 0.92 * Math.sin(l.m);
+        const tx = cx + (r + 10) * (l.right ? 1 : -1) * Math.max(0.35, Math.abs(Math.cos(l.m)));
+        svg.push(`<path d="M${ex.toFixed(1)} ${ey.toFixed(1)}L${tx.toFixed(1)} ${l.y.toFixed(1)}" class="chart-lead"/>`);
+        svg.push(`<text x="${(tx + (l.right ? 3 : -3)).toFixed(1)}" y="${(l.y + fs * 0.35).toFixed(1)}" text-anchor="${l.right ? "start" : "end"}" class="chart-lbl chart-pct" font-size="${fs}">${l.text}</text>`);
+      }
     }
-    H = cy + r + 10;
+    boxes.plot = [cx - r, cy - r, 2 * r, 2 * r];
+    H = cy + r + 10 + (out ? Math.max(0, Math.max(...labels.map((l) => l.y)) - cy - r) : 0);
+    if (showLegend) {
+      const gap = fs + 9;
+      const lx = below ? Math.max(6, W / 2 - legW / 2) : W - legW;
+      const ly0 = below ? cy + r + 12 : cy - (items.length * gap) / 2;
+      items.forEach((it, i) => {
+        svg.push(swatch(lx, ly0 + i * gap, i));
+        svg.push(`<text x="${lx + fs + 6}" y="${ly0 + i * gap + fs - 1.5}" class="chart-lbl" font-size="${fs}">${esc(it.l)} <tspan class="chart-pct">${it.p}</tspan></text>`);
+      });
+      boxes.legend = [lx - 4, ly0 - 5, legW, items.length * gap + 6];
+      if (below) H = ly0 + items.length * gap + 6;
+    }
   } else {
-    // Legend in a row along the top.
+    // Legend in a row along the top (two rows when it doesn't fit).
     if (showLegend) {
       const items = legendItems.map((l) => ({ l, w: fs + 6 + textW(l, fs) + 14 }));
-      const total = items.reduce((s, x) => s + x.w, 0);
-      let x = W / 2 - total / 2;
+      const rows = [[]];
+      for (const it of items) { const row = rows.at(-1); if (row.length && row.reduce((s, x) => s + x.w, 0) + it.w > W - 8) rows.push([it]); else row.push(it); }
+      const widest = Math.max(...rows.map((row) => row.reduce((s, x) => s + x.w, 0)));
       y += 4;
-      items.forEach((it, i) => {
-        svg.push(swatch(x, y, i));
-        svg.push(`<text x="${x + fs + 6}" y="${y + fs - 1.5}" class="chart-lbl" font-size="${fs}">${esc(it.l)}</text>`);
-        x += it.w;
-      });
-      boxes.legend = [W / 2 - total / 2 - 6, y - 5, total + 4, fs + 10];
-      y += fs + 10;
+      const top = y;
+      let i = 0;
+      for (const row of rows) {
+        let x = W / 2 - row.reduce((s, it) => s + it.w, 0) / 2;
+        for (const it of row) {
+          svg.push(swatch(x, y, i++));
+          svg.push(`<text x="${x + fs + 6}" y="${y + fs - 1.5}" class="chart-lbl" font-size="${fs}">${esc(it.l)}</text>`);
+          x += it.w;
+        }
+        y += fs + 8;
+      }
+      boxes.legend = [W / 2 - widest / 2 - 6, top - 5, widest + 4, y - top + 2];
+      y += 2;
     }
     const isCol = spec.type === "column";
     const max = Math.max(...series.flatMap((s) => s.values));
-    const { step, top } = niceAxis(max);
+    const { step, top } = niceAxis(max, narrow ? 3 : 6);
     const tickW = textW(String(top), fs) + 6;
     const yTitleW = spec.yTitle ? fs + 10 : 0;
     const catW = isCol ? 0 : Math.max(...spec.labels.map((l) => textW(l, fs))) + 8;
@@ -158,7 +189,7 @@ export function chartEl(spec, { hits = false } = {}) {
     const labLines = (l) => (isCol && textW(l, fs) > colBand - 4 ? lines(l, 0) : [String(l)]);
     const catLines = isCol ? Math.max(...spec.labels.map((l) => labLines(l).length)) : 1;
     const plotTop = y + 8;
-    const plotH = isCol ? (compact ? 120 : 150) : Math.max(compact ? 120 : 150, spec.labels.length * (fs + 16));
+    const plotH = isCol ? (narrow ? 96 : compact ? 120 : 150) : Math.max(narrow ? 96 : compact ? 120 : 150, spec.labels.length * (fs + (narrow ? 10 : 16)));
     const plotBottom = plotTop + plotH;
     const plotW = right - left;
     const n = spec.labels.length, k = series.length;

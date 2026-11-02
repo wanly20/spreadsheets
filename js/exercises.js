@@ -289,7 +289,7 @@ export function multiTip(picked, target) {
   return `Select ${a}, hold <b>Ctrl</b>, then select ${b}.`;
 }
 function gridMulti(step, api) {
-  const touch = isTouchOnly();
+  const touch = matchMedia("(pointer: coarse)").matches; // a touch-first screen: the on-screen Ctrl
   let latched = false, physical = false;
   let picked = [];
   const g = createGrid(step.grid, { mode: "multi", ctrlHeld: () => latched, label: "Spreadsheet: drag to select a range. Hold Ctrl to add a second range. Keyboard: Shift and arrows select; hold Ctrl with the arrows for the next range.",
@@ -350,7 +350,9 @@ function chartChoice(step, api) {
         </button>`).join("")}</div>
     </div>`);
   if (vis) $(".ex-visual", node).appendChild(vis.el); else $(".ex-visual", node).remove();
-  $$(".chart-slot", node).forEach((slot, k) => slot.appendChild(chartEl({ compact: true, ...all[order[k]] })));
+  // On a phone the three charts sit two by two (all in view), drawn for a narrow space.
+  const narrow = window.innerWidth < 700;
+  $$(".chart-slot", node).forEach((slot, k) => slot.appendChild(chartEl({ compact: true, ...all[order[k]], ...(narrow ? { narrow: true } : {}) })));
   const values = order.map((i) => all[i].desc);
   const o = wireOptions(node, api, values);
   return {
@@ -515,7 +517,8 @@ export function fillFormulaOptions(formula, from, to) {
 function fillFormula(step, api) {
   const { from, to, formula } = step;
   const { dc, dr, across, n } = fillMove(from, to);
-  const g = createGrid({ ...step.grid, cells: { ...(step.grid?.cells || {}), [from]: formula }, sel: from });
+  // On a phone the formula bar shows the whole formula (cells end in "…" when it doesn't fit).
+  const g = createGrid({ ...step.grid, cells: { ...(step.grid?.cells || {}), [from]: formula }, sel: from, ...(window.innerWidth < 700 ? { nameBox: true } : {}) });
   g.mark(`${from}:${to}`, "target");
   const { correct, wrong } = fillFormulaOptions(formula, from, to);
   const opts = shuffle([correct, ...wrong]);
@@ -537,6 +540,7 @@ function fillFormula(step, api) {
       const ref = `${colLetter(colIndex(from[0]) + sc * i)}${+from.slice(1) + sr * i}`;
       g.setCells({ [ref]: shiftFormula(formula, sc * i, sr * i) });
       g.setSel(`${from}:${ref}`);
+      g.setFx(shiftFormula(formula, sc * i, sr * i));
       g.el.querySelector(`.sh-cell[data-ref="${ref}"]`)?.classList.add("is-new");
       await pause(450);
     }

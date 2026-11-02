@@ -478,7 +478,7 @@ export const practice = {
     ],
   },
   "date format": {
-    learn: { visual: { image: "format-number-dates", highlight: "Date", grid: { cols: 2, rows: 2, widths: { B: 1.6 }, cells: { A1: "Typed", B1: "Custom date with the day name", A2: "9/11/2026", B2: "Mon, 9 Nov 2026" }, style: { A1: { b: 1 }, B1: { b: 1 }, A2: { align: "right" }, B2: { align: "right" } } } }, note: "Format → Number → Date for a clean date. Custom date and time for the day name in front." },
+    learn: { visual: { image: "format-number-dates", highlight: "Date", grid: { cols: 2, rows: 2, widths: { B: 1.6 }, cells: { A1: "Typed", B1: "Custom date with the day name", A2: "9/11/2026", B2: "Mon, 9 Nov 2026" }, style: { A1: { b: 1 }, B1: { b: 1 }, A2: { align: "right" }, B2: { align: "right" } } } }, note: "Typing 9/11/2026 is enough: the format changes only how it looks. In Australia, 9/11 means 9 November." },
     gapChips: ["Currency", "Number", "Locale"],
     exercises: [
       { core: true, type: "choice", fact: "Custom date and time to include things like the day name", prompt: "You want “Mon, 9 Nov 2026”, with the day name. Which do you choose?",
@@ -557,7 +557,7 @@ export const practice = {
   // ======================================================= Lesson 3
   formula: {
     learn: { visual: { grid: { cols: 4, rows: 3, cells: { A1: "Item", B1: "Cost each", C1: "Qty", D1: "Total", A2: "Balloons", B2: 3, C2: 20, D2: 60 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { b: 1 } }, sel: "D2", nameBox: true, formula: "=B2*C2" } },
-      note: "The cell shows the answer (60). The bar above the grid shows the formula: =B2*C2." },
+      note: "Here the cell shows 60, and the bar above the grid shows =B2*C2. Click any cell to see what it really holds." },
     exercises: [
       { type: "choice", fact: "It always starts with =", prompt: "Which one is a formula?", correct: "=B2*C2", wrong: ["B2*C2", "B2 times C2", "D2"] },
       { type: "choice", fact: "Leave out the = and it is just text", prompt: "You type B2*C2 into D2, with no = at the start. What does D2 show?", correct: "The words B2*C2, as text", wrong: ["The answer, 60", "An error message", "0"] },
@@ -624,7 +624,7 @@ export const practice = {
     ],
   },
   SUM: {
-    learn: { visual: { grid: { cols: 4, rows: 4, cells: { A1: "Item", B1: "Cost", A2: "Balloons", B2: 90, A3: "Cups", B3: 60, A4: "Total", B4: 150 }, style: { A4: { b: 1 }, B4: { b: 1 } }, sel: "B4", nameBox: true, formula: "=SUM(B2:B3)" } }, note: "Quickest way: type =SUM( then drag over the cells. Enter." },
+    learn: { visual: { grid: { cols: 4, rows: 4, cells: { A1: "Item", B1: "Cost", A2: "Balloons", B2: 90, A3: "Cups", B3: 60, A4: "Total", B4: 150 }, style: { A4: { b: 1 }, B4: { b: 1 } }, sel: "B4", nameBox: true, formula: "=SUM(B2:B3)" } }, note: "B2:B3 means B2, B3 and every cell in between. Check the range covers every number, and no total." },
     exercises: [
       { type: "formula", fact: "=SUM(first:last)", prompt: "Write a function that adds up B2 to B9.", accept: ["=SUM(B2:B9)"] },
       { type: "formula", fact: "across a row (C4:E4)", prompt: "Write a function that adds up C4, D4 and E4.", accept: ["=SUM(C4:E4)"] },
@@ -634,7 +634,7 @@ export const practice = {
     ],
   },
   "order when subtracting": {
-    learn: { visual: { grid: { cols: 3, rows: 3, widths: { A: 1.4 }, cells: { A1: "Overall cost", B1: 236, A2: "Budget", B2: 250, A3: "Left over", B3: 14, C3: "=B2-B1" }, style: { A3: { b: 1 } } } }, note: "What you have first, then take away what you spend. −14 would mean the wrong way round." },
+    learn: { visual: { grid: { cols: 3, rows: 3, widths: { A: 1.4 }, cells: { A1: "Overall cost", B1: 236, A2: "Budget", B2: 250, A3: "Left over", B3: 14, C3: "=B2-B1" }, style: { A3: { b: 1 } } } }, note: "Here: the budget (B2) first, then take away the cost (B1). 250 − 236 = 14 left over. =B1-B2 would give −14." },
     exercises: [
       { type: "choice", fact: "Put what you have first, then take away what you spend", prompt: "The budget is in B8 (250). The overall cost is in B7 (236). Which formula shows the money left?", correct: "=B8-B7", wrong: ["=B7-B8", "=B8+B7", "=B7/B8"] },
       { type: "choice", fact: "A minus answer means over budget", prompt: "The budget in B8 is 200. The overall cost in B7 is 236. What does =B8-B7 show, and what does it mean?", correct: "−36: over budget", wrong: ["36: under budget", "−36: under budget", "436: over budget"] },
@@ -684,14 +684,16 @@ export const practice = {
       note: "Filled down, with the formulas showing: A moves with the row, $D$1 never moves. Every row uses the rate in D1." },
     exercises: [
       { type: "choice", fact: "a $ before the letter AND the number", prompt: "Which one is an absolute (locked) reference?", correct: "$B$13", wrong: ["B13", "$B13", "B$13"] },
-      { type: "choice", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. What's in C5?", correct: "=B5*$F$1", wrong: ["=B5*$F$4", "=B2*$F$1", "=B5*F5"] },
+      { type: "choice", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. What's in C5?", correct: "=B5*$F$1", wrong: ["=B5*$F$4", "=B2*$F$1", "=B5*F5"],
+        visual: { grid: { cols: 6, rows: 5, cells: { A1: "Stall", B1: "Total", C1: "Share", E1: "Rate", F1: "10%", A2: "Cakes", B2: 60, C2: "=B2*$F$1", A3: "Books", B3: 30, A4: "Plants", B4: 40, A5: "Juice", B5: 50 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, E1: { b: 1 }, F1: { align: "right", bg: "#e7f5ec" } }, sel: "C2", nameBox: true, marks: { "C2:C5": "target" } } } },
       { type: "choice", fact: "It stays the same when you fill", prompt: "B2 holds =A2*$D$1. You fill it down to B4. What does B4 show?",
         visual: { grid: { cols: 4, rows: 4, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, B2: 20, A3: 150, B3: 15, A4: 80, B4: "?" }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B4" } },
         correct: "8", wrong: ["0", "20", "80"] },
       { type: "choice", fact: "$ is Shift + 4", prompt: "Which keys type the $ sign?", correct: "Shift + 4", wrong: ["Shift + 8", "Shift + 3", "Shift + 5"] },
       { type: "lockRef", fact: "a $ before the letter AND the number", prompt: "Every row uses the rate in D1. Lock it, so it stays the same when you fill down.", formula: "=A2*D1", lock: ["D1"],
         visual: { grid: { cols: 4, rows: 3, widths: { B: 1.3 }, cells: { A1: "Total", B1: "Charity", C1: "Rate", D1: "10%", A2: 200, A3: 150 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, D1: { align: "right" } }, sel: "B2" } } },
-      { type: "formula", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. Type the formula that's now in C5.", hint: "$F$1 is locked. B2 is not.", accept: ["=B5*$F$1", "=$F$1*B5"] },
+      { type: "formula", fact: "It stays the same when you fill", prompt: "C2 holds =B2*$F$1. You fill it down to C5. Type the formula that's now in C5.", hint: "$F$1 is locked. B2 is not.", accept: ["=B5*$F$1", "=$F$1*B5"],
+        visual: { grid: { cols: 6, rows: 5, cells: { A1: "Stall", B1: "Total", C1: "Share", E1: "Rate", F1: "10%", A2: "Cakes", B2: 60, C2: "=B2*$F$1", A3: "Books", B3: 30, A4: "Plants", B4: 40, A5: "Juice", B5: 50 }, style: { A1: { b: 1 }, B1: { b: 1 }, C1: { b: 1 }, E1: { b: 1 }, F1: { align: "right", bg: "#e7f5ec" } }, sel: "C2", nameBox: true, marks: { "C2:C5": "target" } } } },
     ],
   },
   "when to lock a reference": {
@@ -875,7 +877,7 @@ export const practice = {
   },
   "sort range": {
     learn: { visual: { image: "data-menu-sort-range", highlight: "Advanced range sorting options" },
-      note: "Select the table first. Then Data → Sort range → Advanced range sorting options opens the sort window." },
+      note: "Select the table first. If you select one column only, only that column moves and the rows get mixed up." },
     exercises: [
       { type: "hotspot", fact: "Data → Sort range", screen: "menu-bar", target: "Data", prompt: "Which menu has the sorting tools? Tap it." },
       { type: "hotspot", fact: "Data → Sort range", screen: "data-menu", target: "Sort range", prompt: "You've selected your table, and the Data menu is open. Tap the item that sorts the range you selected." },
@@ -926,7 +928,7 @@ export const practice = {
   },
   "chart editor": {
     learn: { visual: { image: "setup-column" },
-      note: "Setup: the chart type and which cells. Customise: how the chart looks, like its colours. Closed it by mistake? ⋮ on the chart → Edit the chart." },
+      note: "Click outside the chart and the editor closes, but your chart stays. You haven't lost any work." },
     exercises: [
       { type: "hotspot", fact: "titles, colours, legend", screen: "setup-column", target: "Customise", prompt: "You want to change how the chart looks, like its colours. Tap the tab you need." },
       { type: "hotspot", fact: "chart type", screen: "setup-column", target: "Chart type", prompt: "You want a different kind of chart. Tap where you change it." },
@@ -949,7 +951,7 @@ export const practice = {
   },
   "select two separate ranges": {
     learn: { visual: { image: "two-ranges" },
-      note: "Same on Windows and on a Chromebook: select the first range, hold Ctrl, then click or drag the second. Let go of Ctrl too early and the first range disappears." },
+      note: "Same on Windows and on a Chromebook. Let go of Ctrl too early and the first range disappears: start again." },
     exercises: [
       { type: "gridMulti", fact: "hold Ctrl, then select the second", target: ["A3:A9", "E3:E9"], grid: fairGrid, prompt: "For a pie of the totals, select the stalls (<b>A3:A9</b>) and the totals (<b>E3:E9</b>). Leave out B, C and D." },
       { type: "gridMulti", fact: "The columns in between are left out", target: ["A3:A9", "C3:C9"], grid: fairGrid, prompt: "For a pie of the lunch takings, select the stalls (<b>A3:A9</b>) and Lunch (<b>C3:C9</b>)." },
@@ -962,7 +964,7 @@ export const practice = {
   },
   "chart title": {
     learn: { visual: { image: "titles", highlight: "Title text" },
-      note: "Customise → Chart and axis titles → Chart title, then type it in Title text. Sheets starts with a name like “Total”: change it so it says what the chart shows." },
+      note: "Sheets starts with a name like “Total”. Change it so it says what the chart shows, like “Fair Takings by Stall”." },
     exercises: [
       { type: "hotspot", fact: "The heading above a chart", ui: { chart: pieTotals }, target: "title", prompt: "Tap the chart title." },
       { type: "hotspot", fact: "then type it", screen: "customise-pie", target: "Chart and axis titles", prompt: "Tap the section of the Customise tab that holds the chart's title." },
@@ -973,7 +975,7 @@ export const practice = {
     ],
   },
   legend: {
-    learn: { visual: { image: "legend", highlight: "chart legend" }, note: "Each stall has its own colour, and the legend says which is which. Customise → Legend changes its size and where it sits." },
+    learn: { visual: { image: "legend", highlight: "chart legend" }, note: "No legend? Then no one can tell which colour is which stall." },
     exercises: [
       { type: "hotspot", fact: "The key", screen: "legend", target: "chart legend", prompt: "Tap the legend." },
       { type: "hotspot", fact: "The key", ui: { chart: colSessions }, target: "legend", prompt: "Tap the legend." },
@@ -1018,7 +1020,7 @@ export const practice = {
   },
   "choosing a chart": {
     learn: { visual: { charts: [{ ...pieThree, caption: "Parts of one whole → pie" }, { ...colThree, caption: "Comparing amounts → column" }] },
-      note: "Ask: is it one whole, cut into parts? Pie. Am I comparing amounts, or several sets side by side? Column (or bar)." },
+      note: "Ask one question first: do the parts add up to one whole (100%)? Yes: pie. No: column (or bar)." },
     exercises: [
       { type: "choice", fact: "Parts of one whole → a pie chart", prompt: "“What share of all the money came from the raffle?” Which chart answers it?", correct: "A pie chart", wrong: ["A column chart", "A bar chart"] },
       { type: "chartChoice", fact: "several sets side by side", prompt: "“Compare morning and afternoon takings for every stall.” Which chart answers it?",
@@ -1061,7 +1063,7 @@ export const practice = {
     ],
   },
   "move and resize a chart": {
-    learn: { visual: { image: "chart-beside-data" }, note: "Beside the table, so every number stays easy to see. Drag a corner to make it bigger or smaller." },
+    learn: { visual: { image: "chart-beside-data" }, note: "Over the table, the chart hides numbers you still need. Grab the chart itself to move it; grab a corner handle to resize it." },
     exercises: [
       { type: "hotspot", fact: "Drag a corner", screen: "chart-selected", target: "corner", prompt: "You want the chart bigger by dragging down and to the right. Tap the handle you'd grab." },
       { type: "hotspot", fact: "Drag the chart", screen: "chart-selected", target: "chart", prompt: "You want to move the chart. Tap where you grab it." },
