@@ -24,7 +24,7 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const C = await import(path.join(ROOT, "js/course.js"));
 const { screens } = await import(path.join(ROOT, "content/screens.js"));
-const { TAB_MENU, fillValues, isDay, dataMenuHits, sortWindowHits, drawnHits } = await import(path.join(ROOT, "js/visuals.js"));
+const { TAB_MENU, fillValues, isDay, dataMenuHits, sortWindowHits, drawnHits, inCrop } = await import(path.join(ROOT, "js/visuals.js"));
 const { chartHits } = await import(path.join(ROOT, "js/charts.js"));
 const { sortOptions, sortTies, rowsText } = await import(path.join(ROOT, "js/sort.js"));
 const { parseSel } = await import(path.join(ROOT, "js/grid.js"));
@@ -222,6 +222,12 @@ for (const [id, s] of Object.entries(screens)) {
   for (const [rid, r] of Object.entries(s.regions)) {
     const [x, y, w, h] = r.r;
     if (x < 0 || y < 0 || x + w > s.w || y + h > s.h) err(`screen ${id}: region ${rid} is outside the picture`);
+  }
+  // Phone crops: inside the picture, with something to choose from.
+  for (const c of !s.phoneCrop ? [] : Array.isArray(s.phoneCrop[0]) ? s.phoneCrop : [s.phoneCrop]) {
+    const [x, y, w, h] = c;
+    if (x < 0 || y < 0 || x + w > s.w || y + h > s.h) err(`screen ${id}: phone crop ${c.join(", ")} is outside the picture`);
+    if (Object.values(s.regions).filter((r) => inCrop(r.r, c)).length < 2) err(`screen ${id}: phone crop ${c.join(", ")} needs 2+ regions in it`);
   }
   if (!existsSync(path.join(ROOT, s.src))) err(`screen ${id}: missing ${s.src}`);
 }

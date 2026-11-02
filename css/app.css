@@ -259,6 +259,24 @@
   background: var(--c-bg);
 }
 
+/* A tall exercise runs on below the bar: a soft fade and "More ↓" (only a hint: scroll to see it). */
+.more-hint {
+  position: absolute; left: 0; right: 0; bottom: var(--more-b, 0px); z-index: 4;
+  display: flex; justify-content: center; align-items: flex-end;
+  height: 56px; padding-bottom: 8px;
+  background: linear-gradient(rgb(245 249 246 / 0), var(--c-bg) 85%);
+  pointer-events: none;
+  opacity: 0; transition: opacity var(--dur-med);
+}
+.more-hint span {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 12px; border-radius: var(--r-pill);
+  background: var(--white); border: 2px solid var(--line-200);
+  font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-xs);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft);
+}
+.lesson.has-more .more-hint { opacity: 1; }
+
 .step-enter { animation: step-in 380ms var(--ease-out) both; }
 .step-leave { position: absolute; left: var(--sp-4); right: var(--sp-4); top: 28px; animation: step-out 260ms var(--ease-out) both; pointer-events: none; }
 @keyframes step-in { from { opacity: 0; transform: translateX(28px); } }

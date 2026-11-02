@@ -38,6 +38,7 @@ export function runLesson(app, session, hooks) {
         <div class="combo" aria-hidden="true">${icon("flame", 16, 2.5)}<span></span></div>
       </header>
       <main class="lesson-body" tabindex="-1"></main>
+      <div class="more-hint" aria-hidden="true"><span>More ${icon("arrow-down", 16, 3)}</span></div>
       ${footBar(button("Check", { attrs: 'data-act="main"' }))}
       <div class="sheet feedback" role="region" aria-live="polite" aria-label="Answer feedback" inert>
         <img class="feedback__owl" alt="" src="${mascotSrc("happy")}">
@@ -60,6 +61,16 @@ export function runLesson(app, session, hooks) {
   const combo = $(".combo", screen);
   const foot = $(".lesson-foot", screen);
   const aside = $(".lesson-foot__aside", screen);
+
+  // "More ↓" with a soft fade when the exercise runs below the bottom bar (a tall card or screenshot).
+  const updateMore = () => {
+    const more = mode === "answer" && body.scrollHeight - body.clientHeight - body.scrollTop > 8;
+    if (more) screen.style.setProperty("--more-b", `${screen.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom}px`);
+    screen.classList.toggle("has-more", more);
+  };
+  const sizes = new ResizeObserver(updateMore);
+  sizes.observe(body);
+  body.addEventListener("scroll", updateMore, { passive: true });
 
   // Secondary actions on the left of the bottom bar (from 700px wide).
   const ASIDE = {
@@ -127,6 +138,7 @@ export function runLesson(app, session, hooks) {
     }
     body.appendChild(next);
     body.scrollTop = 0;
+    sizes.observe(next);
     screen.dataset.step = step.type;
     screen.__step = step; // read by tools/e2e.mjs
     const f = current.footer || { label: "Check", enabled: false };
@@ -134,9 +146,11 @@ export function runLesson(app, session, hooks) {
     api.setAside(current.aside);
     if (!screen.contains(document.activeElement) || sheet.contains(document.activeElement) || document.activeElement === document.body) body.focus({ preventScroll: true });
     current.mount?.();
+    updateMore();
   }
 
   function finish() {
+    sizes.disconnect();
     document.removeEventListener("keydown", onKey);
     const accuracy = stats.firstGraded ? Math.round((stats.firstTry / stats.firstGraded) * 100) : 100;
     const xp = (session.xpBase ?? 10) + stats.firstTry;
@@ -208,6 +222,7 @@ export function runLesson(app, session, hooks) {
     foot.inert = true;
     mainBtn.setAttribute("aria-hidden", "true");
     mainBtn.tabIndex = -1;
+    updateMore();
     if (result.after) afterTimer = setTimeout(result.after, 250);
     setTimeout(() => contBtn.focus({ preventScroll: true }), 80);
   }
@@ -285,6 +300,7 @@ export function runLesson(app, session, hooks) {
   }
 
   function exit() {
+    sizes.disconnect();
     clearTimeout(afterTimer);
     current?.destroy?.();
     document.removeEventListener("keydown", onKey);
@@ -294,5 +310,5 @@ export function runLesson(app, session, hooks) {
 
   setProgress();
   advance(false);
-  return { destroy: exit, screen, dispose() { clearTimeout(afterTimer); current?.destroy?.(); document.removeEventListener("keydown", onKey); } };
+  return { destroy: exit, screen, dispose() { sizes.disconnect(); clearTimeout(afterTimer); current?.destroy?.(); document.removeEventListener("keydown", onKey); } };
 }

@@ -2,6 +2,10 @@
 // Regions are rectangles in the picture's own pixels: [x, y, width, height].
 // Every region of a picture is a possible answer, so keep 5+ per picture.
 // tools/check_content.mjs checks every region fits inside its picture.
+// phoneCrop: [x, y, w, h], or a list of them: on a phone (under 700px wide) a big picture shows a
+// zoomed crop first, with a "Whole screen" button. A question shows the smallest crop that holds its
+// answer whole (else the first that shows most of it); a learn card, the one that holds its highlight
+// (or the first). Keep the nearby wrong answers in the crop. No crop holds the answer: the whole picture.
 //
 // DRAWN STAND-INS (at the end): pictures we haven't photographed yet are drawn by the app
 // from `drawn` (a visual spec, see js/visuals.js). To swap one for a real screenshot:
@@ -20,6 +24,7 @@ const FAIR = { cols: 5, rows: 9, widths: { A: 1.5, D: 1.2 }, style: { A1: { b: 1
 export const screens = {
   "sheets-basic": {
     src: "assets/screens/sheets-basic.webp", w: 1056, h: 310,
+    phoneCrop: [[0, 86, 450, 214], [60, 86, 300, 120], [360, 86, 380, 120], [700, 86, 356, 120], [200, 150, 340, 160]],
     alt: "Google Sheets: the title, menus, toolbar (its currency button shows $), Name Box, formula bar and the top-left of the grid, with C2 selected",
     regions: {
       title: { r: [78, 12, 348, 39], label: "the spreadsheet title" },
@@ -61,6 +66,7 @@ export const screens = {
   },
   "sheets-ribbon": {
     src: "assets/screens/sheets-ribbon.webp", w: 700, h: 54,
+    phoneCrop: [[0, 0, 350, 54], [250, 0, 350, 54]],
     alt: "The right-hand end of the Google Sheets toolbar",
     regions: {
       fillColour: { r: [2, 4, 42, 46], label: "Fill colour" },
@@ -97,6 +103,7 @@ export const screens = {
   // make Cut an answer there.
   "view-freeze": {
     src: "assets/screens/view-freeze.webp", w: 536, h: 328,
+    phoneCrop: [288, 58, 248, 260],
     alt: "View → Freeze open: No rows, 1 row, 2 rows, Up to row 2, No columns, 1 column, 2 columns, Up to column C",
     regions: {
       View: { r: [7, 3, 32, 22], label: "the View menu" },
@@ -118,6 +125,7 @@ export const screens = {
   },
   "format-number": {
     src: "assets/screens/format-number.webp", w: 554, h: 373,
+    phoneCrop: [292, 75, 262, 298],
     alt: "Format → Number open: Automatic, Plain text, Number, Percent, Scientific, Accounting, Financial, Currency ($1,000.12), Currency rounded ($1,000)",
     regions: {
       Format: { r: [9, 3, 47, 22], label: "the Format menu" },
@@ -142,6 +150,7 @@ export const screens = {
   },
   "format-number-dates": {
     src: "assets/screens/format-number-dates.webp", w: 554, h: 371,
+    phoneCrop: [292, 40, 262, 300],
     alt: "The lower part of Format → Number: Currency, Currency rounded, Date (26/09/2008), Time, Date time, Duration, Friday, 26 September 2008, 26 September 2008, Custom currency, Custom date and time, Custom number format",
     regions: {
       "Conditional formatting": { r: [6, 45, 288, 28], label: "Conditional formatting" },
@@ -162,6 +171,7 @@ export const screens = {
   },
   "settings-locale": {
     src: "assets/screens/settings-locale.webp", w: 651, h: 430,
+    phoneCrop: [0, 50, 330, 310],
     alt: "The settings window for this spreadsheet, General tab: Locale Australia, Time zone, Display language, Cancel and Save settings",
     regions: {
       Close: { r: [598, 20, 30, 30], label: "the close button (×)" },
@@ -217,6 +227,7 @@ export const screens = {
   // customise-pie or customise-column, where every section is still closed.
   "menu-bar": {
     src: "assets/screens/menu-bar.webp", w: 420, h: 28,
+    phoneCrop: [0, 0, 300, 28],
     alt: "The Google Sheets menu bar: File, Edit, View, Insert, Format, Data, Tools, Extensions, Help",
     regions: {
       "File": { r: [4, 3, 26, 22], label: "the File menu" },
@@ -232,6 +243,7 @@ export const screens = {
   },
   "data-menu": {
     src: "assets/screens/data-menu.webp", w: 565, h: 352,
+    phoneCrop: [262, 26, 230, 270],
     alt: "Google Sheets with the Data menu open: Sort sheet, Sort range, Create a filter and more",
     regions: {
       "Sort sheet": { r: [268, 31, 288, 28], label: "Sort sheet" },
@@ -247,6 +259,7 @@ export const screens = {
   },
   "data-menu-sort-range": {
     src: "assets/screens/data-menu-sort-range.webp", w: 538, h: 203,
+    phoneCrop: [200, 0, 338, 203],
     alt: "Data → Sort range open: sort by column A (A to Z), (Z to A), and Advanced range sorting options",
     regions: {
       "Sort sheet": { r: [6, 7, 288, 28], label: "Sort sheet" },
@@ -261,6 +274,7 @@ export const screens = {
   },
   "sort-window": {
     src: "assets/screens/sort-window.webp", w: 464, h: 349,
+    phoneCrop: [0, 45, 340, 175],
     alt: "The sort window: Sort range from A3 to E9, Data has header row ticked, Sort by Stall A to Z, then by Morning A to Z, Add another sort column, Cancel and Sort",
     regions: {
       "Close": { r: [410, 18, 32, 30], label: "the close button (×)" },
@@ -279,6 +293,7 @@ export const screens = {
   },
   "insert-menu": {
     src: "assets/screens/insert-menu.webp", w: 460, h: 352,
+    phoneCrop: [160, 112, 240, 240],
     alt: "Google Sheets with the Insert menu open: Cells, Rows, Columns, Sheet, Pre-built tables, Timeline, Chart, Pivot table, Image, Drawing",
     regions: {
       "Cells": { r: [165, 31, 288, 28], label: "Cells" },
@@ -308,6 +323,7 @@ export const screens = {
   },
   "setup-column": {
     src: "assets/screens/setup-column.webp", w: 1085, h: 685,
+    phoneCrop: [[800, 0, 285, 345], [800, 400, 285, 285]],
     alt: "A column chart of Morning, Lunch and Afternoon for each stall, and the chart editor's Setup tab with Switch rows/columns not ticked",
     regions: {
       "Setup": { r: [822, 7, 76, 30], label: "the Setup tab" },
@@ -329,6 +345,7 @@ export const screens = {
   },
   "setup-switched": {
     src: "assets/screens/setup-switched.webp", w: 1085, h: 742,
+    phoneCrop: [0, 215, 560, 290],
     alt: "The same chart with Switch rows/columns ticked: Morning, Lunch and Afternoon along the bottom, the stalls in the legend",
     regions: {
       "Setup": { r: [822, 7, 76, 30], label: "the Setup tab" },
@@ -344,6 +361,7 @@ export const screens = {
   },
   "titles": {
     src: "assets/screens/titles.webp", w: 293, h: 610,
+    phoneCrop: [0, 195, 293, 360],
     alt: "The chart editor's Customise tab with Chart and axis titles open: Chart title, Title text, font, size, format and colour",
     regions: {
       "Setup": { r: [30, 7, 76, 30], label: "the Setup tab" },
@@ -417,6 +435,7 @@ export const screens = {
   },
   "legend": {
     src: "assets/screens/legend.webp", w: 1080, h: 555,
+    phoneCrop: [[0, 215, 560, 330], [795, 250, 285, 300]],
     alt: "A pie chart, Fair Takings by Stall, with its legend on the right, and the chart editor's Customise tab with Legend open: Position, Legend font, Legend font size",
     regions: {
       "Setup": { r: [817, 7, 76, 30], label: "the Setup tab" },
@@ -438,6 +457,7 @@ export const screens = {
   },
   "chart-menu": {
     src: "assets/screens/chart-menu.webp", w: 715, h: 349,
+    phoneCrop: [500, 26, 215, 220],
     alt: "A pie chart with its ⋮ menu open: Edit the chart, Delete chart, Download chart, Publish the chart, Copy chart, Move to own sheet, Alt text",
     regions: {
       "chart title": { r: [18, 19, 180, 28], label: "the chart title" },
@@ -452,6 +472,7 @@ export const screens = {
   },
   "chart-selected": {
     src: "assets/screens/chart-selected.webp", w: 573, h: 358,
+    phoneCrop: [180, 0, 393, 358],
     alt: "A selected pie chart with small square handles at its corners and edges, and ⋮ at the top right",
     regions: {
       "⋮": { r: [533, 12, 24, 26], label: "the ⋮ button (the chart's menu)" },

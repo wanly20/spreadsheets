@@ -5,7 +5,7 @@ import { icon } from "./icons.js";
 import { $, $$, esc, el, rich, plain, shuffle, restartAnim, mascotImg, reducedMotion } from "./ui.js";
 import { sfx } from "./sound.js";
 import { createGrid, parseSel, selText, sameBox, colLetter, colIndex } from "./grid.js";
-import { renderVisual, fillValues, isDay, keycaps, SORT_WINDOW_LABEL, MENU_BAR, drawnLabel } from "./visuals.js";
+import { renderVisual, shotEl, fillValues, isDay, keycaps, SORT_WINDOW_LABEL, MENU_BAR, drawnLabel } from "./visuals.js";
 import { chartEl, chartDesc, chartPartLabel } from "./charts.js";
 import { screens } from "../content/screens.js";
 import { sortOptions, rowsText, dirLabel } from "./sort.js";
@@ -723,42 +723,17 @@ function keysChoice(step, api) {
 function hotspot(step, api) {
   const node = el(`<div class="ex ex-hotspot">${head(step, esc(step.prompt))}<div class="hot-stage"></div></div>`);
   const stage = $(".hot-stage", node);
-  let regions = [];
   const drawn = step.screen && screens[step.screen].drawn; // not photographed yet: drawn instead
-  const hitsOf = (vis) => vis.hits.forEach((h) => { h.dataset.region = h.dataset.hit; if (!h.classList.contains("hot")) h.classList.add("hot-ui"); h.setAttribute("aria-pressed", "false"); regions.push(h.dataset.hit); });
+  const hitsOf = (vis) => vis.hits.forEach((h) => { h.dataset.region = h.dataset.hit; if (!h.classList.contains("hot")) h.classList.add("hot-ui"); h.setAttribute("aria-pressed", "false"); });
+  let shot = null;
   if (drawn) {
     const vis = renderVisual(drawn, { interactiveHits: true });
     stage.appendChild(vis.el);
     hitsOf(vis);
   } else if (step.screen) {
-    const s = screens[step.screen];
-    // On narrow screens show a window of the screenshot around the answer, so
-    // small things (the fill handle) stay big enough to tap.
-    const narrow = window.innerWidth < 700 && s.w > 700;
-    const t = s.regions[step.target].r;
-    let cx = 0, cw = s.w;
-    if (narrow) {
-      cw = 520;
-      const want = t[0] + t[2] / 2 - cw * (0.3 + 0.4 * ((t[0] * 7) % 10) / 10);
-      cx = Math.max(0, Math.min(s.w - cw, Math.round(want)));
-    }
-    const fig = el(`<figure class="shot shot--hot" style="--ar:${cw}/${s.h};--w:${s.w}px">
-      <img src="${s.src}" alt="${esc(s.alt)}" draggable="false" style="width:${(s.w / cw) * 100}%;margin-left:${(-cx / cw) * 100}%">
-    </figure>`);
-    let k = 0;
-    // Areas packed close together (menu rows) keep to their own box: a bigger invisible tap
-    // area would reach into the next row on a small screen.
-    const near = (a, b) => a[0] < b[0] + b[2] + 8 && b[0] < a[0] + a[2] + 8 && a[1] < b[1] + b[3] + 8 && b[1] < a[1] + a[3] + 8;
-    const all = Object.values(s.regions).map((x) => x.r);
-    for (const [id, reg] of Object.entries(s.regions)) {
-      const [x, y, w, h] = reg.r;
-      if (x < cx || x + w > cx + cw) continue;
-      regions.push(id);
-      const tight = all.some((o) => o !== reg.r && near(reg.r, o));
-      fig.appendChild(el(`<button type="button" class="hot${tight ? " hot--tight" : ""}" data-region="${id}" aria-label="Area ${++k}" aria-pressed="false"
-        style="left:${((x - cx) / cw) * 100}%;top:${(y / s.h) * 100}%;width:${(w / cw) * 100}%;height:${(h / s.h) * 100}%"><span class="hot__ring"></span></button>`));
-    }
-    stage.appendChild(fig);
+    // A phone sees a zoomed crop around the answer, with its neighbours (js/visuals.js shotEl).
+    shot = shotEl(screens[step.screen], { hot: true, focus: step.target });
+    stage.appendChild(shot.el);
   } else {
     const vis = renderVisual(step.ui, { interactiveHits: true });
     stage.appendChild(vis.el);
@@ -787,14 +762,26 @@ function hotspot(step, api) {
     if (id === "All sheets") return "the All sheets button";
     return step.ui?.tabs ? `the ${id} tab` : id;
   };
+  // A screenshot fits the height left under the question (a two-line question leaves less).
+  const fit = () => {
+    const screen = node.closest(".lesson");
+    if (!shot || !screen || shot.fig.classList.contains("is-zoomed")) return;
+    const body = $(".lesson-body", screen), cs = getComputedStyle(body);
+    const most = screen.clientHeight - $(".lesson-top", screen).offsetHeight - $(".lesson-foot", screen).offsetHeight; // the body's tallest
+    const room = most - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - $(".ex-head", node).offsetHeight - (parseFloat(getComputedStyle(node).rowGap) || 0) - 4;
+    shot.fig.style.setProperty("--fit-h", `${Math.max(200, Math.floor(room))}px`);
+  };
   return {
     el: node,
     footer: { label: "Check", enabled: false },
     aside: ["skip"],
-    onKey(n) { const b = btns[n - 1]; if (b) { choose(b); b.focus({ preventScroll: true }); } },
+    mount: fit,
+    onKey(n) { const b = btns.filter((x) => !x.hidden)[n - 1]; if (b) { choose(b); b.focus({ preventScroll: true }); } },
     check({ skipped } = {}) {
       node.classList.add("is-locked");
       const ok = !skipped && chosen === step.target;
+      // A wrong tap outside the zoomed crop (picked on the whole screen): show both again.
+      if (shot && chosen && btns.find((b) => b.dataset.region === chosen)?.hidden) shot.showWhole();
       btns.forEach((b) => {
         b.disabled = true;
         if (b.dataset.region === step.target) b.classList.add("is-correct");

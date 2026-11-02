@@ -391,6 +391,7 @@
    so drawn charts and Google Sheets' own (small) text stay readable. */
 @media (min-width: 1024px) {
   .options--charts, .hot-stage { width: min(100vw - 2 * var(--gutter), var(--stage) + 240px); margin-inline: calc((100% - min(100vw - 2 * var(--gutter), var(--stage) + 240px)) / 2); }
-  /* A tall screenshot fits the screen's height, so nothing to tap hides below the fold. */
-  .shot--hot { width: min(100%, var(--w), calc((100dvh - 270px) * var(--ar))); }
+  /* A tall screenshot fits the height left under the question (--fit-h, measured by the
+     hotspot exercise), so nothing to tap hides below the bar. */
+  .shot--hot { width: min(100%, var(--w), calc(var(--fit-h, 100dvh - 270px) * var(--ar))); }
 }

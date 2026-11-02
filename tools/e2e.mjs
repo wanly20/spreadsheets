@@ -65,6 +65,7 @@ async function runViewport(vp) {
   const wait = (ms) => page.waitForTimeout(ms);
   const tap = async (sel) => { const l = page.locator(sel).first(); if (vp.touch) await l.tap(); else await l.click(); };
   const EX = ".lesson-body .ex:not(.step-leave) "; // the current exercise only
+  let wholeTested = false;
 
   await page.goto(BASE);
   await page.evaluate(() => localStorage.clear());
@@ -371,7 +372,7 @@ async function runViewport(vp) {
       await shot(`ex-${typeKey}`);
       // Answer wrong once per exercise type (per viewport), never on a retry.
       // A hotspot with only one region (e.g. "Tap the legend") has nothing wrong to tap: answer it right.
-      const oneRegion = step.type === "hotspot" && await page.evaluate((t) => ![...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].some((b) => b.dataset.region !== t), step.target);
+      const oneRegion = step.type === "hotspot" && await page.evaluate((t) => ![...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].some((b) => b.dataset.region !== t && !b.hidden), step.target);
       const goWrong = !step.retry && step.type !== "learn" && !oneRegion && !wrongDone.has("*") && !wrongDone.has(typeKey);
       if (goWrong) { wrongDone.add(typeKey); res.wrong++; }
       await answer(step, !goWrong, typeKey);
@@ -612,7 +613,20 @@ async function runViewport(vp) {
         return check();
       }
       case "hotspot": {
-        const other = await page.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].map((b) => b.dataset.region).find((r) => r !== t), step.target);
+        // A phone sees a zoomed crop: the wrong tap is a neighbour inside it (the target is always in it).
+        const other = await page.evaluate((t) => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].filter((b) => !b.hidden).map((b) => b.dataset.region).find((r) => r !== t), step.target);
+        if (vp.touch && step.screen) ok(await page.locator(EX + `[data-region="${step.target}"]`).isVisible(), `hotspot ${step.screen}: the answer is inside the phone's crop`);
+        if (vp.touch && !wholeTested && await page.locator(EX + ".shot-toggle").count()) {
+          // "Whole screen" shows every area of the screenshot; "Zoom in" goes back to the crop.
+          wholeTested = true;
+          const shown = () => page.evaluate(() => [...document.querySelectorAll(".lesson-body .ex:not(.step-leave) [data-region]")].filter((b) => !b.hidden).length);
+          const zoomed = await shown();
+          await tap(EX + ".shot-toggle");
+          const all = await shown();
+          ok(all > zoomed && /Zoom in/.test(await page.locator(EX + ".shot-toggle").innerText()), `phone screenshot: Whole screen shows every area (${zoomed} → ${all})`);
+          await tap(EX + ".shot-toggle");
+          ok(await shown() === zoomed, "phone screenshot: Zoom in goes back to the crop");
+        }
         await tap(EX + `[data-region="${right || !other ? step.target : other}"]`); // no other region: answer right
         return check();
       }

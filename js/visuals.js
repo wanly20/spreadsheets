@@ -100,15 +100,7 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
     // Not photographed yet: draw it (see content/screens.js).
     wrap.appendChild(renderVisual(withHighlight(screens[spec.image].drawn, spec.highlight), { interactiveHits }).el);
   } else if (spec.image) {
-    const s = screens[spec.image];
-    const box = el(`<figure class="shot" style="--ar:${s.w}/${s.h};--w:${s.w}px">
-      <img src="${s.src}" alt="${esc(s.alt)}" width="${s.w}" height="${s.h}" draggable="false">
-    </figure>`);
-    if (spec.highlight) {
-      const [x, y, w, h] = s.regions[spec.highlight].r;
-      box.appendChild(el(`<span class="shot-ring" style="left:${(x / s.w) * 100}%;top:${(y / s.h) * 100}%;width:${(w / s.w) * 100}%;height:${(h / s.h) * 100}%"></span>`));
-    }
-    wrap.appendChild(box);
+    wrap.appendChild(shotEl(screens[spec.image], { ring: spec.highlight }).el);
   }
   if (spec.grid) {
     const g = createGrid(spec.grid);
@@ -154,6 +146,84 @@ export function renderVisual(spec = {}, { interactiveHits = false } = {}) {
   if (!interactiveHits) out.hits.forEach((h) => h.setAttribute("tabindex", "-1"));
   out.play = () => plays.forEach((p) => p());
   return out;
+}
+
+// ------------------------------------------------------------------ real screenshots
+// On a phone (under 700px wide) a big screenshot is too small to read or tap, so it shows a
+// zoomed crop first (content/screens.js `phoneCrop`), with a "Whole screen" button.
+const isPhone = () => window.innerWidth < 700;
+const cropsOf = (s) => (!s.phoneCrop ? [] : Array.isArray(s.phoneCrop[0]) ? s.phoneCrop : [s.phoneCrop]);
+/** The part of region r that crop c shows ([x, y, w, h]), or null if it shows less than half of it either way. */
+export function inCrop(r, c) {
+  const x1 = Math.max(r[0], c[0]), y1 = Math.max(r[1], c[1]);
+  const x2 = Math.min(r[0] + r[2], c[0] + c[2]), y2 = Math.min(r[1] + r[3], c[1] + c[3]);
+  return x2 - x1 >= r[2] / 2 && y2 - y1 >= r[3] / 2 ? [x1, y1, x2 - x1, y2 - y1] : null;
+}
+/** The crop for `focus` (a region): the smallest that holds it whole, else the first that shows
+ *  most of it, else none (the whole picture). No focus: the first crop. */
+export function cropFor(s, focus) {
+  const list = cropsOf(s);
+  if (!focus) return list[0] || null;
+  const r = s.regions[focus].r;
+  const whole = list.filter((c) => r[0] >= c[0] && r[1] >= c[1] && r[0] + r[2] <= c[0] + c[2] && r[1] + r[3] <= c[1] + c[3]);
+  return whole.sort((a, b) => a[2] - b[2])[0] || list.find((c) => inCrop(r, c)) || null;
+}
+/** What a screen reader says for a region: its visible text, without a "(…)" hint unless two regions need it. */
+function spoken(s, id) {
+  const short = (l) => l.replace(/\s*\([^)]*\)$/, "");
+  const mine = short(s.regions[id].label);
+  return Object.entries(s.regions).some(([k, r]) => k !== id && short(r.label) === mine) ? s.regions[id].label : mine;
+}
+
+/**
+ * A real screenshot. ring: a region to ring (learn cards). hot: every region is a button (hotspots).
+ * focus: the region the phone crop must show (the answer). Returns { el, fig, buttons, isWhole, showWhole() }.
+ */
+export function shotEl(s, { ring, hot = false, focus = ring } = {}) {
+  const crop = isPhone() ? cropFor(s, focus) : null;
+  const fig = el(`<figure class="shot${hot ? " shot--hot" : ""}"><img src="${s.src}" alt="${esc(s.alt)}" draggable="false"></figure>`);
+  const img = fig.querySelector("img");
+  const parts = []; // [node, region rect]
+  if (ring) { const n = el(`<span class="shot-ring"></span>`); fig.appendChild(n); parts.push([n, s.regions[ring].r]); }
+  const buttons = [];
+  if (hot) {
+    // Areas packed close together (menu rows) keep to their own box: a bigger invisible tap
+    // area would reach into the next row (touch screens give every area 44px: practice.css).
+    const near = (a, b) => a[0] < b[0] + b[2] + 8 && b[0] < a[0] + a[2] + 8 && a[1] < b[1] + b[3] + 8 && b[1] < a[1] + a[3] + 8;
+    const all = Object.values(s.regions).map((x) => x.r);
+    for (const [id, reg] of Object.entries(s.regions)) {
+      const tight = all.some((o) => o !== reg.r && near(reg.r, o));
+      const b = el(`<button type="button" class="hot${tight ? " hot--tight" : ""}" data-region="${esc(id)}" aria-label="${esc(spoken(s, id))}" aria-pressed="false"><span class="hot__ring"></span></button>`);
+      fig.appendChild(b);
+      parts.push([b, reg.r]);
+      buttons.push(b);
+    }
+  }
+  const view = (c) => {
+    const [cx, cy, cw, ch] = c || [0, 0, s.w, s.h];
+    fig.style.setProperty("--ar", `${cw}/${ch}`);
+    fig.style.setProperty("--w", `${c ? Math.round(cw * 2.5) : s.w}px`);
+    fig.classList.toggle("is-zoomed", !!c);
+    Object.assign(img.style, { width: `${(s.w / cw) * 100}%`, marginLeft: `${(-cx / cw) * 100}%`, marginTop: `${(-cy / cw) * 100}%` });
+    for (const [n, r] of parts) {
+      const v = c ? inCrop(r, c) : r;
+      n.hidden = !v;
+      if (v) Object.assign(n.style, { left: `${((v[0] - cx) / cw) * 100}%`, top: `${((v[1] - cy) / ch) * 100}%`, width: `${(v[2] / cw) * 100}%`, height: `${(v[3] / ch) * 100}%` });
+    }
+  };
+  const wrap = el(`<div class="shot-wrap"></div>`);
+  wrap.appendChild(fig);
+  let whole = !crop;
+  let toggle = null;
+  if (crop) {
+    toggle = el(`<button type="button" class="btn-text shot-toggle" aria-pressed="false"></button>`);
+    const label = () => { toggle.innerHTML = whole ? `${icon("zoom-in", 18, 2.75)}<span>Zoom in</span>` : `${icon("maximize-2", 18, 2.75)}<span>Whole screen</span>`; toggle.setAttribute("aria-pressed", String(whole)); };
+    toggle.addEventListener("click", () => { whole = !whole; view(whole ? null : crop); label(); });
+    label();
+    wrap.appendChild(toggle);
+  }
+  view(crop);
+  return { el: wrap, fig, buttons, isWhole: () => whole, showWhole() { if (!whole) toggle.click(); } };
 }
 
 function replayButton(run) {
