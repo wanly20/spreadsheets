@@ -160,7 +160,7 @@
   box-shadow: 0 0 0 2px var(--line-200), var(--shadow-md);
   background: rgb(255 255 255 / 0.35);
   z-index: -1;
-  animation: ring 2.4s var(--ease-out) infinite;
+  animation: ring 2.4s var(--ease-out) 3; /* pulses a few times, then stays still */
 }
 @keyframes ring { 50% { transform: scale(1.05); } }
 .node-wrap.is-current { margin-top: 56px !important; }
@@ -177,7 +177,7 @@
   color: var(--green-600);
   white-space: nowrap;
   box-shadow: var(--shadow-sm);
-  animation: bob 1.6s ease-in-out infinite;
+  animation: bob 1.6s ease-in-out 3;
   z-index: 2;
 }
 .node-wrap.is-current .start-bubble { bottom: auto; top: -62px; }
@@ -310,7 +310,7 @@
   box-shadow: 0 var(--edge) 0 var(--line-200);
 }
 .learn-card__top { display: flex; align-items: flex-start; justify-content: space-between; min-height: 40px; }
-.learn-card__mascot { position: absolute; right: 10px; top: -18px; width: 76px; filter: drop-shadow(0 6px 8px rgb(24 39 30 / 0.16)); animation: float 3.2s ease-in-out infinite; }
+.learn-card__mascot { position: absolute; right: 10px; top: -18px; width: 76px; filter: drop-shadow(0 6px 8px rgb(24 39 30 / 0.16)); animation: owl-pop 0.5s var(--ease-spring) 0.1s both; } /* pops in once, then still: the term is what to look at */
 @keyframes float { 50% { transform: translateY(-6px); } }
 .learn-term { margin: 0; padding-right: 64px; font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-2xl); line-height: 1.1; color: var(--green-700); }
 .learn-def { margin: 0; font-size: var(--fs-lg); line-height: 1.4; }
@@ -439,7 +439,7 @@
   position: absolute; left: 50%; bottom: -4px;
   width: 168px; margin-left: -84px;
   filter: drop-shadow(0 10px 14px rgb(24 39 30 / 0.22));
-  animation: owl-in 0.7s var(--ease-spring) 0.15s both, owl-bob 2.6s ease-in-out 1s infinite;
+  animation: owl-in 0.7s var(--ease-spring) 0.15s both, owl-bob 2.6s ease-in-out 1s 2;
 }
 @keyframes owl-in { from { transform: translateY(40px) scale(0.6); opacity: 0; } }
 @keyframes owl-bob { 50% { transform: translateY(-8px) rotate(-2deg); } }
@@ -560,6 +560,24 @@
 .bar-btn--kb { color: var(--yellow-600) !important; }
 @media (max-width: 419.98px) { .path-top .brand__name { display: none; } }
 .lesson[data-step="learn"] .combo { opacity: 0; }
+/* Review says what it is, under the progress bar */
+.lesson-kicker { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; padding: 0 var(--sp-4) var(--sp-1); font-family: var(--font-display); font-weight: var(--display-weight-bold); font-size: var(--fs-xs); letter-spacing: 0.04em; color: var(--blue-700); text-align: center; }
+.lesson-kicker .icon { flex: none; }
+/* A quieter finish (fewer than three stars): the stars pop, no confetti */
+.complete--quiet .complete-stars .star { animation-duration: 0.35s; }
+/* Lessons not started yet: one quiet line */
+.lesson-prog--later { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--ink-soft); }
+.lesson-prog--later b { color: var(--ink); }
+/* Settings: the whole sound row is the switch */
+.setting--switch { cursor: pointer; }
+.settings-danger { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 2px solid var(--line-100); }
+.load-msg__head { font-weight: 700; }
+.load-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.load-list li { display: flex; align-items: center; gap: 6px; }
+.load-list li span { margin-left: auto; }
+.load-list .icon { color: var(--green-600); }
+.load-list li:not(.is-done) { padding-left: 22px; }
+.load-msg__q { font-size: var(--fs-md); }
 /* The big review at the end of the path, and Lesson 3's yellow */
 /* the final review's button is dark with a gold crown, so only "done" is gold */
 .unit--ink { --u: #24352b; --u-edge: #101a14; --u-node: #2f4538; --u-node-edge: #101a14; --u-text: var(--white); }

@@ -73,6 +73,7 @@ async function runViewport(vp) {
   await wait(1200);
   await shot("path-start");
   ok(await page.locator(".node.is-current").count() === 1, "path shows one current level");
+  if (vp.width >= 1024) ok(await page.locator(".lesson-prog:not(.lesson-prog--later)").count() === 1 && /Lessons 2–7/.test(await page.locator(".lesson-prog--later").innerText()), "day one: one progress bar (Lesson 1), and “Lessons 2–7” on one line");
   const soonCount = await page.evaluate(async () => (await import("./content/course.js")).course.lessons.filter((l) => l.comingSoon).length);
   ok(await page.locator(".unit.is-soon").count() >= soonCount, `lessons that aren't ready show as coming soon (${soonCount})`);
 
@@ -90,6 +91,10 @@ async function runViewport(vp) {
   await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
   await wait(300);
   ok(await page.locator(".toast").count() === 1, "Review with nothing practised shows a friendly note");
+  // The note never follows you into a level.
+  await tap(".node.is-current"); await wait(400); await tap("[data-start]"); await wait(700);
+  ok(await page.locator(".toast").count() === 0, "the note is gone once a level starts");
+  await page.keyboard.press("Escape"); await wait(400); await tap('[data-q="leave"]'); await wait(700);
 
   // ------------------------------------------------------------ every level, in path order
   const nodeIds = await page.evaluate(() => [...document.querySelectorAll(".node[data-node]:not([data-soon])")].map((n) => n.dataset.node));
@@ -107,6 +112,10 @@ async function runViewport(vp) {
     ok(res.questions >= 8 && res.questions <= (id.endsWith("-r") ? 16 : 12), `${id}: ${res.questions} questions (8–12 per level)`);
     await shot(`complete-${k === 0 ? "first" : "level"}`);
     ok(await page.locator(".complete-stars .star.is-on").count() >= 1, `${id}: stars on the complete screen`);
+    // Confetti only for three stars or a lesson's last level (its Mixed review, or the big review).
+    const starsNow = await page.locator(".complete-stars .star.is-on").count();
+    const last = /-r$/.test(id);
+    ok(await page.locator(".screen.complete").getAttribute("data-confetti") === (starsNow === 3 || last ? "1" : "0"), `${id}: confetti ${starsNow === 3 || last ? "for" : "not for"} ${starsNow} star${starsNow === 1 ? "" : "s"}${last ? " (the lesson's last level)" : ""}`);
     await tap("[data-done]");
     await wait(1000);
     ok(await page.locator(`.node[data-node="${id}"].is-done`).count() === 1, `${id}: marked done on the path`);
@@ -128,8 +137,13 @@ async function runViewport(vp) {
   // ------------------------------------------------------------ Review button
   await tap(vp.width >= 1024 ? '.side-nav [data-act="review"]' : '.path-top [data-act="review"]');
   await wait(900);
+  ok(/^Review · \d+ terms? you found tricky/.test((await page.locator(".lesson-kicker").innerText()).trim()), "Review says what it is at the top");
+  ok(/Missed last time|From Lesson \d/i.test(await page.locator(".lesson-body .ex-kicker").first().innerText()), "a Review question says why it's back");
   const rev = await playSession("review", new Set(["*"]));
   ok(rev.done && rev.questions >= 8, `Review session finished (${rev.questions} questions)`);
+  // Review ends like Review: how many were right first time, no stars, nothing to "play again", no confetti.
+  const revEnd = await page.locator(".complete-sub").innerText();
+  ok(/right first time/.test(revEnd) && !/Play/.test(revEnd) && await page.locator(".complete-stars").count() === 0 && await page.locator(".screen.complete").getAttribute("data-confetti") === "0", `Review ends with “${revEnd}”, no stars, no confetti`);
   await tap("[data-done]");
   await wait(900);
 
@@ -536,7 +550,8 @@ async function runViewport(vp) {
         await dragRange(r1);
         if (right) {
           // Hold Ctrl for the second range: the real key with a mouse, the on-screen Ctrl key on a touch screen.
-          if (vp.touch) { await page.locator(EX + ".ctrl-latch").tap(); ok(await page.locator(EX + ".ctrl-latch.is-on").count() === 1, "gridMulti: the on-screen Ctrl key stays held"); }
+          // (a tap straight after an emulated touch drag can land in the drag's fling and be dropped: wait)
+          if (vp.touch) { await wait(600); await page.locator(EX + ".ctrl-latch").tap(); ok(await page.locator(EX + ".ctrl-latch.is-on").count() === 1, "gridMulti: the on-screen Ctrl key stays held"); }
           else await page.keyboard.down("Control");
           await dragRange(r2);
           if (!vp.touch) await page.keyboard.up("Control");
@@ -719,6 +734,9 @@ async function runViewport(vp) {
   }
 
   async function drag(fromSel, toSel) {
+    // Phone rows are taller: bring both ends on screen first (a drag can't start off screen).
+    for (const sel of [toSel, fromSel]) await page.locator(sel).first().scrollIntoViewIfNeeded();
+    await wait(150);
     const a = await page.locator(fromSel).first().boundingBox();
     const b = await page.locator(toSel).first().boundingBox();
     const p1 = { x: a.x + a.width / 2, y: a.y + a.height / 2 }, p2 = { x: b.x + b.width / 2, y: b.y + b.height / 2 };

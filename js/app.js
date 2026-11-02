@@ -38,7 +38,7 @@ let active = null;
 function route() {
   active?.dispose();
   active = null;
-  app.querySelectorAll(".screen, .sheet, .scrim").forEach((n) => n.remove());
+  app.querySelectorAll(".screen, .sheet, .scrim, .toast-wrap").forEach((n) => n.remove()); // a note never follows you into a level
   const h = location.hash;
   if (h.startsWith("#/play/")) return play(decodeURIComponent(h.slice(7)));
   if (h === "#/review") return play("review");
@@ -290,6 +290,10 @@ function pathPanel() {
   const streak = store.liveStreak();
   const ready = model.lessons.filter((l) => !l.comingSoon);
   const due = dueItems().length, seen = seenItems().length;
+  // Day one: only the lesson you're on gets a bar; the ones not started yet are one line.
+  const curLesson = currentNode()?.lesson;
+  const started = (l) => l.n === curLesson || nodes.some((n) => n.lesson === l.n && levelState(n.id));
+  const shown = ready.filter(started), later = ready.filter((l) => !started(l));
   return `
     <aside class="path-panel" aria-label="Your progress">
       <div class="panel-card panel-stats">
@@ -298,7 +302,7 @@ function pathPanel() {
       </div>
       <section class="panel-card panel-lessons" aria-labelledby="prog-h">
         <h2 class="panel-title" id="prog-h">Your progress</h2>
-        ${ready.map((l) => {
+        ${shown.map((l) => {
           const ns = nodes.filter((n) => n.lesson === l.n);
           const got = ns.reduce((a, n) => a + (levelState(n.id)?.stars || 0), 0);
           const done = ns.filter((n) => levelState(n.id)).length;
@@ -307,6 +311,7 @@ function pathPanel() {
             <div class="mini-bar" role="img" aria-label="${done} of ${ns.length} done"><span style="--p:${done / ns.length}"></span></div>
           </div>`;
         }).join("")}
+        ${later.length ? `<p class="lesson-prog lesson-prog--later"><b>${later.length === 1 ? "Lesson" : "Lessons"} ${numberList(later.map((l) => l.n))}</b><span>not started yet</span></p>` : ""}
       </section>
       <section class="panel-card panel-review" aria-labelledby="rev-h">
         <span class="panel-kicker">${icon("repeat", 16, 2.75)} Review</span>
@@ -322,6 +327,14 @@ function pathPanel() {
         </div>
       </section>
     </aside>`;
+}
+
+/** [2, 3, 4, 6, 7] → "2–4, 6 and 7" */
+function numberList(ns) {
+  const runs = [];
+  for (const n of ns) { const r = runs.at(-1); if (r && n === r[1] + 1) r[1] = n; else runs.push([n, n]); }
+  const parts = runs.flatMap(([a, b]) => (a === b ? [`${a}`] : b === a + 1 ? [`${a}`, `${b}`] : [`${a}–${b}`]));
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0];
 }
 
 function startReview() {
@@ -348,7 +361,12 @@ function play(id) {
   } else if (id === "review") {
     const items = seenItems();
     if (!items.length) { location.replace("#/"); return; }
-    session = { id: null, kind: "review", title: "Review", xpBase: 5, steps: reviewSession(model, items, { count: REVIEW_COUNT, need, miss, seed }) };
+    const steps = reviewSession(model, items, { count: REVIEW_COUNT, need, miss, seed });
+    // Each question says why it's back; the end screen counts the terms that got stronger.
+    steps.forEach((st) => { if (st.item) Object.assign(st, reviewTag(st.item)); });
+    const terms = [...new Set(steps.flatMap((st) => st.items || [st.item]).filter(Boolean))];
+    const boxes = Object.fromEntries(terms.map((t) => [t, store.get().items[t]?.box ?? 0]));
+    session = { id: null, kind: "review", spaced: true, title: "Review", kicker: `Review · ${terms.length} term${terms.length === 1 ? "" : "s"} you found tricky or haven't seen for a while`, xpBase: 5, steps, boxes };
   } else {
     const n = allNodes().find((x) => x.id === id);
     if (!n) { location.replace("#/"); return; }
@@ -367,6 +385,15 @@ function play(id) {
     onComplete: (r) => showComplete(session, r),
     openSettings,
   });
+}
+
+/** Why a term is back in Review: missed last time, or not seen for a while. */
+function reviewTag(itemId) {
+  const s = store.get().items[itemId], it = model.byId.get(itemId);
+  if (!s || s.box === 0) return { tag: "Missed last time", tagMissed: true };
+  const day = (t) => new Date(new Date(t).toDateString()).getTime();
+  const days = Math.round((day(Date.now()) - day(s.seen)) / 864e5);
+  return { tag: `From Lesson ${it.lesson}, ${days <= 0 ? "earlier today" : days === 1 ? "yesterday" : `${days} days ago`}` };
 }
 
 function samplerSteps() {
@@ -399,26 +426,35 @@ function samplerSteps() {
 }
 
 // =================================================================== complete
-async function showComplete(session, { xp, accuracy, practised }) {
+async function showComplete(session, { xp, accuracy, practised, firstTry = 0, firstGraded = 0 }) {
   const { state, stars: got } = store.finishLevel(session.id, xp, accuracy);
   justCompleted = session.id;
+  const spaced = !!session.spaced; // the Review button: no stars, nothing to play again
   const title = session.kind === "level" ? "Level complete!" : session.kind === "review" ? "Review done!" : "Review complete!";
   const terms = [...new Set(practised.map((id) => model.byId.get(id)?.term).filter(Boolean))];
+  const stronger = spaced ? Object.entries(session.boxes).filter(([id, b]) => (store.get().items[id]?.box ?? 0) > b).length : 0;
+  const sub = spaced
+    ? `${firstTry} of ${firstGraded} right first time. ${stronger ? `${stronger} term${stronger === 1 ? " is" : "s are"} stronger now.` : "Come back tomorrow to make them stronger."}`
+    : `${session.title}${got === 3 ? ": three stars!" : got === 2 ? ": two stars. Play again for three!" : ". Play it again to earn more stars."}`;
+  // Confetti only for something special: three stars, or the last level of a lesson (or the big review).
+  const node = session.id && allNodes().find((n) => n.id === session.id);
+  const lastOfLesson = !!node && (node.kind === "final" || nodes.filter((n) => n.lesson === node.lesson).at(-1)?.id === node.id);
+  const party = !!node && (got === 3 || lastOfLesson);
   const screen = el(`
-    <section class="screen complete" aria-label="${esc(title)}">
+    <section class="screen complete ${party ? "" : "complete--quiet"}" aria-label="${esc(title)}" data-confetti="${party ? 1 : 0}">
       <canvas class="confetti" aria-hidden="true"></canvas>
       <div class="complete-hero">
         <div class="complete-scene" aria-hidden="true"></div>
-        ${stars(starsFor(accuracy), "complete-stars")}
+        ${spaced ? "" : stars(starsFor(accuracy), "complete-stars")}
         <img class="complete-owl" src="${mascotSrc("happy")}" alt="${esc(MASCOT.name)} the ${esc(MASCOT.species)}, celebrating">
       </div>
       <div class="complete-body">
         <h1 class="complete-title">${title}</h1>
-        <p class="complete-sub">${esc(session.title)}${got === 3 ? ": three stars!" : got === 2 ? ": two stars. Play again for three!" : ". Play it again to earn more stars."}</p>
+        <p class="complete-sub">${esc(sub)}</p>
         <div class="stat-cards">
           <div class="stat stat--xp"><span class="stat__label">XP</span><span class="stat__value">${icon("zap", 22, 2.5)}<b data-count="${xp}">0</b></span></div>
-          <div class="stat stat--acc"><span class="stat__label">${accuracy >= 90 ? "Amazing" : "First try"}</span><span class="stat__value">${icon("target", 22, 2.5)}<span class="stat__num"><b data-count="${accuracy}">0</b>%</span></span></div>
-          <div class="stat stat--streak"><span class="stat__label">Streak</span><span class="stat__value">${icon("flame", 22, 2.5)}<b data-count="${state.streak}">0</b>&nbsp;day${state.streak === 1 ? "" : "s"}</span></div>
+          <div class="stat stat--acc"><span class="stat__label">${accuracy >= 90 ? "Amazing" : "First try"}</span><span class="stat__value">${icon("target", 22, 2.5)}<span class="stat__num"><b>${accuracy}</b>%</span></span></div>
+          <div class="stat stat--streak"><span class="stat__label">Streak</span><span class="stat__value">${icon("flame", 22, 2.5)}<b>${state.streak}</b>&nbsp;day${state.streak === 1 ? "" : "s"}</span></div>
         </div>
         ${terms.length ? `<div class="learned"><span class="learned__label">You practised</span><div class="learned__chips">${terms.map((t) => `<span class="learned__chip">${esc(t)}</span>`).join("")}</div></div>` : ""}
       </div>
@@ -435,7 +471,7 @@ async function showComplete(session, { xp, accuracy, practised }) {
   const onKey = (e) => { if (e.key === "Enter" && !e.repeat) { e.preventDefault(); done(); } };
   setTimeout(() => document.addEventListener("keydown", onKey), 400);
 
-  if (!reducedMotion()) {
+  if (party && !reducedMotion()) {
     try {
       const { default: confetti } = await import("https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/+esm");
       if (!screen.isConnected) return;
@@ -448,14 +484,14 @@ async function showComplete(session, { xp, accuracy, practised }) {
   }
 }
 
-/** "Lesson 1: 5 of 6 levels done, 120 XP." for a progress file. */
-function summarise(p, saved) {
-  const parts = model.lessons.filter((l) => !l.comingSoon).map((l) => {
-    const ns = nodes.filter((n) => n.lesson === l.n);
-    return `${l.title}: ${ns.filter((n) => p.levels[n.id]).length} of ${ns.length} levels done`;
+/** What a progress file holds, at a glance: one line per lesson (a tick when it's finished), the XP and the date. */
+function summaryHtml(p, saved) {
+  const rows = model.lessons.filter((l) => !l.comingSoon).map((l) => {
+    const ns = nodes.filter((n) => n.lesson === l.n), done = ns.filter((n) => p.levels[n.id]).length;
+    return `<li class="${done === ns.length ? "is-done" : ""}">${done === ns.length ? icon("check", 16, 3) : ""}<b>${esc(l.title)}</b><span>${done} of ${ns.length} levels</span></li>`;
   });
-  const when = saved ? ` (saved ${new Date(saved).toLocaleDateString(undefined, { day: "numeric", month: "short" })})` : "";
-  return `This file${when} has ${parts.join(", ")}, ${p.xp} XP.`;
+  const when = saved ? `, saved ${new Date(saved).toLocaleDateString(undefined, { day: "numeric", month: "short" })}` : "";
+  return `<p class="load-msg__head">This file: ${p.xp} XP${when}</p><ul class="load-list">${rows.join("")}</ul>`;
 }
 
 // =================================================================== settings
@@ -467,7 +503,7 @@ export function openSettings() {
         <h2 class="h-title">Settings</h2>
         <button class="bar-btn" data-close aria-label="Close settings">${icon("x", 26, 3)}</button>
       </div>
-      <div class="setting"><span class="setting__icon">${icon("volume-2", 22, 2.5)}</span>
+      <div class="setting setting--switch" data-switch-row><span class="setting__icon">${icon("volume-2", 22, 2.5)}</span>
         <span class="setting__text"><span class="setting__title" id="set-sfx">Sound effects</span><span class="setting__sub">Little sounds for right and wrong answers</span></span>
         <button class="switch" role="switch" aria-checked="${s.sfx}" aria-labelledby="set-sfx" data-switch="sfx"></button></div>
       <p class="modal__section">Your progress</p>
@@ -478,7 +514,7 @@ export function openSettings() {
           <input type="file" accept=".txt,.json,text/plain,application/json" data-load class="sr-only"></label>
       </div>
       <div class="load-msg" role="status" aria-live="polite" hidden></div>
-      <button class="btn-text settings-reset" data-reset>${icon("rotate-ccw", 18, 2.75)} Reset progress</button>
+      <div class="settings-danger"><button class="btn-text settings-reset" data-reset>${icon("rotate-ccw", 18, 2.75)} Reset progress</button></div>
       <p class="settings-foot">${esc(APP_NAME)} · Year 7 ICT</p>
     </div>`);
   const m = openModal(node, { label: "Settings" });
@@ -499,7 +535,7 @@ export function openSettings() {
     }
     pending = r.progress;
     msg.className = "load-msg is-ok";
-    msg.innerHTML = `<p>${esc(summarise(r.progress, r.saved))} Replace your current progress with it?</p>
+    msg.innerHTML = `${summaryHtml(r.progress, r.saved)}<p class="load-msg__q"><b>Replace your current progress with it?</b></p>
       <div class="load-msg__actions">${button("Replace my progress", { attrs: "data-load-yes", block: false })}<button class="btn-text" data-load-no>Cancel</button></div>`;
     sfx.select();
   });
@@ -522,11 +558,11 @@ export function openSettings() {
       store.replace(pending);
       pending = null;
       m.close();
-      toast("Progress loaded. Welcome back!", "check");
       if (!location.hash.startsWith("#/play") && location.hash !== "#/review") route();
+      toast("Progress loaded. Welcome back!", "check");
       return;
     }
-    const sw = t.closest("[data-switch]");
+    const sw = t.closest("[data-switch-row]")?.querySelector("[data-switch]");
     if (sw) {
       const on = sw.getAttribute("aria-checked") !== "true";
       sw.setAttribute("aria-checked", String(on));
@@ -539,8 +575,8 @@ export function openSettings() {
       if (r.dataset.confirm) {
         store.reset();
         m.close();
-        toast("Progress reset.", "rotate-ccw");
         if (!location.hash.startsWith("#/play") && location.hash !== "#/review") route();
+        toast("Progress reset.", "rotate-ccw");
       } else {
         r.dataset.confirm = "1";
         r.innerHTML = `${icon("rotate-ccw", 18, 2.75)} Tap again to reset everything`;

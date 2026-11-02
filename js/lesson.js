@@ -39,6 +39,7 @@ export function runLesson(app, session, hooks) {
         <button class="bar-btn" data-act="settings" aria-label="Settings">${icon("sliders-horizontal", 26, 2.5)}</button>
         <div class="combo" aria-hidden="true">${icon("flame", 16, 2.5)}<span></span></div>
       </header>
+      ${session.kicker ? `<p class="lesson-kicker">${icon("repeat", 16, 2.75)} ${esc(session.kicker)}</p>` : ""}
       <main class="lesson-body" tabindex="-1"></main>
       <div class="more-hint" aria-hidden="true"><span>More ${icon("arrow-down", 16, 3)}</span></div>
       ${footBar(button("Check", { attrs: 'data-act="main"' }))}
@@ -67,7 +68,9 @@ export function runLesson(app, session, hooks) {
 
   // "More ↓" with a soft fade when the exercise runs below the bottom bar (a tall card or screenshot).
   const updateMore = () => {
-    const more = mode === "answer" && body.scrollHeight - body.clientHeight - body.scrollTop > 8;
+    // Not for the quiet "I don't know yet" row alone (it sits at the very bottom on a phone).
+    const quiet = current?.el?.querySelector(".ex-escape")?.offsetHeight || 0;
+    const more = mode === "answer" && body.scrollHeight - body.clientHeight - body.scrollTop > 8 + quiet;
     if (more) screen.style.setProperty("--more-b", `${screen.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom}px`);
     screen.classList.toggle("has-more", more);
   };
@@ -159,7 +162,7 @@ export function runLesson(app, session, hooks) {
     const accuracy = stats.firstGraded ? Math.round((stats.firstTry / stats.firstGraded) * 100) : 100;
     const xp = (session.xpBase ?? 10) + stats.firstTry;
     screen.classList.add("is-leaving");
-    setTimeout(() => { screen.remove(); hooks.onComplete({ xp, accuracy, bestStreak: stats.bestStreak, practised: [...stats.practised] }); }, reducedMotion() ? 0 : 220);
+    setTimeout(() => { screen.remove(); hooks.onComplete({ xp, accuracy, bestStreak: stats.bestStreak, practised: [...stats.practised], firstTry: stats.firstTry, firstGraded: stats.firstGraded }); }, reducedMotion() ? 0 : 220);
   }
 
   // "Skip": show the answer kindly; the question comes back later.
