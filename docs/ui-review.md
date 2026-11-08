@@ -4,7 +4,7 @@ A design review of the Year 7 spreadsheets practice app for its real users: 12�
 
 **How it was checked.** Served on port 8767 and driven with headless Chromium (software rendering, fresh browser contexts, so no saved progress was touched). I ran the app’s own end-to-end player over the whole path at 1366×768 (every level and review, right and wrong answers), played the first three levels and a Review at 390×844 and 1920×1080, the `#/play/sampler` (one of every exercise type, all answered wrong once) at 390×844, and walked `#/play/gallery-1` to `gallery-7` on the phone (every learn card and hand-made exercise). An in-page check measured every tap target, the contrast of every visible text node, sideways overflow and the distance from the content to Check. Mockups (files starting `mock-`) were made by injecting CSS (and, for the feedback card, moving one element) in my browser only.
 
-Screenshot paths are relative to `docs/`. Effort: **S** is a CSS tweak or under an hour, **M** a few hours or a small JS change, **L** a day or more. Juan answers on the review page: `~/Documents/teaching_app/review/spreadsheets-ui-review.html`.
+Screenshot paths are relative to `docs/`. Effort: **S** is a CSS tweak or under an hour, **M** a few hours or a small JS change, **L** a day or more. Juan answers on the review page: `~/Jobs/School/hub/review/spreadsheets-ui-review.html`.
 
 **What already works well (keep it):**
 
