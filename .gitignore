@@ -1,2 +1,7 @@
 node_modules/
 .DS_Store
+
+# Review captures stay local (they sync between laptops via Syncthing).
+# The screenshots already committed stay tracked; use `git add -f` to publish a new one.
+screenshots/
+docs/ui-review/
