@@ -90,7 +90,7 @@ nearest level. The checker tells you so you can tidy up the level list.
 Edit `js/brand.js` (and the `<title>` in `index.html`). To use a new mascot picture, cut it out and
 export it as WebP with the mascot tool. It runs on the CPU only:
 
-    ~/Documents/video_generation/Wan2GP/.venv/bin/python tools/process_mascot.py design/mascot/NEW.png assets/mascot/mascot.webp
+    ~/Projects/video_generation/Wan2GP/.venv/bin/python tools/process_mascot.py design/mascot/NEW.png assets/mascot/mascot.webp
 
 The current mascot is Pip, from `design/mascot/penguin_laptop_s3.png`.
 

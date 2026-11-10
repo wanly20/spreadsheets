@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cut the mascot out of its background and export a WebP for the app.
 
-    CUDA_VISIBLE_DEVICES= ~/Documents/video_generation/Wan2GP/.venv/bin/python \
+    CUDA_VISIBLE_DEVICES= ~/Projects/video_generation/Wan2GP/.venv/bin/python \
         tools/process_mascot.py design/mascot/penguin_laptop_s1.png assets/mascot/mascot.webp
 
 Runs rembg on the CPU (never the GPU), trims the transparent border, scales the
